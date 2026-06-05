@@ -151,38 +151,54 @@ jobs:
 
 
   # ── Release: publish to GitHub Releases ──────────────────────────────────
+  # Runs after BOTH build jobs succeed — always, for tag pushes AND manual dispatch.
   release:
     name: Publish GitHub Release
     needs: [build-windows, build-linux]
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Resolve tag and semver
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            TAG="${{ github.ref_name }}"
+          else
+            TAG="v${{ inputs.version }}"
+          fi
+          SEM="${TAG#v}"
+          echo "TAG=$TAG"   >> $GITHUB_ENV
+          echo "SEM=$SEM"   >> $GITHUB_ENV
+
+      - name: Ensure git tag exists (workflow_dispatch only)
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          git config user.email "ci@github.com"
+          git config user.name "GitHub Actions"
+          git tag -f "${{ env.TAG }}" -m "UIScope ${{ env.TAG }}"
+          git push origin "${{ env.TAG }}" --force
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
           path: dist/
 
-      - name: List files
+      - name: List built files
         run: find dist/ -type f | sort
 
-      - name: Resolve semver
-        run: |
-          RAW="${{ github.ref_name }}"
-          echo "SEM=${RAW#v}" >> $GITHUB_ENV
-
-      - name: Create GitHub Release
+      - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}
-          name: "UIScope ${{ github.ref_name }}"
+          tag_name: ${{ env.TAG }}
+          name: "UIScope ${{ env.TAG }}"
           draft: false
-          prerelease: ${{ contains(github.ref_name, '-') }}
+          prerelease: ${{ contains(env.TAG, '-') }}
           body: |
-            ## UIScope ${{ github.ref_name }} — Desktop & Android UI Inspector
+            ## UIScope ${{ env.TAG }} — Desktop & Android UI Inspector
 
             **See what your UI is made of.** Live inspection of Android device UI trees and Windows/Linux accessibility trees. No accounts, no telemetry, fully offline.
 
