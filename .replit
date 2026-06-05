@@ -1,4 +1,4 @@
-modules = ["nodejs-24", "java-graalvm22.3"]
+modules = ["nodejs-20", "web", "bash"]
 
 [deployment]
 router = "application"
@@ -47,7 +47,7 @@ args = "bash scripts/run-uiscope.sh"
 outputType = "vnc"
 
 [agent]
-stack = "PNPM_WORKSPACE"
+stack = "BEST_EFFORT_FALLBACK"
 expertMode = true
 
 [postMerge]
