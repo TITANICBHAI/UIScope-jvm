@@ -25,7 +25,8 @@ compose.desktop {
         jvmArgs(
             "-Xms64m",
             "-Xmx512m",
-            "--add-opens=java.desktop/sun.awt=ALL-UNNAMED"
+            "--add-opens=java.desktop/sun.awt=ALL-UNNAMED",
+            "-Dskiko.renderApi=SOFTWARE"
         )
 
         nativeDistributions {
