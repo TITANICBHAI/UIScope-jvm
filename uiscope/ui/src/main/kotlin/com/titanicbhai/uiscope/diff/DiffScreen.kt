@@ -21,64 +21,123 @@ import com.titanicbhai.uiscope.theme.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
+// ── Data model ────────────────────────────────────────────────────────────────
+
+private data class NodeSnapshot(
+    val label: String,
+    val text: String?,
+    val isEnabled: Boolean
+)
+
+private enum class DiffStatus { ADDED, REMOVED, CHANGED }
+
 private data class DiffItem(
     val nodeId: String,
     val label: String,
-    val status: DiffStatus
+    val status: DiffStatus,
+    val detail: String = ""
 )
 
-private enum class DiffStatus { ADDED, REMOVED, UNCHANGED }
+// ── Parsing ───────────────────────────────────────────────────────────────────
 
-private fun extractIds(treeJson: String): Map<String, String> {
-    // Extract nodes from JSON by parsing "id":"..." and "name":"..." patterns
-    val result = mutableMapOf<String, String>()
-    try {
-        val idPattern = Regex(""""id"\s*:\s*"([^"]+)"""")
-        val namePattern = Regex(""""name"\s*:\s*"([^"]+)"""")
-        val classPattern = Regex(""""className"\s*:\s*"([^"]+)"""")
-        val entries = treeJson.split(Regex("""\},\s*\{"""))
-        for (entry in entries) {
-            val id = idPattern.find(entry)?.groupValues?.get(1) ?: continue
-            val name = namePattern.find(entry)?.groupValues?.get(1)?.takeIf { it.isNotBlank() }
-            val cls = classPattern.find(entry)?.groupValues?.get(1)?.substringAfterLast('.')
-            result[id] = name ?: cls ?: id
+/**
+ * Extracts a flat map of resourceId → NodeSnapshot from a treeJson string by
+ * tracking brace depth so it correctly handles nested children arrays without
+ * requiring a full JSON library.
+ */
+private fun extractNodes(treeJson: String): Map<String, NodeSnapshot> {
+    val result = mutableMapOf<String, NodeSnapshot>()
+    if (treeJson.isBlank()) return result
+
+    val resIdRx  = Regex(""""resourceId"\s*:\s*"([^"]*)"""")
+    val textRx   = Regex(""""text"\s*:\s*"([^"]*)"""")
+    val nameRx   = Regex(""""name"\s*:\s*"([^"]*)"""")
+    val classRx  = Regex(""""className"\s*:\s*"([^"]*)"""")
+    val enabledRx = Regex(""""isEnabled"\s*:\s*(true|false)""")
+
+    var depth = 0
+    var start = 0
+    for (i in treeJson.indices) {
+        when (treeJson[i]) {
+            '{' -> { if (depth == 0) start = i; depth++ }
+            '}' -> {
+                depth--
+                if (depth == 0) {
+                    val obj = treeJson.substring(start, i + 1)
+                    val resId = resIdRx.find(obj)?.groupValues?.get(1)?.takeIf { it.isNotBlank() }
+                    if (resId != null && resId !in result) {
+                        val text    = textRx.find(obj)?.groupValues?.get(1)
+                        val name    = nameRx.find(obj)?.groupValues?.get(1)?.takeIf { it.isNotBlank() }
+                        val cls     = classRx.find(obj)?.groupValues?.get(1) ?: ""
+                        val enabled = enabledRx.find(obj)?.groupValues?.get(1) != "false"
+                        val label   = name ?: cls.substringAfterLast('.').ifBlank { resId.substringAfterLast('/') }
+                        result[resId] = NodeSnapshot(label, text, enabled)
+                    }
+                }
+            }
         }
-    } catch (_: Exception) {}
+    }
     return result
 }
 
-private fun computeDiff(idsA: Map<String, String>, idsB: Map<String, String>): List<DiffItem> {
+private fun computeDiff(
+    nodesA: Map<String, NodeSnapshot>,
+    nodesB: Map<String, NodeSnapshot>
+): List<DiffItem> {
     val all = mutableListOf<DiffItem>()
-    idsB.forEach { (id, label) ->
-        if (id !in idsA) all.add(DiffItem(id, label, DiffStatus.ADDED))
+
+    // ADDED — in B but not A
+    nodesB.forEach { (id, snap) ->
+        if (id !in nodesA) all.add(DiffItem(id, snap.label, DiffStatus.ADDED))
     }
-    idsA.forEach { (id, label) ->
-        if (id !in idsB) all.add(DiffItem(id, label, DiffStatus.REMOVED))
+    // REMOVED — in A but not B
+    nodesA.forEach { (id, snap) ->
+        if (id !in nodesB) all.add(DiffItem(id, snap.label, DiffStatus.REMOVED))
     }
-    return all.sortedBy { it.status.name }
+    // CHANGED — in both but with different property values
+    nodesA.forEach { (id, snapA) ->
+        val snapB = nodesB[id] ?: return@forEach
+        val changes = buildList {
+            if (snapA.text != snapB.text)         add("""text: "${snapA.text}" → "${snapB.text}"""")
+            if (snapA.isEnabled != snapB.isEnabled) add("enabled: ${snapA.isEnabled} → ${snapB.isEnabled}")
+        }
+        if (changes.isNotEmpty()) {
+            all.add(DiffItem(id, snapA.label, DiffStatus.CHANGED, changes.joinToString(" · ")))
+        }
+    }
+
+    return all.sortedBy {
+        when (it.status) {
+            DiffStatus.ADDED   -> 0
+            DiffStatus.REMOVED -> 1
+            DiffStatus.CHANGED -> 2
+        }
+    }
 }
+
+// ── Screen ────────────────────────────────────────────────────────────────────
 
 @Composable
 fun DiffScreen(onBack: () -> Unit) {
     val colorScheme = MaterialTheme.colorScheme
     val sessionRepo = remember { SessionRepository() }
 
-    var sessions by remember { mutableStateOf<List<Session>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(true) }
-    var sessionA by remember { mutableStateOf<Session?>(null) }
-    var sessionB by remember { mutableStateOf<Session?>(null) }
-    var diffItems by remember { mutableStateOf<List<DiffItem>?>(null) }
+    var sessions    by remember { mutableStateOf<List<Session>>(emptyList()) }
+    var isLoading   by remember { mutableStateOf(true) }
+    var sessionA    by remember { mutableStateOf<Session?>(null) }
+    var sessionB    by remember { mutableStateOf<Session?>(null) }
+    var diffItems   by remember { mutableStateOf<List<DiffItem>?>(null) }
     var isComputing by remember { mutableStateOf(false) }
-    var expandedA by remember { mutableStateOf(false) }
-    var expandedB by remember { mutableStateOf(false) }
+    var expandedA   by remember { mutableStateOf(false) }
+    var expandedB   by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
-        sessions = withContext(Dispatchers.IO) { sessionRepo.getAll() }
+        sessions  = withContext(Dispatchers.IO) { sessionRepo.getAll() }
         isLoading = false
     }
 
     Column(modifier = Modifier.fillMaxSize().background(colorScheme.background)) {
-        // Top bar
+        // ── Top bar ───────────────────────────────────────────────────────────
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -88,7 +147,10 @@ fun DiffScreen(onBack: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 TextButton(onClick = onBack) {
                     Text("← Back", color = colorScheme.primary, style = MaterialTheme.typography.labelLarge)
                 }
@@ -100,7 +162,7 @@ fun DiffScreen(onBack: () -> Unit) {
                 )
             }
             Text(
-                "Compare two captured sessions side by side",
+                "Compare element trees between two captured sessions",
                 style = MaterialTheme.typography.bodySmall,
                 color = colorScheme.onSurfaceVariant
             )
@@ -116,7 +178,10 @@ fun DiffScreen(onBack: () -> Unit) {
 
         if (sessions.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
                     Text("⚖", style = MaterialTheme.typography.displaySmall)
                     Text("No sessions to compare", style = MaterialTheme.typography.bodyLarge, color = colorScheme.onSurfaceVariant)
                     Text(
@@ -129,99 +194,34 @@ fun DiffScreen(onBack: () -> Unit) {
             return@Column
         }
 
-        // Session pickers
+        // ── Session pickers ───────────────────────────────────────────────────
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Session A selector
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    "Session A (before)",
-                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
-                    color = colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(bottom = 6.dp)
-                )
-                Box {
-                    OutlinedButton(
-                        onClick = { expandedA = true },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            sessionA?.let { "${it.appName ?: it.packageName ?: "Session"} — ${it.mode.name}" } ?: "Select session…",
-                            style = MaterialTheme.typography.bodySmall,
-                            maxLines = 1
-                        )
-                    }
-                    DropdownMenu(
-                        expanded = expandedA,
-                        onDismissRequest = { expandedA = false }
-                    ) {
-                        sessions.forEach { s ->
-                            DropdownMenuItem(
-                                text = {
-                                    Column {
-                                        Text(s.appName ?: s.packageName ?: "Session", style = MaterialTheme.typography.bodySmall)
-                                        Text(
-                                            "${s.mode.name} · ${s.deviceName ?: ""}",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = colorScheme.onSurfaceVariant
-                                        )
-                                    }
-                                },
-                                onClick = { sessionA = s; expandedA = false; diffItems = null }
-                            )
-                        }
-                    }
-                }
-            }
-
-            // Session B selector
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    "Session B (after)",
-                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
-                    color = colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(bottom = 6.dp)
-                )
-                Box {
-                    OutlinedButton(
-                        onClick = { expandedB = true },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            sessionB?.let { "${it.appName ?: it.packageName ?: "Session"} — ${it.mode.name}" } ?: "Select session…",
-                            style = MaterialTheme.typography.bodySmall,
-                            maxLines = 1
-                        )
-                    }
-                    DropdownMenu(
-                        expanded = expandedB,
-                        onDismissRequest = { expandedB = false }
-                    ) {
-                        sessions.forEach { s ->
-                            DropdownMenuItem(
-                                text = {
-                                    Column {
-                                        Text(s.appName ?: s.packageName ?: "Session", style = MaterialTheme.typography.bodySmall)
-                                        Text(
-                                            "${s.mode.name} · ${s.deviceName ?: ""}",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = colorScheme.onSurfaceVariant
-                                        )
-                                    }
-                                },
-                                onClick = { sessionB = s; expandedB = false; diffItems = null }
-                            )
-                        }
-                    }
-                }
-            }
+            SessionPicker(
+                label = "Session A  (before)",
+                sessions = sessions,
+                selected = sessionA,
+                expanded = expandedA,
+                onExpand = { expandedA = true },
+                onDismiss = { expandedA = false },
+                onSelect = { sessionA = it; expandedA = false; diffItems = null },
+                modifier = Modifier.weight(1f)
+            )
+            SessionPicker(
+                label = "Session B  (after)",
+                sessions = sessions,
+                selected = sessionB,
+                expanded = expandedB,
+                onExpand = { expandedB = true },
+                onDismiss = { expandedB = false },
+                onSelect = { sessionB = it; expandedB = false; diffItems = null },
+                modifier = Modifier.weight(1f)
+            )
         }
 
-        // Compute button
+        // ── Compute button ────────────────────────────────────────────────────
         if (sessionA != null && sessionB != null) {
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
@@ -232,9 +232,9 @@ fun DiffScreen(onBack: () -> Unit) {
                         val sa = sessionA ?: return@Button
                         val sb = sessionB ?: return@Button
                         isComputing = true
-                        val idsA = extractIds(sa.treeJson ?: "")
-                        val idsB = extractIds(sb.treeJson ?: "")
-                        diffItems = computeDiff(idsA, idsB)
+                        val nodesA = extractNodes(sa.treeJson ?: "")
+                        val nodesB = extractNodes(sb.treeJson ?: "")
+                        diffItems  = computeDiff(nodesA, nodesB)
                         isComputing = false
                     },
                     enabled = !isComputing
@@ -251,11 +251,14 @@ fun DiffScreen(onBack: () -> Unit) {
 
         HorizontalDivider(color = colorScheme.outline.copy(alpha = 0.3f))
 
-        // Diff results
+        // ── Results ───────────────────────────────────────────────────────────
         val items = diffItems
         if (items == null) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     Text("⚖", style = MaterialTheme.typography.displaySmall)
                     Text(
                         if (sessionA == null || sessionB == null)
@@ -268,8 +271,9 @@ fun DiffScreen(onBack: () -> Unit) {
                 }
             }
         } else {
-            val added = items.count { it.status == DiffStatus.ADDED }
+            val added   = items.count { it.status == DiffStatus.ADDED }
             val removed = items.count { it.status == DiffStatus.REMOVED }
+            val changed = items.count { it.status == DiffStatus.CHANGED }
 
             // Summary bar
             Row(
@@ -277,39 +281,83 @@ fun DiffScreen(onBack: () -> Unit) {
                     .fillMaxWidth()
                     .background(colorScheme.surfaceVariant.copy(alpha = 0.5f))
                     .padding(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Diff results:", style = MaterialTheme.typography.labelMedium, color = colorScheme.onSurfaceVariant)
-                Box(
-                    modifier = Modifier
-                        .background(AccentGreen.copy(alpha = 0.12f), RoundedCornerShape(8.dp))
-                        .padding(horizontal = 8.dp, vertical = 3.dp)
-                ) {
-                    Text("+$added added", color = AccentGreen, style = MaterialTheme.typography.labelSmall, fontFamily = FontFamily.Monospace)
-                }
-                Box(
-                    modifier = Modifier
-                        .background(AccentRed.copy(alpha = 0.12f), RoundedCornerShape(8.dp))
-                        .padding(horizontal = 8.dp, vertical = 3.dp)
-                ) {
-                    Text("-$removed removed", color = AccentRed, style = MaterialTheme.typography.labelSmall, fontFamily = FontFamily.Monospace)
-                }
+                Text("Results:", style = MaterialTheme.typography.labelMedium, color = colorScheme.onSurfaceVariant)
+                SummaryChip("+$added added",     AccentGreen)
+                SummaryChip("-$removed removed", AccentRed)
+                if (changed > 0) SummaryChip("~$changed changed", AccentOrange)
             }
 
             if (items.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
                         Text("✓", style = MaterialTheme.typography.displaySmall, color = AccentGreen)
                         Text("No differences found", style = MaterialTheme.typography.bodyLarge, color = colorScheme.onSurface)
                         Text("Both sessions have identical element structures.", style = MaterialTheme.typography.bodySmall, color = colorScheme.onSurfaceVariant)
                     }
                 }
             } else {
-                LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp)) {
-                    items(items) { item ->
-                        DiffItemRow(item)
-                    }
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(3.dp)
+                ) {
+                    items(items) { item -> DiffItemRow(item) }
+                }
+            }
+        }
+    }
+}
+
+// ── Helper composables ────────────────────────────────────────────────────────
+
+@Composable
+private fun SessionPicker(
+    label: String,
+    sessions: List<Session>,
+    selected: Session?,
+    expanded: Boolean,
+    onExpand: () -> Unit,
+    onDismiss: () -> Unit,
+    onSelect: (Session) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val colorScheme = MaterialTheme.colorScheme
+    Column(modifier = modifier) {
+        Text(
+            label,
+            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+            color = colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(bottom = 6.dp)
+        )
+        Box {
+            OutlinedButton(onClick = onExpand, modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    selected?.let { "${it.appName ?: it.packageName ?: "Session"} — ${it.mode.name}" } ?: "Select session…",
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 1
+                )
+            }
+            DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
+                sessions.forEach { s ->
+                    DropdownMenuItem(
+                        text = {
+                            Column {
+                                Text(s.appName ?: s.packageName ?: "Session", style = MaterialTheme.typography.bodySmall)
+                                Text(
+                                    "${s.mode.name} · ${s.deviceName ?: ""}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = colorScheme.onSurfaceVariant
+                                )
+                            }
+                        },
+                        onClick = { onSelect(s) }
+                    )
                 }
             }
         }
@@ -317,12 +365,23 @@ fun DiffScreen(onBack: () -> Unit) {
 }
 
 @Composable
+private fun SummaryChip(text: String, color: Color) {
+    Box(
+        modifier = Modifier
+            .background(color.copy(alpha = 0.12f), RoundedCornerShape(8.dp))
+            .padding(horizontal = 8.dp, vertical = 3.dp)
+    ) {
+        Text(text, color = color, style = MaterialTheme.typography.labelSmall, fontFamily = FontFamily.Monospace)
+    }
+}
+
+@Composable
 private fun DiffItemRow(item: DiffItem) {
     val colorScheme = MaterialTheme.colorScheme
     val (bgColor, borderColor, prefix) = when (item.status) {
-        DiffStatus.ADDED -> Triple(AccentGreen.copy(alpha = 0.08f), AccentGreen, "+")
-        DiffStatus.REMOVED -> Triple(AccentRed.copy(alpha = 0.08f), AccentRed, "−")
-        DiffStatus.UNCHANGED -> Triple(Color.Transparent, colorScheme.outline, " ")
+        DiffStatus.ADDED   -> Triple(AccentGreen.copy(alpha = 0.08f),  AccentGreen,  "+")
+        DiffStatus.REMOVED -> Triple(AccentRed.copy(alpha = 0.08f),    AccentRed,    "−")
+        DiffStatus.CHANGED -> Triple(AccentOrange.copy(alpha = 0.08f), AccentOrange, "~")
     }
 
     Row(
@@ -355,6 +414,14 @@ private fun DiffItemRow(item: DiffItem) {
                 color = colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
                 maxLines = 1
             )
+            if (item.detail.isNotBlank()) {
+                Text(
+                    item.detail,
+                    style = MaterialTheme.typography.labelSmall.copy(fontFamily = FontFamily.Monospace, fontSize = 9.sp),
+                    color = borderColor.copy(alpha = 0.85f),
+                    maxLines = 2
+                )
+            }
         }
         Box(
             modifier = Modifier

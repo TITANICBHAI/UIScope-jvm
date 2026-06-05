@@ -12,4 +12,5 @@ dependencies {
     implementation(libs.coroutines.core)
     implementation(libs.jna)
     implementation(libs.jna.platform)
+    implementation(libs.jnativehook)
 }

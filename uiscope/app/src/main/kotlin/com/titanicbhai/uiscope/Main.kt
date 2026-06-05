@@ -35,6 +35,9 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.graphics.Color
 import com.titanicbhai.uiscope.watch.WatchScreen
+import com.titanicbhai.uiscope.hotkey.GlobalHotkeyManager
+import com.titanicbhai.uiscope.hotkey.HotkeyBus
+import com.titanicbhai.uiscope.hotkey.HotkeyEvent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.awt.BasicStroke
@@ -157,6 +160,17 @@ fun main() = application {
         updateVersion = withContext(Dispatchers.IO) { checkForUpdate() }
     }
 
+    // Global hotkeys — Alt+Shift+P (pick), R (refresh), Ctrl+F (search) from any window (Plan §4.5)
+    val hotkeyManager = remember { GlobalHotkeyManager() }
+    DisposableEffect(Unit) {
+        hotkeyManager.register(
+            onPickMode    = { HotkeyBus.emit(HotkeyEvent.PICK_MODE) },
+            onRefresh     = { HotkeyBus.emit(HotkeyEvent.REFRESH) },
+            onSearchFocus = { HotkeyBus.emit(HotkeyEvent.SEARCH_FOCUS) }
+        )
+        onDispose { hotkeyManager.unregister() }
+    }
+
     // System tray (Plan §19) — visible only when the main window is hidden
     val trayIcon = remember { buildTrayIcon() }
     val trayState = rememberTrayState()
@@ -271,6 +285,7 @@ fun main() = application {
                         onBack = { screen = previousScreen }
                     )
                     AppScreen.WATCH -> WatchScreen(
+                        adbManager = adbManager,
                         onBack = { screen = previousScreen }
                     )
                 }

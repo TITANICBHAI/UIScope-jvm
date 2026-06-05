@@ -56,6 +56,8 @@ import java.net.URI
 import java.util.UUID
 import javax.swing.JFileChooser
 import javax.swing.filechooser.FileNameExtensionFilter
+import com.titanicbhai.uiscope.hotkey.HotkeyBus
+import com.titanicbhai.uiscope.hotkey.HotkeyEvent
 
 sealed class InspectorError {
     object AdbNotFound : InspectorError()
@@ -222,6 +224,19 @@ fun InspectorScreen(
             inspectorError = InspectorError.DumpFailed(e.message ?: "Unknown error")
         } finally {
             isRefreshing = false
+        }
+    }
+
+    // Global hotkey listener (Plan §4.5) — must be after performAndroidRefresh to avoid forward-ref issue
+    LaunchedEffect(Unit) {
+        HotkeyBus.events.collect { event ->
+            when (event) {
+                HotkeyEvent.PICK_MODE    -> if (mode == InspectionMode.PC) pickModeActive = !pickModeActive
+                HotkeyEvent.REFRESH      -> if (mode == InspectionMode.ANDROID) {
+                    selectedDevice?.let { d -> scope.launch { performAndroidRefresh(d) } }
+                }
+                HotkeyEvent.SEARCH_FOCUS -> showSearch = true
+            }
         }
     }
 

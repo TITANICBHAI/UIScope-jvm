@@ -13,21 +13,134 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.titanicbhai.uiscope.android.AdbDevice
+import com.titanicbhai.uiscope.android.AdbManager
+import com.titanicbhai.uiscope.android.UiAutomatorParser
+import com.titanicbhai.uiscope.model.ElementNode
 import com.titanicbhai.uiscope.model.WatchConditionType
 import com.titanicbhai.uiscope.model.WatchRule
 import com.titanicbhai.uiscope.theme.*
-import java.util.UUID
+import kotlinx.coroutines.*
+import java.text.SimpleDateFormat
+import java.util.*
 
 @Composable
-fun WatchScreen(onBack: () -> Unit) {
+fun WatchScreen(adbManager: AdbManager, onBack: () -> Unit) {
     val colorScheme = MaterialTheme.colorScheme
+    val scope = rememberCoroutineScope()
 
     var rules by remember { mutableStateOf<List<WatchRule>>(emptyList()) }
     var showAddDialog by remember { mutableStateOf(false) }
     var monitorLog by remember { mutableStateOf<List<String>>(emptyList()) }
+    var devices by remember { mutableStateOf<List<AdbDevice>>(emptyList()) }
+    var selectedDevice by remember { mutableStateOf<AdbDevice?>(null) }
+    var isScanning by remember { mutableStateOf(false) }
+    val activeJobs = remember { mutableStateMapOf<String, Job>() }
+    val timeFmt = remember { SimpleDateFormat("HH:mm:ss", Locale.getDefault()) }
+
+    fun ts() = "[${timeFmt.format(Date())}]"
+
+    fun flattenNodes(nodes: List<ElementNode>): List<ElementNode> {
+        val out = mutableListOf<ElementNode>()
+        fun visit(n: ElementNode) { out.add(n); n.children.forEach { visit(it) } }
+        nodes.forEach { visit(it) }
+        return out
+    }
+
+    fun matchesRule(node: ElementNode, rule: WatchRule): Boolean {
+        val resId     = rule.targetResourceId
+        val className = rule.targetClassName
+        val text      = rule.targetText
+        if (resId != null && node.resourceId != resId) return false
+        if (className != null && !node.className.contains(className, ignoreCase = true)) return false
+        if (rule.conditionType == WatchConditionType.TEXT_MATCHES && text != null) {
+            return node.text?.contains(text, ignoreCase = true) == true
+        }
+        return true
+    }
+
+    fun stopRule(rule: WatchRule) {
+        activeJobs[rule.id]?.cancel()
+        activeJobs.remove(rule.id)
+        rules = rules.map { if (it.id == rule.id) it.copy(isActive = false) else it }
+        monitorLog = monitorLog + "${ts()} ⏹ Stopped: ${rule.label}"
+    }
+
+    fun startRule(rule: WatchRule) {
+        val device = selectedDevice ?: run {
+            monitorLog = monitorLog + "${ts()} ⚠ No device selected — connect an Android device first"
+            return
+        }
+        rules = rules.map { if (it.id == rule.id) it.copy(isActive = true) else it }
+        monitorLog = monitorLog + "${ts()} ▶ Started: ${rule.label}  [${device.serial}]"
+
+        activeJobs[rule.id] = scope.launch(Dispatchers.IO) {
+            val parser = UiAutomatorParser()
+            var prevPresent: Boolean? = null
+            while (isActive) {
+                try {
+                    val xml = adbManager.dumpUiHierarchy(device.serial)
+                    val nodes = flattenNodes(parser.parse(xml))
+                    val present = nodes.any { matchesRule(it, rule) }
+                    val t = ts()
+                    when (rule.conditionType) {
+                        WatchConditionType.ELEMENT_APPEARS -> {
+                            if (present && prevPresent != true) {
+                                withContext(Dispatchers.Main) {
+                                    monitorLog = monitorLog + "$t ✓ APPEARS — ${rule.label}"
+                                }
+                            }
+                        }
+                        WatchConditionType.ELEMENT_DISAPPEARS -> {
+                            if (!present && prevPresent == true) {
+                                withContext(Dispatchers.Main) {
+                                    monitorLog = monitorLog + "$t ✓ DISAPPEARS — ${rule.label}"
+                                }
+                            }
+                        }
+                        WatchConditionType.TEXT_MATCHES -> {
+                            if (present && prevPresent != true) {
+                                withContext(Dispatchers.Main) {
+                                    monitorLog = monitorLog + "$t ✓ TEXT MATCHED — ${rule.label}"
+                                }
+                            } else if (!present && prevPresent == true) {
+                                withContext(Dispatchers.Main) {
+                                    monitorLog = monitorLog + "$t ✗ TEXT GONE — ${rule.label}"
+                                }
+                            }
+                        }
+                    }
+                    prevPresent = present
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    withContext(Dispatchers.Main) {
+                        monitorLog = monitorLog + "${ts()} ⚠ ${rule.label}: ${e.message?.take(60) ?: "error"}"
+                    }
+                }
+                delay(rule.pollIntervalMs)
+            }
+        }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            activeJobs.values.forEach { it.cancel() }
+            activeJobs.clear()
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        isScanning = true
+        devices = withContext(Dispatchers.IO) {
+            runCatching { adbManager.listDevices() }.getOrDefault(emptyList())
+        }
+        selectedDevice = devices.firstOrNull()
+        isScanning = false
+    }
 
     Column(modifier = Modifier.fillMaxSize().background(colorScheme.background)) {
-        // Top bar
+        // ── Top bar ─────────────────────────────────────────────────────────
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -37,7 +150,10 @@ fun WatchScreen(onBack: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 TextButton(onClick = onBack) {
                     Text("← Back", color = colorScheme.primary, style = MaterialTheme.typography.labelLarge)
                 }
@@ -48,16 +164,35 @@ fun WatchScreen(onBack: () -> Unit) {
                     color = colorScheme.onSurface
                 )
             }
-            Button(
-                onClick = { showAddDialog = true },
-                modifier = Modifier.height(34.dp),
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("+ Add Rule", style = MaterialTheme.typography.labelMedium)
+                when {
+                    isScanning -> CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                    devices.isNotEmpty() -> WatchDevicePicker(
+                        devices = devices,
+                        selected = selectedDevice,
+                        onSelect = { selectedDevice = it }
+                    )
+                    else -> Text(
+                        "No Android devices",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = colorScheme.onSurfaceVariant
+                    )
+                }
+                Button(
+                    onClick = { showAddDialog = true },
+                    modifier = Modifier.height(34.dp),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+                ) {
+                    Text("+ Add Rule", style = MaterialTheme.typography.labelMedium)
+                }
             }
         }
         HorizontalDivider(color = colorScheme.outline.copy(alpha = 0.4f))
 
+        // ── Body ─────────────────────────────────────────────────────────────
         if (rules.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Column(
@@ -71,13 +206,12 @@ fun WatchScreen(onBack: () -> Unit) {
                         color = colorScheme.onSurfaceVariant
                     )
                     Text(
-                        "Add a rule to monitor for a specific element appearing,\ndisappearing, or matching a text value.",
+                        "Add a rule to monitor for a specific element appearing,\n" +
+                        "disappearing, or matching a text value on a connected device.",
                         style = MaterialTheme.typography.bodySmall,
                         color = colorScheme.onSurfaceVariant.copy(alpha = 0.65f)
                     )
-                    Button(onClick = { showAddDialog = true }) {
-                        Text("+ Add First Rule")
-                    }
+                    Button(onClick = { showAddDialog = true }) { Text("+ Add First Rule") }
                 }
             }
         } else {
@@ -91,55 +225,65 @@ fun WatchScreen(onBack: () -> Unit) {
                         WatchRuleCard(
                             rule = rule,
                             onToggleActive = { toggled ->
-                                rules = rules.map { if (it.id == toggled.id) it.copy(isActive = !it.isActive) else it }
-                                if (!toggled.isActive) {
-                                    monitorLog = monitorLog + "[${System.currentTimeMillis()}] Started watching: ${toggled.label}"
-                                } else {
-                                    monitorLog = monitorLog + "[${System.currentTimeMillis()}] Stopped watching: ${toggled.label}"
-                                }
+                                if (toggled.isActive) stopRule(toggled) else startRule(toggled)
                             },
                             onDelete = { deleted ->
+                                if (deleted.isActive) stopRule(deleted)
                                 rules = rules.filter { it.id != deleted.id }
                             }
                         )
                     }
                 }
 
-                // Monitor log
-                if (monitorLog.isNotEmpty()) {
-                    HorizontalDivider(color = colorScheme.outline.copy(alpha = 0.3f))
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(140.dp)
-                            .background(colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                            .padding(12.dp)
+                // ── Monitor log ───────────────────────────────────────────────
+                HorizontalDivider(color = colorScheme.outline.copy(alpha = 0.3f))
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(160.dp)
+                        .background(colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                        .padding(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                        Text(
+                            "Monitor Log",
+                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                            color = colorScheme.onSurfaceVariant
+                        )
+                        TextButton(
+                            onClick = { monitorLog = emptyList() },
+                            modifier = Modifier.height(24.dp),
+                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp)
                         ) {
-                            Text(
-                                "Monitor Log",
-                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                                color = colorScheme.onSurfaceVariant
-                            )
-                            TextButton(
-                                onClick = { monitorLog = emptyList() },
-                                modifier = Modifier.height(24.dp),
-                                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp)
-                            ) {
-                                Text("Clear", style = MaterialTheme.typography.labelSmall)
-                            }
+                            Text("Clear", style = MaterialTheme.typography.labelSmall)
                         }
-                        Spacer(Modifier.height(4.dp))
+                    }
+                    Spacer(Modifier.height(4.dp))
+                    if (monitorLog.isEmpty()) {
+                        Text(
+                            "Waiting for events…",
+                            style = MaterialTheme.typography.labelSmall.copy(fontFamily = FontFamily.Monospace),
+                            color = colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                            fontSize = 10.sp
+                        )
+                    } else {
                         LazyColumn(modifier = Modifier.fillMaxSize()) {
                             items(monitorLog.reversed()) { entry ->
+                                val color = when {
+                                    "✓" in entry -> AccentGreen
+                                    "⚠" in entry -> AccentRed
+                                    "▶" in entry -> AccentBlue
+                                    "⏹" in entry -> colorScheme.onSurfaceVariant
+                                    else          -> colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                }
                                 Text(
                                     entry,
                                     style = MaterialTheme.typography.labelSmall.copy(fontFamily = FontFamily.Monospace),
-                                    color = AccentGreen,
+                                    color = color,
                                     fontSize = 10.sp,
                                     modifier = Modifier.padding(vertical = 1.dp)
                                 )
@@ -162,6 +306,46 @@ fun WatchScreen(onBack: () -> Unit) {
     }
 }
 
+// ── Device picker ─────────────────────────────────────────────────────────────
+
+@Composable
+private fun WatchDevicePicker(
+    devices: List<AdbDevice>,
+    selected: AdbDevice?,
+    onSelect: (AdbDevice) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        OutlinedButton(
+            onClick = { expanded = true },
+            modifier = Modifier.height(30.dp),
+            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp)
+        ) {
+            Text(
+                selected?.let { it.model ?: it.serial } ?: "Select device",
+                style = MaterialTheme.typography.labelSmall,
+                fontSize = 11.sp
+            )
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            devices.forEach { d ->
+                DropdownMenuItem(
+                    text = {
+                        Column {
+                            Text(d.model ?: d.serial, style = MaterialTheme.typography.bodySmall)
+                            Text(d.serial, style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    },
+                    onClick = { onSelect(d); expanded = false }
+                )
+            }
+        }
+    }
+}
+
+// ── Rule card ─────────────────────────────────────────────────────────────────
+
 @Composable
 private fun WatchRuleCard(
     rule: WatchRule,
@@ -169,7 +353,7 @@ private fun WatchRuleCard(
     onDelete: (WatchRule) -> Unit
 ) {
     val colorScheme = MaterialTheme.colorScheme
-    val statusColor = if (rule.isActive) AccentGreen else colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+    val statusColor = if (rule.isActive) AccentGreen else colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -180,14 +364,8 @@ private fun WatchRuleCard(
             modifier = Modifier.fillMaxWidth().padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Active indicator dot
-            Box(
-                modifier = Modifier
-                    .size(8.dp)
-                    .background(statusColor, RoundedCornerShape(50))
-            )
+            Box(modifier = Modifier.size(8.dp).background(statusColor, RoundedCornerShape(50)))
             Spacer(Modifier.width(10.dp))
-
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     rule.label,
@@ -195,7 +373,7 @@ private fun WatchRuleCard(
                     color = colorScheme.onSurface
                 )
                 Spacer(Modifier.height(2.dp))
-                val conditionDesc = when (rule.conditionType) {
+                val condDesc = when (rule.conditionType) {
                     WatchConditionType.ELEMENT_APPEARS ->
                         "Appears: ${rule.targetResourceId ?: rule.targetClassName ?: rule.targetText ?: "any"}"
                     WatchConditionType.ELEMENT_DISAPPEARS ->
@@ -204,7 +382,7 @@ private fun WatchRuleCard(
                         "Text matches: \"${rule.targetText ?: ""}\""
                 }
                 Text(
-                    conditionDesc,
+                    condDesc,
                     style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace, fontSize = 10.sp),
                     color = colorScheme.onSurfaceVariant
                 )
@@ -215,7 +393,6 @@ private fun WatchRuleCard(
                     fontSize = 10.sp
                 )
             }
-
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 OutlinedButton(
                     onClick = { onToggleActive(rule) },
@@ -243,11 +420,10 @@ private fun WatchRuleCard(
     }
 }
 
+// ── Add rule dialog ───────────────────────────────────────────────────────────
+
 @Composable
-private fun AddWatchRuleDialog(
-    onDismiss: () -> Unit,
-    onAdd: (WatchRule) -> Unit
-) {
+private fun AddWatchRuleDialog(onDismiss: () -> Unit, onAdd: (WatchRule) -> Unit) {
     val colorScheme = MaterialTheme.colorScheme
     var label by remember { mutableStateOf("") }
     var conditionType by remember { mutableStateOf(WatchConditionType.ELEMENT_APPEARS) }
@@ -262,7 +438,10 @@ private fun AddWatchRuleDialog(
         onDismissRequest = onDismiss,
         containerColor = colorScheme.surface,
         title = {
-            Text("Add Watch Rule", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold))
+            Text(
+                "Add Watch Rule",
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
+            )
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -273,25 +452,27 @@ private fun AddWatchRuleDialog(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
-
-                // Condition type
                 Box {
-                    OutlinedButton(
-                        onClick = { expandedCondition = true },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(conditionType.name.replace('_', ' ').lowercase().replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.bodySmall)
+                    OutlinedButton(onClick = { expandedCondition = true }, modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            conditionType.name.replace('_', ' ').lowercase().replaceFirstChar { it.uppercase() },
+                            style = MaterialTheme.typography.bodySmall
+                        )
                     }
                     DropdownMenu(expanded = expandedCondition, onDismissRequest = { expandedCondition = false }) {
                         WatchConditionType.entries.forEach { ct ->
                             DropdownMenuItem(
-                                text = { Text(ct.name.replace('_', ' ').lowercase().replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.bodySmall) },
+                                text = {
+                                    Text(
+                                        ct.name.replace('_', ' ').lowercase().replaceFirstChar { it.uppercase() },
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                },
                                 onClick = { conditionType = ct; expandedCondition = false }
                             )
                         }
                     }
                 }
-
                 OutlinedTextField(
                     value = targetResId,
                     onValueChange = { targetResId = it },
@@ -300,7 +481,6 @@ private fun AddWatchRuleDialog(
                     placeholder = { Text("com.example:id/button", style = MaterialTheme.typography.bodySmall) },
                     modifier = Modifier.fillMaxWidth()
                 )
-
                 if (conditionType == WatchConditionType.TEXT_MATCHES) {
                     OutlinedTextField(
                         value = targetText,
@@ -310,7 +490,6 @@ private fun AddWatchRuleDialog(
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
-
                 OutlinedTextField(
                     value = targetClass,
                     onValueChange = { targetClass = it },
@@ -319,13 +498,8 @@ private fun AddWatchRuleDialog(
                     placeholder = { Text("android.widget.Button", style = MaterialTheme.typography.bodySmall) },
                     modifier = Modifier.fillMaxWidth()
                 )
-
-                // Poll interval
                 Box {
-                    OutlinedButton(
-                        onClick = { expandedInterval = true },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
+                    OutlinedButton(onClick = { expandedInterval = true }, modifier = Modifier.fillMaxWidth()) {
                         Text("Poll every ${pollIntervalMs / 1000f}s", style = MaterialTheme.typography.bodySmall)
                     }
                     DropdownMenu(expanded = expandedInterval, onDismissRequest = { expandedInterval = false }) {
@@ -343,25 +517,23 @@ private fun AddWatchRuleDialog(
             Button(
                 onClick = {
                     if (label.isBlank()) return@Button
-                    onAdd(WatchRule(
-                        id = UUID.randomUUID().toString(),
-                        label = label.trim(),
-                        conditionType = conditionType,
-                        targetText = targetText.takeIf { it.isNotBlank() },
-                        targetResourceId = targetResId.takeIf { it.isNotBlank() },
-                        targetClassName = targetClass.takeIf { it.isNotBlank() },
-                        pollIntervalMs = pollIntervalMs,
-                        isActive = false,
-                        createdAt = System.currentTimeMillis()
-                    ))
+                    onAdd(
+                        WatchRule(
+                            id = UUID.randomUUID().toString(),
+                            label = label.trim(),
+                            conditionType = conditionType,
+                            targetText = targetText.takeIf { it.isNotBlank() },
+                            targetResourceId = targetResId.takeIf { it.isNotBlank() },
+                            targetClassName = targetClass.takeIf { it.isNotBlank() },
+                            pollIntervalMs = pollIntervalMs,
+                            isActive = false,
+                            createdAt = System.currentTimeMillis()
+                        )
+                    )
                 },
                 enabled = label.isNotBlank()
-            ) {
-                Text("Add")
-            }
+            ) { Text("Add") }
         },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
-        }
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
     )
 }
