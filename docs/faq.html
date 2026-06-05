@@ -3,17 +3,33 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>FAQ — UIScope Desktop &amp; Android UI Inspector</title>
-  <meta name="description" content="Frequently asked questions about UIScope. Learn about ADB setup, Android connection, Windows UIAutomation, code generation, privacy, and more." />
-  <meta name="keywords" content="UIScope FAQ, UIScope questions, ADB not found, Android USB debugging, UIAutomation inspector help, Appium code generation" />
-  <meta name="robots" content="index, follow" />
+  <title>UIScope FAQ — Android ADB Inspector &amp; UI Automation Questions Answered</title>
+  <meta name="description" content="Answers to every UIScope question: ADB setup, Android device not found, Windows UIAutomation, code generation for uiautomator2/Appium, privacy, offline use, and more." />
+  <meta name="keywords" content="UIScope FAQ, ADB not found fix, Android USB debugging setup, uiautomator2 code generation help, Appium inspector alternative questions, UIAutomation tree viewer help, UI inspector no root, wireless ADB inspector" />
+  <meta name="robots" content="index, follow, max-snippet:-1" />
   <link rel="canonical" href="https://titanicbhai.github.io/UIScope-jvm/faq.html" />
+  <link rel="alternate" hreflang="en" href="https://titanicbhai.github.io/UIScope-jvm/faq.html" />
+  <link rel="alternate" hreflang="x-default" href="https://titanicbhai.github.io/UIScope-jvm/faq.html" />
   <meta property="og:type" content="article" />
   <meta property="og:url" content="https://titanicbhai.github.io/UIScope-jvm/faq.html" />
-  <meta property="og:title" content="FAQ — UIScope Desktop &amp; Android UI Inspector" />
-  <meta property="og:description" content="Answers to the most common questions about installing and using UIScope." />
+  <meta property="og:title" content="UIScope FAQ — Android ADB Inspector &amp; Automation Questions" />
+  <meta property="og:description" content="Answers to every common UIScope question: ADB setup, Android connection, code generation for uiautomator2 &amp; Appium, privacy, and more." />
   <meta property="og:image" content="https://titanicbhai.github.io/UIScope-jvm/assets/icon.png" />
+  <meta property="og:image:alt" content="UIScope UI inspector icon" />
   <meta property="og:site_name" content="UIScope" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="UIScope FAQ — Android ADB Inspector Questions" />
+  <meta name="twitter:description" content="ADB setup, device not found, code gen for uiautomator2/Appium, privacy — every UIScope question answered." />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "UIScope", "item": "https://titanicbhai.github.io/UIScope-jvm/" },
+      { "@type": "ListItem", "position": 2, "name": "FAQ", "item": "https://titanicbhai.github.io/UIScope-jvm/faq.html" }
+    ]
+  }
+  </script>
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -21,23 +37,58 @@
     "mainEntity": [
       {
         "@type": "Question",
+        "name": "Is UIScope free? Are there any hidden costs?",
+        "acceptedAnswer": { "@type": "Answer", "text": "UIScope is completely free and open source under the MIT License. There are no in-app purchases, no premium tier, no subscription, and no ads — now or ever. The source code is available on GitHub." }
+      },
+      {
+        "@type": "Question",
+        "name": "Does UIScope require root on Android?",
+        "acceptedAnswer": { "@type": "Answer", "text": "No. UIScope uses standard ADB (Android Debug Bridge) and the built-in UIAutomator accessibility API. No root access, no on-device agent, and no app modification is required. Just enable USB Debugging in Developer Options on your device." }
+      },
+      {
+        "@type": "Question",
         "name": "Does UIScope require an account or internet connection?",
-        "acceptedAnswer": { "@type": "Answer", "text": "No. UIScope is 100% offline. No account, no sign-in, no internet required. The only optional network request is a version check at startup, which can be disabled in Settings." }
+        "acceptedAnswer": { "@type": "Answer", "text": "No. UIScope is 100% offline. No account, no sign-in, no internet access required. The only optional network request is a silent version-check GET to the GitHub Releases API at startup, which can be disabled in Settings → Updates." }
       },
       {
         "@type": "Question",
         "name": "Does UIScope work without ADB installed?",
-        "acceptedAnswer": { "@type": "Answer", "text": "ADB is only needed for Android inspection. If ADB is not in your PATH, UIScope will offer to download the minimal Android Platform Tools (~10 MB) for you automatically." }
+        "acceptedAnswer": { "@type": "Answer", "text": "ADB is only required for Android inspection. If ADB is not detected in your PATH, UIScope will offer to download the minimal Android Platform Tools package (~10 MB) automatically. For PC inspection, no extra tools are needed." }
       },
       {
         "@type": "Question",
-        "name": "My Android device is not showing up. What do I do?",
-        "acceptedAnswer": { "@type": "Answer", "text": "Ensure USB Debugging is enabled in Developer Options on your device, accept the 'Allow USB Debugging' dialog on the device, and make sure ADB is in your PATH. Try running 'adb devices' in a terminal to verify the device is detected." }
+        "name": "My Android device is not showing up in UIScope. What do I do?",
+        "acceptedAnswer": { "@type": "Answer", "text": "1) Ensure USB Debugging is enabled: Settings → About Phone → tap Build Number 7 times → Developer Options → USB Debugging. 2) Accept the 'Allow USB Debugging?' dialog on the device when you connect. 3) Run 'adb devices' in a terminal to confirm the device is listed. 4) Try a different USB cable or port. For wireless ADB (Android 11+), use the six-digit pairing code method in UIScope's device picker." }
       },
       {
         "@type": "Question",
-        "name": "Is UIScope free?",
-        "acceptedAnswer": { "@type": "Answer", "text": "Yes. UIScope is completely free, open source under the MIT License. There are no in-app purchases, no premium tier, and no ads." }
+        "name": "What is the difference between UIScope and Appium Inspector?",
+        "acceptedAnswer": { "@type": "Answer", "text": "UIScope is a standalone desktop app — no Appium server, no Node.js, no drivers, and no configuration files required. It connects via ADB in seconds and generates code for multiple frameworks (uiautomator2, Appium, Maestro, and more). UIScope also inspects Windows, macOS, and Linux desktop apps via native accessibility APIs, which Appium Inspector does not support." }
+      },
+      {
+        "@type": "Question",
+        "name": "What automation frameworks does UIScope generate code for?",
+        "acceptedAnswer": { "@type": "Answer", "text": "UIScope generates ready-to-run code for 8 frameworks: Python uiautomator2, Appium Java, Appium Python, Maestro YAML, AutoHotKey v2, Python pywinauto, C# FlaUI, and PowerShell UI Automation. It also generates XPath selectors with a stability quality score and explains exactly why a selector might be fragile." }
+      },
+      {
+        "@type": "Question",
+        "name": "Does UIScope work with wireless ADB?",
+        "acceptedAnswer": { "@type": "Answer", "text": "Yes. UIScope supports both wireless ADB connection methods: the classic IP:port method for Android 10 and earlier, and the Android 11+ six-digit pairing code method. You can connect without a USB cable from the device picker screen." }
+      },
+      {
+        "@type": "Question",
+        "name": "Does UIScope collect any personal data? Is it GDPR compliant?",
+        "acceptedAnswer": { "@type": "Answer", "text": "UIScope collects no personal data whatsoever. There is no analytics, no telemetry, no crash reporting, and no usage tracking. All session data (element trees, screenshots) is stored exclusively on your local machine in ~/.uiscope/. The app is fully GDPR compliant by design — it simply never transmits any data." }
+      },
+      {
+        "@type": "Question",
+        "name": "Which Windows apps can UIScope inspect?",
+        "acceptedAnswer": { "@type": "Answer", "text": "UIScope can inspect any Windows application that exposes a UI Automation accessibility tree — this includes Win32, WPF, WinForms, UWP, Electron, Qt, Java/Swing, and most modern Windows applications. Some apps deliberately restrict accessibility access; in these cases UIScope will show only the top-level window node." }
+      },
+      {
+        "@type": "Question",
+        "name": "Can I use UIScope for Appium test development?",
+        "acceptedAnswer": { "@type": "Answer", "text": "Yes, absolutely. UIScope is a great companion for Appium test development. You can inspect the element tree, identify the best locator strategies, check XPath validity, and generate Appium Java or Appium Python code directly from the selected element. The fragile selector badge warns you when a selector is likely to break between app versions." }
       }
     ]
   }

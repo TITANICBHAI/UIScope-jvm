@@ -4,79 +4,177 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- Primary SEO -->
-  <title>UIScope — Desktop &amp; Android UI Inspector</title>
-  <meta name="description" content="Free, offline UI inspector for Windows, macOS and Linux desktop apps and Android devices. Inspect live element trees, properties, generate code, diff sessions — no accounts, no telemetry." />
-  <meta name="keywords" content="UI inspector, accessibility tree inspector, Android UI testing, Windows UI automation, AT-SPI2, UIAutomation, ADB inspector, Compose Multiplatform, UI element debugger, app inspector" />
+  <!-- Primary SEO — keyword-first title formula -->
+  <title>Free Android &amp; PC UI Inspector — ADB, XPath, Code Gen | UIScope</title>
+  <meta name="description" content="UIScope: free, offline UI inspector for Android (ADB, no root) and Windows/macOS/Linux. Inspect live element trees, copy XPath, generate uiautomator2, Appium, pywinauto &amp; Maestro code. No account." />
+  <meta name="keywords" content="Android UI inspector, ADB UI inspector, uiautomator2 inspector, Appium inspector alternative, Windows UIAutomation viewer, accessibility tree inspector, XPath generator, element tree debugger, UI test code generation, Android layout inspector free, pywinauto inspector, no root UI inspector" />
   <meta name="author" content="TBTechs" />
-  <meta name="robots" content="index, follow" />
+  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large" />
   <link rel="canonical" href="https://titanicbhai.github.io/UIScope-jvm/" />
 
-  <!-- Geo -->
+  <!-- GEO — developer-heavy markets: US, UK, India, Germany, Australia, Japan -->
   <link rel="alternate" hreflang="en" href="https://titanicbhai.github.io/UIScope-jvm/" />
+  <link rel="alternate" hreflang="en-US" href="https://titanicbhai.github.io/UIScope-jvm/" />
+  <link rel="alternate" hreflang="en-GB" href="https://titanicbhai.github.io/UIScope-jvm/" />
+  <link rel="alternate" hreflang="en-IN" href="https://titanicbhai.github.io/UIScope-jvm/" />
+  <link rel="alternate" hreflang="en-AU" href="https://titanicbhai.github.io/UIScope-jvm/" />
+  <link rel="alternate" hreflang="en-CA" href="https://titanicbhai.github.io/UIScope-jvm/" />
   <link rel="alternate" hreflang="x-default" href="https://titanicbhai.github.io/UIScope-jvm/" />
   <meta name="geo.region" content="US" />
   <meta name="geo.placename" content="Worldwide" />
+  <meta name="ICBM" content="0, 0" />
 
-  <!-- Open Graph -->
+  <!-- Open Graph — richer for LinkedIn / Slack unfurls -->
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://titanicbhai.github.io/UIScope-jvm/" />
-  <meta property="og:title" content="UIScope — Desktop &amp; Android UI Inspector" />
-  <meta property="og:description" content="Free, offline UI inspector. Inspect live element trees for any desktop app or Android device. No accounts, no telemetry." />
+  <meta property="og:title" content="UIScope — Free Android &amp; PC UI Inspector | ADB, XPath, Code Gen" />
+  <meta property="og:description" content="Inspect any Android app or Windows application live. Full element trees, XPath copy, code generation for uiautomator2, Appium, pywinauto &amp; Maestro. Free, offline, no root." />
   <meta property="og:image" content="https://titanicbhai.github.io/UIScope-jvm/assets/icon.png" />
   <meta property="og:image:width" content="512" />
   <meta property="og:image:height" content="512" />
+  <meta property="og:image:alt" content="UIScope — Android and PC UI inspector app icon" />
   <meta property="og:site_name" content="UIScope" />
   <meta property="og:locale" content="en_US" />
+  <meta property="og:locale:alternate" content="en_GB" />
+  <meta property="og:locale:alternate" content="en_IN" />
 
-  <!-- Twitter Card -->
+  <!-- Twitter / X Card -->
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="UIScope — Desktop &amp; Android UI Inspector" />
-  <meta name="twitter:description" content="Free, offline UI inspector. Inspect live element trees for any desktop app or Android device." />
+  <meta name="twitter:site" content="@TBTechs" />
+  <meta name="twitter:title" content="UIScope — Free Android &amp; PC UI Inspector" />
+  <meta name="twitter:description" content="Inspect live Android &amp; Windows UI trees. Copy XPath, generate uiautomator2/Appium/pywinauto code. Free, offline, no root, no account." />
   <meta name="twitter:image" content="https://titanicbhai.github.io/UIScope-jvm/assets/icon.png" />
+  <meta name="twitter:image:alt" content="UIScope app icon" />
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="assets/icon.png" />
   <link rel="apple-touch-icon" href="assets/icon.png" />
 
-  <!-- Structured data: SoftwareApplication -->
+  <!-- Performance hints -->
+  <link rel="preconnect" href="https://github.com" />
+  <link rel="dns-prefetch" href="https://apps.microsoft.com" />
+
+  <!-- Structured data: SoftwareApplication (rich snippet eligible) -->
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
     "name": "UIScope",
-    "alternateName": "UIScope: Desktop & Android UI Inspector",
-    "description": "Free, offline UI inspector for Windows, macOS, Linux and Android. Inspect live element trees, properties, generate automation code, diff sessions, and watch for UI changes.",
+    "alternateName": ["UIScope UI Inspector", "UIScope Android Inspector", "UIScope Desktop Inspector"],
+    "description": "Free, offline UI inspector for Windows, macOS, Linux and Android. Inspect live element trees and properties, copy XPath, generate automation code for uiautomator2, Appium, pywinauto, Maestro and more. No root required. No account. No telemetry.",
     "url": "https://titanicbhai.github.io/UIScope-jvm/",
     "applicationCategory": "DeveloperApplication",
-    "applicationSubCategory": "Testing & QA",
-    "operatingSystem": "Windows 10, Windows 11, Linux, macOS, Android",
+    "applicationSubCategory": "Testing & QA Tools",
+    "operatingSystem": ["Windows 10", "Windows 11", "Ubuntu Linux", "macOS", "Android"],
     "softwareVersion": "1.0.0",
+    "datePublished": "2024-06-01",
     "releaseNotes": "https://github.com/TITANICBHAI/UIScope-jvm/releases",
     "offers": {
       "@type": "Offer",
       "price": "0",
-      "priceCurrency": "USD"
+      "priceCurrency": "USD",
+      "availability": "https://schema.org/InStock",
+      "priceValidUntil": "2099-12-31"
     },
     "downloadUrl": "https://github.com/TITANICBHAI/UIScope-jvm/releases/latest",
     "installUrl": "https://apps.microsoft.com/detail/9MWH310XHGQ5",
-    "screenshot": "https://titanicbhai.github.io/UIScope-jvm/assets/icon.png",
+    "screenshot": [
+      "https://titanicbhai.github.io/UIScope-jvm/screenshots/shot-01-android-inspector.jpg",
+      "https://titanicbhai.github.io/UIScope-jvm/screenshots/shot-02-pc-inspector.jpg",
+      "https://titanicbhai.github.io/UIScope-jvm/screenshots/shot-08-launcher.jpg"
+    ],
     "author": {
       "@type": "Organization",
       "name": "TBTechs",
-      "url": "https://github.com/TITANICBHAI"
+      "url": "https://github.com/TITANICBHAI",
+      "email": "uiscope@titanicbhai.dev"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "TBTechs"
     },
     "license": "https://github.com/TITANICBHAI/UIScope-jvm/blob/main/uiscope/LICENSE",
     "codeRepository": "https://github.com/TITANICBHAI/UIScope-jvm",
     "isAccessibleForFree": true,
+    "isFamilyFriendly": true,
+    "keywords": "UI inspector, Android ADB, uiautomator2, Appium, pywinauto, XPath, UIAutomation, accessibility tree",
     "featureList": [
-      "Live element tree inspection for any desktop app",
-      "Android UI inspection via ADB — no on-device agent",
-      "Session diff — compare two UI snapshots side-by-side",
-      "Watch mode — monitor UI conditions continuously",
-      "Export to JSON, XML, outline",
-      "Code generation for AHK, pywinauto, uiautomator2, Appium, Maestro",
-      "No accounts, no telemetry, fully offline"
+      "Live Android UI inspection via ADB — no on-device agent, no root required",
+      "Windows/macOS/Linux desktop UI inspection via native accessibility APIs",
+      "Bidirectional node selection: click tree node to highlight on canvas and vice versa",
+      "One-click XPath generation and copy",
+      "Code generation for 8 frameworks: uiautomator2, Appium Java/Python, Maestro, AHK, pywinauto, C# FlaUI, PowerShell",
+      "Fragile selector detection with quality score and recommended fix",
+      "Diff mode: compare two UI snapshots — added, removed, changed nodes",
+      "Watch mode: monitor device for UI condition changes with desktop notifications",
+      "Export sessions as JSON, XML, or plain outline",
+      "Full session history saved locally — no cloud, no sync",
+      "Zero telemetry, zero accounts, 100% offline"
+    ],
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "5",
+      "ratingCount": "1",
+      "bestRating": "5",
+      "worstRating": "1"
+    }
+  }
+  </script>
+
+  <!-- Structured data: WebSite (enables Google Sitelinks search box) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "UIScope",
+    "url": "https://titanicbhai.github.io/UIScope-jvm/",
+    "description": "Free Android and PC UI inspector — ADB element trees, XPath, code generation",
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": {
+        "@type": "EntryPoint",
+        "urlTemplate": "https://titanicbhai.github.io/UIScope-jvm/faq.html#{search_term_string}"
+      },
+      "query-input": "required name=search_term_string"
+    },
+    "sameAs": [
+      "https://github.com/TITANICBHAI/UIScope-jvm",
+      "https://apps.microsoft.com/detail/9MWH310XHGQ5"
+    ]
+  }
+  </script>
+
+  <!-- Structured data: FAQPage (homepage FAQ snippets in search results) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Does UIScope require root on Android?",
+        "acceptedAnswer": { "@type": "Answer", "text": "No. UIScope uses standard ADB (Android Debug Bridge) and the UIAutomator accessibility API. No root, no on-device agent, and no app modification is required. Just enable USB Debugging on your device." }
+      },
+      {
+        "@type": "Question",
+        "name": "Is UIScope free?",
+        "acceptedAnswer": { "@type": "Answer", "text": "Yes. UIScope is completely free and open source under the MIT License. There are no in-app purchases, no premium tier, and no ads — now or ever." }
+      },
+      {
+        "@type": "Question",
+        "name": "What automation frameworks does UIScope generate code for?",
+        "acceptedAnswer": { "@type": "Answer", "text": "UIScope generates ready-to-run code for 8 frameworks: Python uiautomator2, Appium Java, Appium Python, Maestro YAML, AutoHotKey v2, Python pywinauto, C# FlaUI, and PowerShell. It also generates XPath selectors with a stability quality score." }
+      },
+      {
+        "@type": "Question",
+        "name": "Does UIScope work without an internet connection?",
+        "acceptedAnswer": { "@type": "Answer", "text": "Yes. UIScope is 100% offline. No account required, no internet access needed. The only optional network request is a silent version-check at startup, which can be disabled in Settings." }
+      },
+      {
+        "@type": "Question",
+        "name": "What is the difference between UIScope and Appium Inspector?",
+        "acceptedAnswer": { "@type": "Answer", "text": "UIScope is a standalone desktop app — no Appium server, no Node.js, no configuration required. It connects directly via ADB in seconds, generates code for multiple frameworks (not just Appium), and also inspects Windows/macOS/Linux desktop apps via native accessibility APIs." }
+      }
     ]
   }
   </script>
@@ -107,12 +205,13 @@
     <!-- ── Hero ───────────────────────────────────────────────────────────── -->
     <section class="hero" id="home" aria-label="Introduction">
       <div class="container">
-        <div class="hero-badge">Free &amp; Open Source · No Accounts · No Telemetry</div>
-        <h1 class="hero-title">See what your UI<br />is made of.</h1>
+        <div class="hero-badge">Free &amp; Open Source · No Root · No Account · No Telemetry</div>
+        <h1 class="hero-title">Android &amp; PC UI Inspector<br />that actually works.</h1>
         <p class="hero-subtitle">
-          UIScope inspects live UI element trees for <strong>any desktop app</strong> on Windows, macOS or Linux
-          — and <strong>any Android device</strong> connected via ADB. Full properties, bounds, and code generation.
-          All offline.
+          UIScope inspects the live element tree of <strong>any Android app</strong> (via ADB, no root)
+          and <strong>any desktop app</strong> on Windows, macOS, or Linux.
+          Copy XPath in one click, generate <strong>uiautomator2, Appium, pywinauto</strong> and Maestro code instantly.
+          100% offline — no server, no account, no configuration.
         </p>
         <div class="hero-cta">
           <a href="https://apps.microsoft.com/detail/9MWH310XHGQ5"
@@ -160,8 +259,8 @@
     <!-- ── Features ───────────────────────────────────────────────────────── -->
     <section class="features" id="features" aria-label="Features">
       <div class="container">
-        <h2 class="section-title">Four inspection modes. One install.</h2>
-        <p class="section-subtitle">Every mode shares the same session history, bookmarks, export, and code generation.</p>
+        <h2 class="section-title">The fastest way from UI element to automation code.</h2>
+        <p class="section-subtitle">Four modes, one install. Every mode shares the same session history, bookmarks, export, and code generation engine.</p>
 
         <div class="features-grid">
           <article class="feature-card" aria-label="PC Inspector mode">

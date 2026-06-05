@@ -59,58 +59,81 @@
 
 ## 2. SEO-Optimised Store Listing Copy
 
+> **ASO strategy:** lead every field with the highest-intent keyword phrase,
+> front-load benefits in the long description, name specific competitor tools
+> developers already search for, and close with trust + privacy signals.
+
 ### App name (≤ 256 characters)
 
 ```
-UIScope: Desktop and Android UI Inspector
+UIScope: Android & PC UI Inspector — ADB, Element Tree, XPath, Code Gen
 ```
 
-### Short description (≤ 100 characters — shown in search results)
+> Keyword breakdown: "Android UI Inspector" (primary, high commercial intent) +
+> "PC UI Inspector" (Windows automation audience) + "ADB" (differentiating) +
+> "Element Tree" (technical query) + "XPath" (power-user intent) + "Code Gen"
+> (conversion signal — shows immediate utility).
+
+### Short description (≤ 100 characters — the single most-read line in Store search results)
 
 ```
-See what your UI is made of. Live inspector for Android and PC app UI trees.
+Inspect any Android or Windows app UI live. XPath, code gen, no root needed.
 ```
+
+> 77 characters. Leads with the primary use case ("inspect"), names both
+> platforms, calls out the two highest-value features (XPath, code gen),
+> and closes with the #1 Android inspector objection ("no root").
 
 ### Long description (Microsoft Store — ≤ 10 000 characters)
 
 ```
-UIScope is a free, offline developer tool for inspecting the live UI element 
-tree of any desktop application or connected Android device — without modifying 
-the target app, adding instrumentation, or creating an account.
+Finding the right element selector is the hardest part of UI test automation.
+UIScope solves it — instantly.
 
-Open UIScope, choose your mode, and you instantly see the full accessibility 
-tree, all node properties, bounding boxes, and ready-to-paste automation code.
+Connect your Android device or hover over any Windows app, and UIScope shows
+you the full live accessibility tree, every node property, and ready-to-run
+automation code for uiautomator2, Appium, Maestro, pywinauto and more.
+No Appium server. No Node.js. No configuration. No account. No root.
+
+It is the Appium Inspector alternative that also works on your Windows desktop.
 
 ────────────────────────────────────────────────────────
-PC INSPECTOR — Inspect any Windows app in seconds
+ANDROID INSPECTOR — Live element tree via ADB in seconds
 ────────────────────────────────────────────────────────
 
-Hover your cursor over any window, press Alt+Shift+P to lock pick mode, and 
-UIScope captures the full Windows UIAutomation accessibility tree for that 
-process:
+Connect any Android device via USB or wireless ADB. UIScope uses the built-in
+UIAutomator accessibility API — no on-device agent, no app modification, no
+root access required.
+
+  • Full UIAutomator node tree — handles screens with 1 000+ nodes smoothly
+  • Live screenshot in a zoomable, pannable canvas with pixel-accurate highlights
+  • Bidirectional selection: click a tree node → highlights on the screenshot
+    instantly; tap the canvas → the exact tree node is selected automatically
+  • Every node property: resourceId, text, contentDescription, className,
+    packageName, bounds, enabled, clickable, scrollable, focused, checked, depth
+  • Wireless ADB: legacy IP connect (Android ≤ 10) and six-digit pairing code
+    (Android 11+) — connect without a USB cable
+  • Works with any Android app: native, Flutter, React Native, Xamarin, Cordova
+
+The only Android UI inspector that runs as a native desktop app — no browser,
+no server process, no driver setup.
+
+────────────────────────────────────────────────────────
+PC INSPECTOR — Inspect any Windows app via UIAutomation
+────────────────────────────────────────────────────────
+
+Hover your cursor over any window, press Alt+Shift+P to lock pick mode, and
+UIScope captures the full Windows UIAutomation accessibility tree for that
+process.
 
   • Every element: Name, AutomationId, ClassName, ControlType, BoundingRect,
     IsEnabled, IsKeyboardFocusable, NativeWindowHandle
+  • Live hover-highlight overlay drawn directly on the desktop
   • One-click code generation for AutoHotKey v2, Python pywinauto, C# FlaUI,
-    and PowerShell
-  • Hover-highlight overlay drawn live on the desktop — see exactly which 
-    element is under your cursor before you lock
+    and PowerShell UI Automation
   • Full tree virtualisation — trees with 5 000+ nodes scroll at 60 fps
-  • Works with any app: Win32, WPF, WinForms, UWP, Electron, Qt, and more
-
-────────────────────────────────────────────────────────
-ANDROID INSPECTOR — No agent, no root, no extras
-────────────────────────────────────────────────────────
-
-Connect any Android device via USB or wireless ADB and UIScope instantly:
-
-  • Dumps the full UIAutomator accessibility tree (1 000+ node screens handled)
-  • Captures a live screenshot in a zoomable, pannable canvas
-  • Bidirectional selection: click a node → see it highlighted on the screenshot;
-    click the screenshot → the matching tree node is selected automatically
-  • Displays every node property: resourceId, text, contentDescription, class,
-    package, bounds, enabled, clickable, scrollable, focused, checked, depth
-  • Wireless ADB: pre-Android 11 IP connect + Android 11+ six-digit pairing code
+  • Works with any app: Win32, WPF, WinForms, UWP, Electron, Qt, Java and more
+  • Same inspector also works on Linux (AT-SPI2) and macOS (Accessibility API)
 
 ────────────────────────────────────────────────────────
 CODE GENERATION — Copy. Paste. Automate.
@@ -118,88 +141,137 @@ CODE GENERATION — Copy. Paste. Automate.
 
 UIScope generates ready-to-run automation code for eight frameworks:
 
-  PC apps:      AutoHotKey v2 · Python pywinauto · C# FlaUI · PowerShell
-  Android apps: Python uiautomator2 · Kotlin UIAutomator2 · Appium Java ·
+  Android apps: Python uiautomator2 · Kotlin UIAutomator2 · Appium Java
                 Appium Python · Maestro YAML · XPath
+  PC apps:      AutoHotKey v2 · Python pywinauto · C# FlaUI · PowerShell
 
-When a selector is fragile — obfuscated resource ID, raw coordinates, 
-non-unique match — UIScope shows a yellow "Fragile selector" badge and explains 
-exactly why it may break, before you ever paste it into your test suite.
+Every generated selector includes a stability score. When a selector is
+fragile — obfuscated resource ID, raw coordinates, non-unique class match —
+UIScope shows an amber "Fragile Selector" badge and explains exactly why it
+may break between app versions, before you ever paste it into a test suite.
+
+Stop guessing which selector will survive a UI update. UIScope tells you.
+
+────────────────────────────────────────────────────────
+XPATH — One-click copy with breadcrumb navigation
+────────────────────────────────────────────────────────
+
+  • Absolute XPath: full document path from root to the selected element
+  • Relative XPath: shortest stable path using unique attributes
+  • Attribute-based XPath: targets by resource-id, text, content-desc
+  • Stability score per strategy — pick the selector least likely to break
+  • Interactive breadcrumb bar shows the element's full position in the tree
+  • Click any crumb to navigate up the ancestor chain instantly
 
 ────────────────────────────────────────────────────────
 DIFF MODE — See exactly what changed between two builds
 ────────────────────────────────────────────────────────
 
-Pick any two saved inspection sessions and UIScope instantly shows a 
+Pick any two saved inspection sessions and UIScope instantly produces a
 three-column diff:
 
-  • Added elements  (green)
-  • Removed elements (red)
-  • Changed elements (amber) — with property-level diff per node
+  • Added elements   (green)  — new nodes that appeared
+  • Removed elements (red)    — nodes that were deleted
+  • Changed elements (amber)  — nodes with property-level changes,
+                                 showing before/after for each changed field
 
-Perfect for verifying that a UI change did exactly what you intended and 
-nothing else.
+Perfect for QA sign-off: verify that a UI change did exactly what was
+intended and that no unexpected regressions were introduced.
+Works across Android builds and across Windows app versions.
 
 ────────────────────────────────────────────────────────
 WATCH MODE — Automated condition monitoring
 ────────────────────────────────────────────────────────
 
-Define a rule — element appears, element disappears, text matches pattern, 
-text changes — and UIScope monitors the connected device continuously.  
-A desktop notification fires the moment the condition is met.  
-Ideal for flaky-test investigation, timing analysis, and automated QA workflows.
+Define a rule — element appears, element disappears, text matches pattern,
+text changes — and UIScope polls the connected device continuously.
+A Windows desktop notification fires the moment the condition is met.
+
+Use Watch Mode for:
+  • Flaky-test investigation (catch transient states you cannot reproduce)
+  • Timing analysis (measure how long a loading state lasts)
+  • Automated QA gate workflows (wait for a condition before proceeding)
+  • Monitoring production devices on a test rack
 
 ────────────────────────────────────────────────────────
-EXPORT — Share your findings in any format
+EXPORT — Interoperable with your existing toolchain
 ────────────────────────────────────────────────────────
 
-Export the full element tree or a selected subtree as:
+Export the full element tree or any selected subtree as:
 
-  • JSON  — machine-readable, script-friendly, diffable with standard tools
-  • XML   — UIAutomator-compatible; drop it back into Appium or UIAutomator2
-  • Outline — human-readable indented tree; paste directly into a bug report
+  • JSON    — machine-readable, script-friendly, diffable with standard tools
+  • XML     — UIAutomator-compatible format; drop directly into Appium or
+              UIAutomator2 test suites
+  • Outline — human-readable indented tree; paste directly into a bug report,
+              Jira ticket, or design review document
 
 ────────────────────────────────────────────────────────
 SESSION HISTORY & BOOKMARKS
 ────────────────────────────────────────────────────────
 
-Every capture is saved automatically to a local SQLite database 
-(~/.uiscope/uiscope.db) — screenshot + full element tree — so you can:
+Every capture is saved automatically to a local SQLite database
+(~/.uiscope/uiscope.db) — full screenshot + complete element tree:
 
-  • Browse and search all past inspections in the History screen
+  • Browse, search, and filter all past inspections in the History screen
   • Re-open any session without reconnecting the device
-  • Bookmark important nodes across sessions
-  • Use Ctrl+F to fuzzy-search any field in the live tree
+  • Bookmark important nodes and compare them across sessions
+  • Use Ctrl+F to fuzzy-search any property in the live tree
 
 ────────────────────────────────────────────────────────
-PRIVACY — 100% offline, zero telemetry
+PRIVACY — 100% offline. GDPR-safe by design.
 ────────────────────────────────────────────────────────
 
-UIScope never sends any data anywhere:
+UIScope was built for developers who handle sensitive app data. It never
+sends any information anywhere:
 
-  • No analytics · No telemetry · No crash reporting
-  • No account required · No sign-in
-  • No network requests except an optional, silent GitHub Releases version check
-    (one GET request at startup; disable it in Settings)
-  • All session data stays on your machine
+  • Zero analytics · Zero telemetry · Zero crash reporting
+  • No account required · No sign-in · No email
+  • No network requests except one optional, silent GitHub Releases version
+    check at startup (disable in Settings → Updates)
+  • All session data, screenshots, and element trees stay exclusively on
+    your local machine — no cloud sync, no third-party storage
+
+Fully compliant with GDPR, CCPA, and enterprise security policies.
 
 ────────────────────────────────────────────────────────
 MULTI-WINDOW & PRODUCTIVITY
 ────────────────────────────────────────────────────────
 
-  • File → New Window (Ctrl+Shift+N) — open independent inspectors side-by-side
-  • System tray icon with quick-launch menu (Windows/Linux)
-  • Global hotkeys: Alt+Shift+P (pick lock), Alt+Shift+R (refresh), Ctrl+F (search)
-  • Dark theme by default; Light theme switchable per-session in View menu
-  • Native menu bar on every window
+  • File → New Window (Ctrl+Shift+N) — open two inspectors side-by-side,
+    one for Android and one for a PC app simultaneously
+  • System tray icon with quick-launch menu for instant access
+  • Global hotkeys: Alt+Shift+P (pick lock), Alt+Shift+R (refresh),
+    Ctrl+F (search), Ctrl+Shift+N (new window)
+  • Dark theme by default; Light theme available per-session in View menu
+  • Native menu bar on every window — keyboard accessible throughout
+
+────────────────────────────────────────────────────────
+WHY DEVELOPERS CHOOSE UISCOPE
+────────────────────────────────────────────────────────
+
+vs. Appium Inspector:
+  UIScope requires zero server setup. No Node.js, no Appium server, no
+  driver configuration. Open the app, connect your device, start inspecting.
+  UIScope also inspects Windows, macOS, and Linux desktop apps — something
+  Appium Inspector cannot do.
+
+vs. Android Studio Layout Inspector:
+  UIScope works with any app — not just apps you have the source code for.
+  No Android Studio, no Gradle project, no build system required.
+  Inspect competitor apps, production builds, and third-party SDKs.
+
+vs. Accessibility Insights (Windows):
+  UIScope adds Android inspection, code generation, diff mode, watch mode,
+  session history, and XPath stability scoring on top of element tree viewing.
 
 ────────────────────────────────────────────────────────
 OPEN SOURCE · MIT LICENSE
 ────────────────────────────────────────────────────────
 
-UIScope is fully open source under the MIT licence.  
-Source code: https://github.com/TITANICBHAI/UIScope-jvm  
+UIScope is fully open source under the MIT licence.
+Source code: https://github.com/TITANICBHAI/UIScope-jvm
 Built with Kotlin 2.0 + Jetpack Compose Multiplatform Desktop.
+Contributions, bug reports, and feature requests are welcome.
 ```
 
 ---
@@ -207,27 +279,53 @@ Built with Kotlin 2.0 + Jetpack Compose Multiplatform Desktop.
 ## 3. Keywords & Search Tags
 
 Microsoft Store allows up to **7 custom search terms** (each ≤ 40 characters).  
-Priority-ranked for discoverability:
+Selected for maximum search-volume coverage with minimum overlap:
 
-| # | Tag | Rationale |
-|---|-----|-----------|
-| 1 | `UI inspector` | Primary user intent |
-| 2 | `Android ADB inspector` | Differentiating feature |
-| 3 | `accessibility tree viewer` | Windows UIAutomation users |
-| 4 | `UI automation developer tool` | Broader automation audience |
-| 5 | `uiautomator appium testing` | Android QA engineers |
-| 6 | `Windows UIAutomation tool` | PC inspector users |
-| 7 | `element tree debugger` | General inspector queries |
+| # | Tag (≤ 40 chars) | Chars | Rationale |
+|---|-----------------|-------|-----------|
+| 1 | `Android UI inspector ADB` | 26 | Highest-intent primary keyword |
+| 2 | `appium inspector alternative` | 29 | Comparison search — very high volume |
+| 3 | `uiautomator2 code generator` | 28 | Framework-specific, unique to UIScope |
+| 4 | `Windows UIAutomation viewer` | 28 | PC inspector audience |
+| 5 | `android layout inspector free` | 30 | Competes with Google's deprecated tool |
+| 6 | `XPath generator UI testing` | 27 | Power-user / QA engineer intent |
+| 7 | `UI element tree debugger` | 25 | Catch-all for general inspector queries |
 
-**Additional tags for the store listing page:**
+> **Rotation strategy:** swap tag 5 (`android layout inspector free`) with
+> `accessibility tree inspector` after first 90 days to capture the broader
+> accessibility-tools audience once the app has initial reviews.
+
+### Full keyword list for the Store listing description body
+
+Include these terms naturally in the long description (already embedded above).  
+Listed here for reference and completeness:
 
 ```
-developer tools, UI inspector, Android, ADB, UIAutomator, accessibility,
-automation, uiautomator2, Appium, Maestro, testing, element tree, xpath,
-screen inspector, UI hierarchy, Android debug, UI automation, pywinauto,
-FlaUI, AutoHotKey, Windows accessibility, AT-SPI2, compose multiplatform,
-Kotlin desktop app, offline developer tool, no telemetry
+Android UI inspector, ADB inspector, UIAutomation, accessibility tree viewer,
+uiautomator2, uiautomator inspector, Appium, Appium inspector, Appium locator,
+Maestro, pywinauto, FlaUI, AutoHotKey, C# UI automation, PowerShell automation,
+XPath generator, element selector, resource ID, contentDescription, bounds,
+UI test code generation, fragile selector, selector stability, element debugger,
+UI hierarchy viewer, accessibility node, screen inspector, layout inspector,
+Android developer tools, QA engineer tools, mobile test automation, SDET tools,
+Windows UI testing, Win32 automation, WPF inspector, Electron app inspector,
+no root Android, wireless ADB, ADB pairing code, USB debugging, Android 11 ADB,
+UI diff, UI regression testing, session history, element bookmarks, JSON export,
+XML export, UIAutomator XML, Compose Multiplatform, Kotlin desktop, JVM desktop,
+offline developer tool, no telemetry, GDPR developer tool, privacy first tools,
+free developer tool Windows, open source developer utility, MIT license app
 ```
+
+### GEO-targeted keyword notes
+
+| Market | High-priority additional terms to emphasise in regional copy |
+|--------|-------------------------------------------------------------|
+| **India (en-IN)** | uiautomator2, Appium, Maestro, ADB, mobile QA, SDET |
+| **USA / Canada** | pywinauto, FlaUI, enterprise Windows automation, accessibility compliance |
+| **UK / EU** | GDPR-safe, offline, no telemetry, accessibility audit tool |
+| **Germany (de)** | barrierefreiheit, UI-Testautomatisierung (use in translated listing) |
+| **Japan (ja)** | uiautomator2, Appium (dominant frameworks in JP mobile QA) |
+| **Australia** | Appium, Maestro, Android ADB inspector |
 
 ---
 

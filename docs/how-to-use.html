@@ -3,17 +3,77 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>How to Use UIScope — Desktop &amp; Android UI Inspector Guide</title>
-  <meta name="description" content="Step-by-step guide to UIScope. Learn how to inspect Android apps via ADB, inspect Windows/Linux/macOS apps, generate automation code, diff sessions, and use Watch Mode." />
-  <meta name="keywords" content="UIScope tutorial, how to use UIScope, Android ADB inspector guide, Windows UIAutomation inspector, UI automation code generation, appium inspector tutorial" />
-  <meta name="robots" content="index, follow" />
+  <title>How to Use UIScope — Android ADB Inspector &amp; UI Automation Guide (2024)</title>
+  <meta name="description" content="Complete UIScope guide: connect Android via ADB, inspect Windows app UI trees, generate uiautomator2/Appium/pywinauto code, diff sessions, and use Watch Mode. Step-by-step with screenshots." />
+  <meta name="keywords" content="UIScope tutorial, how to inspect Android app UI, ADB UI inspector guide, Windows UIAutomation inspector tutorial, generate uiautomator2 code, Appium locator finder, Android element inspector how to, copy XPath from Android app" />
+  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large" />
   <link rel="canonical" href="https://titanicbhai.github.io/UIScope-jvm/how-to-use.html" />
+  <link rel="alternate" hreflang="en" href="https://titanicbhai.github.io/UIScope-jvm/how-to-use.html" />
+  <link rel="alternate" hreflang="x-default" href="https://titanicbhai.github.io/UIScope-jvm/how-to-use.html" />
   <meta property="og:type" content="article" />
   <meta property="og:url" content="https://titanicbhai.github.io/UIScope-jvm/how-to-use.html" />
-  <meta property="og:title" content="How to Use UIScope — Desktop &amp; Android UI Inspector Guide" />
-  <meta property="og:description" content="Step-by-step guide to inspecting Android and desktop app UI trees, generating automation code, diffing sessions, and using Watch Mode." />
+  <meta property="og:title" content="How to Use UIScope — Android ADB Inspector &amp; UI Automation Guide" />
+  <meta property="og:description" content="Step-by-step: connect Android via ADB, inspect any Windows app, generate uiautomator2/Appium/pywinauto code, diff UI snapshots, and monitor with Watch Mode." />
   <meta property="og:image" content="https://titanicbhai.github.io/UIScope-jvm/assets/icon.png" />
+  <meta property="og:image:alt" content="UIScope Android and PC UI inspector guide" />
   <meta property="og:site_name" content="UIScope" />
+  <meta property="article:author" content="TBTechs" />
+  <meta property="article:section" content="Documentation" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="How to Use UIScope — Android ADB Inspector Guide" />
+  <meta name="twitter:description" content="Connect Android via ADB, inspect any UI tree, generate uiautomator2/Appium code. Step-by-step guide." />
+  <meta name="twitter:image" content="https://titanicbhai.github.io/UIScope-jvm/assets/icon.png" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "UIScope", "item": "https://titanicbhai.github.io/UIScope-jvm/" },
+      { "@type": "ListItem", "position": 2, "name": "How to Use", "item": "https://titanicbhai.github.io/UIScope-jvm/how-to-use.html" }
+    ]
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "HowTo",
+    "name": "How to Inspect an Android App's UI with UIScope",
+    "description": "Use UIScope to inspect the live element tree of any Android app via ADB, identify elements by resource ID and XPath, and generate uiautomator2 or Appium automation code in seconds.",
+    "totalTime": "PT5M",
+    "estimatedCost": { "@type": "MonetaryAmount", "currency": "USD", "value": "0" },
+    "tool": [
+      { "@type": "HowToTool", "name": "UIScope (free)" },
+      { "@type": "HowToTool", "name": "Android device with USB Debugging enabled" },
+      { "@type": "HowToTool", "name": "USB cable or wireless ADB" }
+    ],
+    "step": [
+      {
+        "@type": "HowToStep",
+        "name": "Install UIScope",
+        "text": "Download UIScope from the Microsoft Store or GitHub Releases. No admin rights required. The installer takes under 30 seconds.",
+        "url": "https://titanicbhai.github.io/UIScope-jvm/how-to-use.html#install"
+      },
+      {
+        "@type": "HowToStep",
+        "name": "Enable USB Debugging on your Android device",
+        "text": "On your Android device go to Settings → About Phone → tap Build Number 7 times to unlock Developer Options. Then go to Settings → Developer Options → enable USB Debugging.",
+        "url": "https://titanicbhai.github.io/UIScope-jvm/how-to-use.html#android"
+      },
+      {
+        "@type": "HowToStep",
+        "name": "Connect via ADB and start inspecting",
+        "text": "Connect your device via USB or wireless ADB. In UIScope, select 'Inspect Android', choose your device from the picker, and click Refresh. The full element tree and a live screenshot appear immediately.",
+        "url": "https://titanicbhai.github.io/UIScope-jvm/how-to-use.html#android"
+      },
+      {
+        "@type": "HowToStep",
+        "name": "Select an element and generate automation code",
+        "text": "Click any node in the element tree or tap the canvas. UIScope highlights the element and shows all properties. Click 'Code Gen' to get ready-to-run uiautomator2, Appium, or Maestro code with a one-click copy button.",
+        "url": "https://titanicbhai.github.io/UIScope-jvm/how-to-use.html#codegen"
+      }
+    ]
+  }
+  </script>
   <link rel="icon" type="image/png" href="assets/icon.png" />
   <link rel="stylesheet" href="assets/style.css" />
 </head>
