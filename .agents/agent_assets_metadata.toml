@@ -1,5 +1,64 @@
 uploads = []
-generated = []
+
+[[generated]]
+id = "cex1gRsjiGL3FXiEE4ld0"
+uri = "file://attached_assets/store/hero-16x9.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "R0zETKOhBXx4oVwX_Ue6Q"
+uri = "file://attached_assets/store/screenshot-inspector.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "lSOavPwSRhrku2qxt0QZC"
+uri = "file://attached_assets/store/screenshot-pc-inspector.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "1jGODEVS4YymD9L9towzX"
+uri = "file://attached_assets/store/poster-9x16.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "m94TEp6TMVxxk2TIenyaF"
+uri = "file://attached_assets/store/box-art-1x1.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "tTVDA-qvNm8D-Mxon6oMW"
+uri = "file://attached_assets/store/app-tile-300x300.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "hhyImsvQszozL4NpB2Nc8"
+uri = "file://attached_assets/store/tile-150x150.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "RG9ddR4kVEnfN_nq0uWAc"
+uri = "file://attached_assets/store/tile-71x71.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "RHnO_XXHgpGpoeg782hLN"
+uri = "file://attached_assets/store/branded-key-art-3x4.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "nLPP6gz_4BJSehDdi2kvB"
+uri = "file://attached_assets/store/featured-promo-1x1.png"
+type = "image"
+title = "generated_image"
 
 [[outputs]]
 id = "iCFV6B9EXHmcnJdeOLWza"
@@ -48,3 +107,63 @@ id = "zzBB65yoy4rje4CeUo19L"
 uri = "file://docs/screenshots/shot-08-launcher.jpg"
 type = "image"
 title = "Screenshot 8 — Launcher / Mode Picker"
+
+[[outputs]]
+id = "Gs1abjbgDABlQy8k_wYM1"
+uri = "file://attached_assets/store/hero-16x9.png"
+type = "image"
+title = "Hero / Super hero art — 16:9 (1920×1080 or 3840×2160)"
+
+[[outputs]]
+id = "dVyow2C1WeEHe7sQgDo75"
+uri = "file://attached_assets/store/screenshot-inspector.png"
+type = "image"
+title = "Screenshot 1 — Android Inspector (16:9)"
+
+[[outputs]]
+id = "oiERbGIrlLCFNrmlRRFoV"
+uri = "file://attached_assets/store/screenshot-pc-inspector.png"
+type = "image"
+title = "Screenshot 2 — PC Inspector (16:9)"
+
+[[outputs]]
+id = "8hUGwDwnXKR16SrdG3jPe"
+uri = "file://attached_assets/store/poster-9x16.png"
+type = "image"
+title = "Poster art — 9:16 (720×1080 or 1440×2160)"
+
+[[outputs]]
+id = "oCraG-9yXJqTCjCZO1v6m"
+uri = "file://attached_assets/store/box-art-1x1.png"
+type = "image"
+title = "Box art — 1:1 (1080×1080 or 2160×2160)"
+
+[[outputs]]
+id = "Sm9VVd4djs0c-CJcMl1b2"
+uri = "file://attached_assets/store/app-tile-300x300.png"
+type = "image"
+title = "App tile icon — 1:1 (300×300)"
+
+[[outputs]]
+id = "0GEgIdR3jIwZ4thhESsnK"
+uri = "file://attached_assets/store/tile-150x150.png"
+type = "image"
+title = "Store display image — 1:1 (150×150)"
+
+[[outputs]]
+id = "cJ7bHCvQOOw5DXKCJkSxa"
+uri = "file://attached_assets/store/tile-71x71.png"
+type = "image"
+title = "Store display image — 1:1 (71×71)"
+
+[[outputs]]
+id = "u22NkBpIbffYy1RqCsnnm"
+uri = "file://attached_assets/store/branded-key-art-3x4.png"
+type = "image"
+title = "Branded key art — 3:4 (584×800)"
+
+[[outputs]]
+id = "xApSXf3Mq89jIWOpCstls"
+uri = "file://attached_assets/store/featured-promo-1x1.png"
+type = "image"
+title = "Featured promotional square — 1:1 (1080×1080)"
