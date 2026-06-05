@@ -1,12 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   UIScope — Microsoft Store / MSIX manifest
-  See DISTRIBUTION.md §4 for full guidance on signing and Store submission.
-
-  BEFORE PUBLISHING TO STORE:
-    1. Replace Publisher="CN=TITANICBHAI" with your actual Partner Center publisher identity string.
-    2. Replace all asset PNGs in assets/ with your real logo art (see DISTRIBUTION.md §2).
-    3. Bump Version="X.Y.Z.0" to match your release. The CI workflow patches this automatically.
+  Identity values must match exactly what Partner Center shows under Product identity.
+  The CI script (scripts/build-msix.ps1) injects these at build time.
 -->
 <Package
   xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
@@ -16,16 +12,16 @@
   IgnorableNamespaces="uap uap3 rescap">
 
   <Identity
-    Name="TITANICBHAI.UIScope"
-    Publisher="CN=TITANICBHAI"
+    Name="TBTechs.UIScopeDesktopAndroidUIInspector"
+    Publisher="CN=E08824C8-6F22-4DC2-8025-DD8C707E2BE9"
     Version="1.0.0.0"
     ProcessorArchitecture="x64" />
 
   <Properties>
-    <DisplayName>UIScope</DisplayName>
-    <PublisherDisplayName>TITANICBHAI</PublisherDisplayName>
+    <DisplayName>UIScope: Desktop &amp; Android UI Inspector</DisplayName>
+    <PublisherDisplayName>TBTechs</PublisherDisplayName>
     <Description>See what your UI is made of. Live inspector for Android device UI trees and PC app accessibility trees. Inspect element hierarchies, generate automation code, and export trees in seconds.</Description>
-    <Logo>assets\StoreLogo.png</Logo>
+    <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
 
   <Dependencies>
@@ -47,17 +43,17 @@
       EntryPoint="Windows.FullTrustApplication">
 
       <uap:VisualElements
-        DisplayName="UIScope"
+        DisplayName="UIScope: Desktop &amp; Android UI Inspector"
         Description="See what your UI is made of."
         BackgroundColor="transparent"
-        Square150x150Logo="assets\Square150x150Logo.png"
-        Square44x44Logo="assets\Square44x44Logo.png">
+        Square150x150Logo="Assets\Square150x150Logo.png"
+        Square44x44Logo="Assets\Square44x44Logo.png">
 
         <uap:DefaultTile
           ShortName="UIScope"
-          Wide310x150Logo="assets\Wide310x150Logo.png"
-          Square71x71Logo="assets\Square71x71Logo.png"
-          Square310x310Logo="assets\Square310x310Logo.png">
+          Wide310x150Logo="Assets\Wide310x150Logo.png"
+          Square71x71Logo="Assets\Square71x71Logo.png"
+          Square310x310Logo="Assets\Square310x310Logo.png">
           <uap:ShowNameOnTiles>
             <uap:ShowOn Tile="square150x150Logo" />
             <uap:ShowOn Tile="wide310x150Logo" />
@@ -65,24 +61,10 @@
           </uap:ShowNameOnTiles>
         </uap:DefaultTile>
 
-        <uap:SplashScreen Image="assets\SplashScreen.png" BackgroundColor="#0D1117" />
-        <uap:LockScreen BadgeLogo="assets\BadgeLogo.png" Notification="badge" />
+        <uap:SplashScreen Image="Assets\SplashScreen.png" BackgroundColor="#0D1117" />
+        <uap:LockScreen BadgeLogo="Assets\BadgeLogo.png" Notification="badge" />
 
       </uap:VisualElements>
-
-      <Extensions>
-        <!-- Associate with .uiscope session files (future) -->
-        <!--
-        <uap:Extension Category="windows.fileTypeAssociation">
-          <uap:FileTypeAssociation Name="uiscope">
-            <uap:SupportedFileTypes>
-              <uap:FileType>.uiscope</uap:FileType>
-            </uap:SupportedFileTypes>
-            <uap:DisplayName>UIScope Session</uap:DisplayName>
-          </uap:FileTypeAssociation>
-        </uap:Extension>
-        -->
-      </Extensions>
 
     </Application>
   </Applications>
