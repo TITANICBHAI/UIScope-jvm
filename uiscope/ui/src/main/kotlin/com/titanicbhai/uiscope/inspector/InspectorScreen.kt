@@ -72,7 +72,9 @@ fun InspectorScreen(
     mode: InspectionMode,
     adbManager: AdbManager,
     onSwitchMode: (InspectionMode) -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onHistory: () -> Unit = {},
+    onSettings: () -> Unit = {}
 ) {
     val colorScheme = MaterialTheme.colorScheme
     val scope = rememberCoroutineScope()
@@ -111,6 +113,8 @@ fun InspectorScreen(
     // UI toggles
     var showCodegen by remember { mutableStateOf(false) }
     var showExportDialog by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
+    var showSearch by remember { mutableStateOf(false) }
 
     val adbAvailable = remember { adbManager.isAdbAvailable() }
 
@@ -298,7 +302,16 @@ fun InspectorScreen(
                     pickModeActive = !pickModeActive
                     true
                 } else if (event.type == KeyEventType.KeyDown && event.key == Key.Escape) {
-                    pickModeActive = false
+                    if (showSearch) {
+                        showSearch = false
+                        searchQuery = ""
+                    } else {
+                        pickModeActive = false
+                    }
+                    true
+                } else if (event.type == KeyEventType.KeyDown && event.key == Key.F && event.isCtrlPressed) {
+                    showSearch = !showSearch
+                    if (!showSearch) searchQuery = ""
                     true
                 } else if (mode == InspectionMode.ANDROID && event.type == KeyEventType.KeyDown && event.key == Key.R) {
                     scope.launch { selectedDevice?.let { performAndroidRefresh(it) } }
@@ -315,8 +328,12 @@ fun InspectorScreen(
             autoRefresh = autoRefresh,
             showCodegen = showCodegen,
             pickModeActive = pickModeActive,
+            showSearch = showSearch,
+            searchQuery = searchQuery,
             onSwitchMode = onSwitchMode,
             onBack = onBack,
+            onHistory = onHistory,
+            onSettings = onSettings,
             onRefresh = {
                 if (mode == InspectionMode.PC) {
                     scope.launch {
@@ -334,7 +351,12 @@ fun InspectorScreen(
             onToggleAutoRefresh = { autoRefresh = !autoRefresh },
             onToggleCodegen = { showCodegen = !showCodegen },
             onExport = { showExportDialog = true },
-            onTogglePick = { pickModeActive = !pickModeActive }
+            onTogglePick = { pickModeActive = !pickModeActive },
+            onToggleSearch = {
+                showSearch = !showSearch
+                if (!showSearch) searchQuery = ""
+            },
+            onSearchQueryChange = { searchQuery = it }
         )
 
         HorizontalDivider(color = colorScheme.outline)
@@ -392,7 +414,8 @@ fun InspectorScreen(
                                 TreePanel(
                                     rootNodes = elementTree,
                                     selectedNode = selectedNode,
-                                    onNodeSelected = { selectedNode = it }
+                                    onNodeSelected = { selectedNode = it },
+                                    searchQuery = searchQuery
                                 )
                             }
 
@@ -706,93 +729,141 @@ private fun InspectorTopBar(
     autoRefresh: Boolean,
     showCodegen: Boolean,
     pickModeActive: Boolean,
+    showSearch: Boolean,
+    searchQuery: String,
     onSwitchMode: (InspectionMode) -> Unit,
     onBack: () -> Unit,
+    onHistory: () -> Unit,
+    onSettings: () -> Unit,
     onRefresh: () -> Unit,
     onToggleAutoRefresh: () -> Unit,
     onToggleCodegen: () -> Unit,
     onExport: () -> Unit,
-    onTogglePick: () -> Unit
+    onTogglePick: () -> Unit,
+    onToggleSearch: () -> Unit,
+    onSearchQueryChange: (String) -> Unit
 ) {
     val colorScheme = MaterialTheme.colorScheme
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(52.dp)
-            .background(colorScheme.surface)
-            .padding(horizontal = 16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            TextButton(onClick = onBack) {
-                Text("← Back", color = colorScheme.primary, style = MaterialTheme.typography.labelLarge)
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(52.dp)
+                .background(colorScheme.surface)
+                .padding(horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextButton(onClick = onBack) {
+                    Text("← Back", color = colorScheme.primary, style = MaterialTheme.typography.labelLarge)
+                }
+                Text("│", color = colorScheme.outline)
+                Text(
+                    text = if (mode == InspectionMode.PC) "🖥  PC Inspector" else "📱  Android Inspector",
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                    color = colorScheme.onSurface
+                )
+                deviceName?.let {
+                    Text("·", color = colorScheme.outline)
+                    Text(it, style = MaterialTheme.typography.bodySmall, color = colorScheme.onSurfaceVariant)
+                }
             }
-            Text("│", color = colorScheme.outline)
-            Text(
-                text = if (mode == InspectionMode.PC) "🖥  PC Inspector" else "📱  Android Inspector",
-                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-                color = colorScheme.onSurface
-            )
-            deviceName?.let {
-                Text("·", color = colorScheme.outline)
-                Text(it, style = MaterialTheme.typography.bodySmall, color = colorScheme.onSurfaceVariant)
+
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                if (mode == InspectionMode.PC) {
+                    Button(
+                        onClick = onTogglePick,
+                        modifier = Modifier.height(34.dp),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (pickModeActive) Color(0xFF1A6EC7) else colorScheme.primaryContainer,
+                            contentColor = if (pickModeActive) Color.White else colorScheme.onPrimaryContainer
+                        )
+                    ) {
+                        Text(
+                            if (pickModeActive) "⏹ Cancel Pick" else "🎯 Pick",
+                            style = MaterialTheme.typography.labelMedium
+                        )
+                    }
+                }
+                TextButton(onClick = onRefresh, enabled = !isRefreshing) {
+                    Text(
+                        "↺ Refresh",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = if (isRefreshing) colorScheme.onSurface.copy(alpha = 0.38f) else colorScheme.onSurfaceVariant
+                    )
+                }
+                if (mode == InspectionMode.ANDROID) {
+                    TextButton(onClick = onToggleAutoRefresh) {
+                        Text(
+                            if (autoRefresh) "⏸ Auto" else "▶ Auto",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = if (autoRefresh) colorScheme.primary else colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                TextButton(onClick = onToggleSearch) {
+                    Text(
+                        "⌕ Search",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = if (showSearch) colorScheme.primary else colorScheme.onSurfaceVariant
+                    )
+                }
+                TextButton(onClick = onToggleCodegen) {
+                    Text(
+                        if (showCodegen) "Hide Code" else "{ } Code",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = if (showCodegen) colorScheme.primary else colorScheme.onSurfaceVariant
+                    )
+                }
+                TextButton(onClick = onExport) {
+                    Text("Export…", style = MaterialTheme.typography.labelMedium, color = colorScheme.onSurfaceVariant)
+                }
+                TextButton(onClick = onHistory) {
+                    Text("📋 History", style = MaterialTheme.typography.labelMedium, color = colorScheme.onSurfaceVariant)
+                }
+                TextButton(onClick = onSettings) {
+                    Text("⚙ Settings", style = MaterialTheme.typography.labelMedium, color = colorScheme.onSurfaceVariant)
+                }
+                val otherMode = if (mode == InspectionMode.PC) InspectionMode.ANDROID else InspectionMode.PC
+                OutlinedButton(
+                    onClick = { onSwitchMode(otherMode) },
+                    modifier = Modifier.height(34.dp),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        if (mode == InspectionMode.PC) "Switch to Android" else "Switch to PC",
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                }
             }
         }
 
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            if (mode == InspectionMode.PC) {
-                Button(
-                    onClick = onTogglePick,
-                    modifier = Modifier.height(34.dp),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (pickModeActive) Color(0xFF1A6EC7) else colorScheme.primaryContainer,
-                        contentColor = if (pickModeActive) Color.White else colorScheme.onPrimaryContainer
-                    )
-                ) {
-                    Text(
-                        if (pickModeActive) "⏹ Cancel Pick" else "🎯 Pick",
-                        style = MaterialTheme.typography.labelMedium
-                    )
-                }
-            }
-            TextButton(onClick = onRefresh, enabled = !isRefreshing) {
-                Text(
-                    "↺ Refresh",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = if (isRefreshing) colorScheme.onSurface.copy(alpha = 0.38f) else colorScheme.onSurfaceVariant
-                )
-            }
-            if (mode == InspectionMode.ANDROID) {
-                TextButton(onClick = onToggleAutoRefresh) {
-                    Text(
-                        if (autoRefresh) "⏸ Auto" else "▶ Auto",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = if (autoRefresh) colorScheme.primary else colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-            TextButton(onClick = onToggleCodegen) {
-                Text(
-                    if (showCodegen) "Hide Code" else "{ } Code",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = if (showCodegen) colorScheme.primary else colorScheme.onSurfaceVariant
-                )
-            }
-            TextButton(onClick = onExport) {
-                Text("Export…", style = MaterialTheme.typography.labelMedium, color = colorScheme.onSurfaceVariant)
-            }
-            val otherMode = if (mode == InspectionMode.PC) InspectionMode.ANDROID else InspectionMode.PC
-            OutlinedButton(
-                onClick = { onSwitchMode(otherMode) },
-                modifier = Modifier.height(34.dp),
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+        if (showSearch) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(colorScheme.surfaceVariant.copy(alpha = 0.6f))
+                    .padding(horizontal = 16.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text(
-                    if (mode == InspectionMode.PC) "Switch to Android" else "Switch to PC",
-                    style = MaterialTheme.typography.labelSmall
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = onSearchQueryChange,
+                    placeholder = { Text("Search by name, ID, class, text, content desc…", style = MaterialTheme.typography.bodySmall) },
+                    singleLine = true,
+                    modifier = Modifier.weight(1f).height(44.dp),
+                    textStyle = MaterialTheme.typography.bodySmall,
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp)
                 )
+                TextButton(onClick = {
+                    onSearchQueryChange("")
+                    onToggleSearch()
+                }) {
+                    Text("Clear", style = MaterialTheme.typography.labelSmall, color = colorScheme.onSurfaceVariant)
+                }
             }
         }
     }

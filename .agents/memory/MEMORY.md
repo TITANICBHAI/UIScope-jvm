@@ -1,0 +1,2 @@
+- [UIScope build quirks](uiscope-build-quirks.md) — GraalVM toolchain + missing Compose deps caused initial compile failures; fixed approach documented
+- [UIScope phase coverage](uiscope-phase-coverage.md) — what's built (Phases 1–3) vs what's Phase 4 (hotkeys, tray, multi-window)

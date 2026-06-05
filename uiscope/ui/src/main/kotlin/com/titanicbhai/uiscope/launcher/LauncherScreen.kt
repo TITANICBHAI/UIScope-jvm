@@ -19,16 +19,34 @@ import androidx.compose.ui.unit.sp
 import com.titanicbhai.uiscope.model.InspectionMode
 
 @Composable
-fun LauncherScreen(onModeSelected: (InspectionMode) -> Unit) {
+fun LauncherScreen(
+    onModeSelected: (InspectionMode) -> Unit,
+    onHistory: () -> Unit,
+    onSettings: () -> Unit
+) {
     val colorScheme = MaterialTheme.colorScheme
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(colorScheme.background),
-        contentAlignment = Alignment.Center
+            .background(colorScheme.background)
     ) {
+        Row(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            TextButton(onClick = onHistory) {
+                Text("📋 History", style = MaterialTheme.typography.labelMedium, color = colorScheme.onSurfaceVariant)
+            }
+            TextButton(onClick = onSettings) {
+                Text("⚙ Settings", style = MaterialTheme.typography.labelMedium, color = colorScheme.onSurfaceVariant)
+            }
+        }
+
         Column(
+            modifier = Modifier.align(Alignment.Center),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(48.dp)
         ) {

@@ -14,6 +14,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.titanicbhai.uiscope.export.RuleAnalyzer
 import com.titanicbhai.uiscope.model.ElementNode
 
 private data class FlatNode(
@@ -51,11 +52,19 @@ private fun buildVisibleList(nodes: List<ElementNode>, collapsedIds: Set<String>
     return result
 }
 
+private fun flattenAll(nodes: List<ElementNode>): List<ElementNode> {
+    val result = mutableListOf<ElementNode>()
+    fun visit(n: ElementNode) { result.add(n); n.children.forEach { visit(it) } }
+    nodes.forEach { visit(it) }
+    return result
+}
+
 @Composable
 fun TreePanel(
     rootNodes: List<ElementNode>,
     selectedNode: ElementNode?,
-    onNodeSelected: (ElementNode) -> Unit
+    onNodeSelected: (ElementNode) -> Unit,
+    searchQuery: String = ""
 ) {
     val colorScheme = MaterialTheme.colorScheme
     val total = remember(rootNodes) { countAll(rootNodes) }
@@ -65,9 +74,17 @@ fun TreePanel(
     val visibleList = remember(rootNodes, collapsedIds) { buildVisibleList(rootNodes, collapsedIds) }
     val listState = rememberLazyListState()
 
+    val isSearching = searchQuery.isNotBlank()
+    val searchResults = remember(rootNodes, searchQuery) {
+        if (!isSearching) emptyList()
+        else flattenAll(rootNodes).filter { RuleAnalyzer.matchesSearch(searchQuery, it) }
+    }
+
     LaunchedEffect(selectedNode) {
-        val idx = visibleList.indexOfFirst { it.node.id == selectedNode?.id }
-        if (idx >= 0) listState.animateScrollToItem(idx)
+        if (!isSearching) {
+            val idx = visibleList.indexOfFirst { it.node.id == selectedNode?.id }
+            if (idx >= 0) listState.animateScrollToItem(idx)
+        }
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -79,7 +96,13 @@ fun TreePanel(
         ) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text("Element Tree", style = MaterialTheme.typography.labelLarge, color = colorScheme.onSurfaceVariant)
-                if (total > 0) {
+                if (isSearching) {
+                    Text(
+                        "${searchResults.size} matches",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (searchResults.isEmpty()) colorScheme.error else colorScheme.primary
+                    )
+                } else if (total > 0) {
                     Text(
                         "$total nodes",
                         style = MaterialTheme.typography.labelSmall,
@@ -102,6 +125,27 @@ fun TreePanel(
                     )
                 }
             }
+        } else if (isSearching) {
+            if (searchResults.isEmpty()) {
+                Box(modifier = Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
+                    Text(
+                        "No matches for \"$searchQuery\"",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colorScheme.onSurfaceVariant.copy(alpha = 0.55f)
+                    )
+                }
+            } else {
+                LazyColumn(modifier = Modifier.fillMaxSize()) {
+                    items(searchResults, key = { it.id }) { node ->
+                        SearchResultRow(
+                            node = node,
+                            query = searchQuery,
+                            isSelected = node.id == selectedNode?.id,
+                            onClick = { onNodeSelected(node) }
+                        )
+                    }
+                }
+            }
         } else {
             LazyColumn(modifier = Modifier.fillMaxSize(), state = listState) {
                 items(visibleList, key = { it.node.id }) { flatNode ->
@@ -120,6 +164,54 @@ fun TreePanel(
             }
         }
     }
+}
+
+@Composable
+private fun SearchResultRow(
+    node: ElementNode,
+    query: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    val colorScheme = MaterialTheme.colorScheme
+    val shortClass = node.className.substringAfterLast('.')
+    val label = when {
+        !node.text.isNullOrBlank() -> "\"${node.text!!.take(40)}\""
+        !node.contentDescription.isNullOrBlank() -> "[${node.contentDescription!!.take(40)}]"
+        else -> shortClass
+    }
+    val sub = node.resourceId?.let { "@${it.substringAfterLast('/')}" } ?: shortClass
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                if (isSelected) colorScheme.primaryContainer
+                else colorScheme.surface
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                label,
+                style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace, fontSize = 11.sp),
+                color = if (isSelected) colorScheme.onPrimaryContainer else colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                "depth ${node.depth}  ·  $sub",
+                style = MaterialTheme.typography.labelSmall.copy(fontFamily = FontFamily.Monospace, fontSize = 10.sp),
+                color = if (isSelected) colorScheme.onPrimaryContainer.copy(alpha = 0.65f)
+                else colorScheme.primary.copy(alpha = 0.65f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
+    HorizontalDivider(color = colorScheme.outline.copy(alpha = 0.12f))
 }
 
 @Composable

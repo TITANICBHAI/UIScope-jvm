@@ -7,16 +7,18 @@ import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowState
 import androidx.compose.ui.window.application
 import com.titanicbhai.uiscope.android.AdbManager
+import com.titanicbhai.uiscope.history.HistoryScreen
 import com.titanicbhai.uiscope.inspector.InspectorScreen
 import com.titanicbhai.uiscope.launcher.LauncherScreen
 import com.titanicbhai.uiscope.model.InspectionMode
 import com.titanicbhai.uiscope.onboarding.OnboardingScreen
 import com.titanicbhai.uiscope.repository.SettingsRepository
+import com.titanicbhai.uiscope.settings.SettingsScreen
 import com.titanicbhai.uiscope.theme.UiScopeTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-enum class AppScreen { ONBOARDING, LAUNCHER, INSPECTOR }
+enum class AppScreen { ONBOARDING, LAUNCHER, INSPECTOR, HISTORY, SETTINGS }
 
 fun main() = application {
     val settings = remember { SettingsRepository() }
@@ -24,6 +26,7 @@ fun main() = application {
 
     var darkTheme by remember { mutableStateOf(false) }
     var screen by remember { mutableStateOf(AppScreen.LAUNCHER) }
+    var previousScreen by remember { mutableStateOf(AppScreen.LAUNCHER) }
     var mode by remember { mutableStateOf(InspectionMode.PC) }
     var adbAvailable by remember { mutableStateOf(false) }
 
@@ -65,6 +68,14 @@ fun main() = application {
                         mode = selected
                         settings.set(SettingsRepository.LAST_MODE, selected.name)
                         screen = AppScreen.INSPECTOR
+                    },
+                    onHistory = {
+                        previousScreen = AppScreen.LAUNCHER
+                        screen = AppScreen.HISTORY
+                    },
+                    onSettings = {
+                        previousScreen = AppScreen.LAUNCHER
+                        screen = AppScreen.SETTINGS
                     }
                 )
                 AppScreen.INSPECTOR -> InspectorScreen(
@@ -74,7 +85,27 @@ fun main() = application {
                         mode = newMode
                         settings.set(SettingsRepository.LAST_MODE, newMode.name)
                     },
-                    onBack = { screen = AppScreen.LAUNCHER }
+                    onBack = { screen = AppScreen.LAUNCHER },
+                    onHistory = {
+                        previousScreen = AppScreen.INSPECTOR
+                        screen = AppScreen.HISTORY
+                    },
+                    onSettings = {
+                        previousScreen = AppScreen.INSPECTOR
+                        screen = AppScreen.SETTINGS
+                    }
+                )
+                AppScreen.HISTORY -> HistoryScreen(
+                    onBack = { screen = previousScreen }
+                )
+                AppScreen.SETTINGS -> SettingsScreen(
+                    onBack = {
+                        val theme2 = settings.get(SettingsRepository.THEME, "SYSTEM")
+                        darkTheme = theme2 == "DARK"
+                        val savedPath = settings.get(SettingsRepository.ADB_PATH)
+                        if (!savedPath.isNullOrBlank()) adbManager.setAdbPath(savedPath)
+                        screen = previousScreen
+                    }
                 )
             }
         }
