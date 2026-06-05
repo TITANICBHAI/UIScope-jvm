@@ -26,10 +26,10 @@ permissions:
 jobs:
 
   # ╔══════════════════════════════════════════════════════════════════════════╗
-  # ║  WINDOWS — EXE · MSI                                                   ║
+  # ║  WINDOWS — EXE · MSI · MSIX                                             ║
   # ╚══════════════════════════════════════════════════════════════════════════╝
   build-windows:
-    name: Windows (EXE · MSI)
+    name: Windows (EXE · MSI · MSIX)
     runs-on: windows-latest
     defaults:
       run:
@@ -68,6 +68,118 @@ jobs:
           APP_VERSION: ${{ env.SEM }}
         run: .\gradlew.bat :app:packageExe :app:packageMsi --no-daemon
 
+      # ── MSIX — built from the MSI using makeappx (Windows SDK, pre-installed on runners) ──
+      - name: Build MSIX
+        shell: pwsh
+        env:
+          # Set these three secrets in GitHub repo Settings → Secrets → Actions
+          # Get values from Microsoft Partner Center → App identity page
+          MSIX_PACKAGE_NAME:     ${{ secrets.MSIX_PACKAGE_NAME }}
+          MSIX_PUBLISHER:        ${{ secrets.MSIX_PUBLISHER }}
+          MSIX_PUBLISHER_DISPLAY: ${{ secrets.MSIX_PUBLISHER_DISPLAY }}
+        run: |
+          $sem = "${{ env.SEM }}"
+
+          # Fallback values used until Partner Center secrets are added
+          $pkgName  = if ($env:MSIX_PACKAGE_NAME)      { $env:MSIX_PACKAGE_NAME }      else { "TITANICBHAIStudios.UIScope" }
+          $pub      = if ($env:MSIX_PUBLISHER)          { $env:MSIX_PUBLISHER }          else { "CN=UIScope-Dev" }
+          $pubDisp  = if ($env:MSIX_PUBLISHER_DISPLAY)  { $env:MSIX_PUBLISHER_DISPLAY }  else { "TITANICBHAI" }
+
+          # Locate WinSDK makeappx.exe
+          $sdkBin = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin" -Filter "makeappx.exe" -Recurse -ErrorAction SilentlyContinue |
+                    Where-Object { $_.FullName -match 'x64' } | Select-Object -First 1 -ExpandProperty FullName
+          if (-not $sdkBin) { Write-Error "makeappx.exe not found in Windows SDK"; exit 1 }
+          Write-Host "Using makeappx: $sdkBin"
+
+          # Stage app content from the MSI output (jpackage app-image)
+          $appImage = "uiscope\app\build\compose\binaries\main\app\UIScope"
+          if (-not (Test-Path $appImage)) {
+            # app-image isn't produced by packageMsi alone — build it explicitly
+            Push-Location uiscope
+            .\gradlew.bat :app:createReleaseDistributable --no-daemon
+            Pop-Location
+          }
+
+          $msixStage = "msix-stage"
+          New-Item -ItemType Directory -Force -Path $msixStage | Out-Null
+          Copy-Item -Path "$appImage\*" -Destination $msixStage -Recurse -Force
+
+          # Write AppxManifest.xml
+          $manifest = @"
+<?xml version="1.0" encoding="utf-8"?>
+<Package
+  xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities">
+
+  <Identity
+    Name="$pkgName"
+    Publisher="$pub"
+    Version="$sem.0"
+    ProcessorArchitecture="x64" />
+
+  <Properties>
+    <DisplayName>UIScope: Desktop &amp; Android UI Inspector</DisplayName>
+    <PublisherDisplayName>$pubDisp</PublisherDisplayName>
+    <Logo>Assets\StoreLogo.png</Logo>
+  </Properties>
+
+  <Dependencies>
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.17763.0" MaxVersionTested="10.0.22621.0" />
+  </Dependencies>
+
+  <Resources>
+    <Resource Language="en-us" />
+  </Resources>
+
+  <Applications>
+    <Application Id="UIScope" Executable="UIScope.exe" EntryPoint="Windows.FullTrustApplication">
+      <uap:VisualElements
+        DisplayName="UIScope: Desktop &amp; Android UI Inspector"
+        Description="See what your UI is made of. Live inspection of Android device UI trees and Windows accessibility trees."
+        BackgroundColor="transparent"
+        Square150x150Logo="Assets\Square150x150Logo.png"
+        Square44x44Logo="Assets\Square44x44Logo.png" />
+    </Application>
+  </Applications>
+
+  <Capabilities>
+    <rescap:Capability Name="runFullTrust" />
+  </Capabilities>
+</Package>
+"@
+          $manifest | Set-Content "$msixStage\AppxManifest.xml" -Encoding UTF8
+
+          # Copy icon assets (scale to required sizes using the existing icon.png via magick/built-in)
+          $assetsDir = "$msixStage\Assets"
+          New-Item -ItemType Directory -Force -Path $assetsDir | Out-Null
+
+          $srcIcon = "uiscope\app\src\main\resources\icon.png"
+
+          # Use PowerShell + System.Drawing to resize icons (no ImageMagick needed)
+          Add-Type -AssemblyName System.Drawing
+          foreach ($spec in @(
+            @{Size=44;  Name="Square44x44Logo.png"},
+            @{Size=150; Name="Square150x150Logo.png"},
+            @{Size=50;  Name="StoreLogo.png"}
+          )) {
+            $src = [System.Drawing.Image]::FromFile((Resolve-Path $srcIcon))
+            $bmp = New-Object System.Drawing.Bitmap($spec.Size, $spec.Size)
+            $g   = [System.Drawing.Graphics]::FromImage($bmp)
+            $g.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+            $g.DrawImage($src, 0, 0, $spec.Size, $spec.Size)
+            $bmp.Save("$assetsDir\$($spec.Name)", [System.Drawing.Imaging.ImageFormat]::Png)
+            $g.Dispose(); $bmp.Dispose(); $src.Dispose()
+          }
+
+          # Package
+          $outDir = "msix-out"
+          New-Item -ItemType Directory -Force -Path $outDir | Out-Null
+          $msixPath = "$outDir\UIScope-$sem-x64.msix"
+          & $sdkBin pack /d $msixStage /p $msixPath /nv
+          if ($LASTEXITCODE -ne 0) { Write-Error "makeappx failed"; exit 1 }
+          Write-Host "MSIX created: $msixPath"
+
       - name: Upload EXE
         uses: actions/upload-artifact@v4
         with:
@@ -80,6 +192,13 @@ jobs:
         with:
           name: UIScope-windows-msi
           path: uiscope/app/build/compose/binaries/main/msi/*.msi
+          if-no-files-found: warn
+
+      - name: Upload MSIX
+        uses: actions/upload-artifact@v4
+        with:
+          name: UIScope-windows-msix
+          path: msix-out/*.msix
           if-no-files-found: warn
 
 
@@ -175,29 +294,29 @@ jobs:
           prerelease: ${{ contains(github.ref_name, '-') }}
           body: |
             ## UIScope ${{ github.ref_name }}
+            ### Desktop & Android UI Inspector
 
-            **See what your UI is made of.** Live inspection of Android device UI trees and Windows / macOS / Linux accessibility trees — all in one desktop app.
+            **See what your UI is made of.** Live inspection of Android device UI trees and Windows / macOS / Linux app accessibility trees — all in one desktop app. No accounts, no telemetry, fully offline.
 
-            ### What's in this release
+            ### Downloads
 
             | File | Platform | Notes |
             |------|----------|-------|
-            | `UIScope-Setup-*.exe` | Windows | NSIS installer — recommended for most users |
-            | `UIScope-*.msi` | Windows | MSI — for enterprise / Group Policy deployment |
-            | `UIScope-*.deb` | Linux (Debian/Ubuntu) | `sudo dpkg -i UIScope-*.deb` |
-            | `UIScope-*.AppImage` | Linux (universal) | `chmod +x && ./UIScope-*.AppImage` |
+            | `UIScope-${{ env.SEM }}.exe` | Windows | NSIS installer — recommended for most users |
+            | `UIScope-${{ env.SEM }}.msi` | Windows | MSI — enterprise / Group Policy / silent install |
+            | `UIScope-${{ env.SEM }}-x64.msix` | Windows | MSIX — Microsoft Store / WinGet sideload |
+            | `uiscope_${{ env.SEM }}-1_amd64.deb` | Linux (Debian/Ubuntu) | `sudo dpkg -i uiscope_*.deb` |
+            | `UIScope-${{ env.SEM }}.AppImage` | Linux (universal) | `chmod +x && ./UIScope-*.AppImage` |
 
             ### Requirements
             - **Windows** 10 / 11 (x64)
             - **Linux** Ubuntu 22.04 or equivalent (x64)
-            - **Android inspection** — ADB in PATH and USB Debugging enabled on device
-
-            ### Changelog
-            See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/uiscope/CHANGELOG.md) for full details.
+            - **Android inspection** — ADB in PATH, USB Debugging enabled on device
 
           files: |
             dist/**/*.exe
             dist/**/*.msi
+            dist/**/*.msix
             dist/**/*.deb
             dist/**/*.AppImage
         env:
