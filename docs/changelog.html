@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Changelog — UIScope</title>
+  <meta name="description" content="UIScope version history and release notes. See what's new in each release of UIScope, the desktop and Android UI inspector." />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://titanicbhai.github.io/UIScope-jvm/changelog.html" />
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://titanicbhai.github.io/UIScope-jvm/changelog.html" />
+  <meta property="og:title" content="Changelog — UIScope" />
+  <meta property="og:description" content="Version history and release notes for UIScope — desktop and Android UI inspector." />
+  <meta property="og:image" content="https://titanicbhai.github.io/UIScope-jvm/assets/icon.png" />
+  <meta property="og:site_name" content="UIScope" />
+  <link rel="icon" type="image/png" href="assets/icon.png" />
+  <link rel="stylesheet" href="assets/style.css" />
+  <style>
+    .release-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-bottom: 6px;
+    }
+    .release-version {
+      font-size: 1.35rem;
+      font-weight: 800;
+      letter-spacing: -.025em;
+      color: var(--text);
+    }
+    .release-date {
+      font-size: .82rem;
+      color: var(--text-subtle);
+      background: var(--card);
+      border: 1px solid var(--border);
+      padding: 3px 10px;
+      border-radius: 100px;
+    }
+    .release-badge {
+      font-size: .72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      padding: 3px 10px;
+      border-radius: 100px;
+    }
+    .release-badge.latest { background: rgba(63,185,80,.15); border: 1px solid rgba(63,185,80,.3); color: var(--green); }
+    .release-badge.internal { background: rgba(139,148,158,.1); border: 1px solid rgba(139,148,158,.2); color: var(--text-subtle); }
+    .release-block {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px 28px 24px;
+      margin-bottom: 24px;
+      background: var(--card);
+    }
+    .release-block.is-latest { border-color: var(--green-dark); }
+    .change-group { margin: 20px 0 0; }
+    .change-group-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: .78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      margin-bottom: 10px;
+      padding: 3px 10px;
+      border-radius: 100px;
+    }
+    .label-added   { background: rgba(63,185,80,.12);  border: 1px solid rgba(63,185,80,.25);  color: var(--green); }
+    .label-changed { background: rgba(88,166,255,.1);  border: 1px solid rgba(88,166,255,.25); color: var(--blue); }
+    .label-fixed   { background: rgba(188,140,255,.1); border: 1px solid rgba(188,140,255,.25);color: var(--purple); }
+    .label-tech    { background: rgba(139,148,158,.1); border: 1px solid rgba(139,148,158,.2); color: var(--text-subtle); }
+    .change-list {
+      list-style: none;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .change-list li {
+      font-size: .9rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+      padding-left: 16px;
+      position: relative;
+    }
+    .change-list li::before { content: "·"; position: absolute; left: 0; color: var(--border-muted); }
+    .change-list strong { color: var(--text); font-weight: 600; }
+    .release-links {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="nav" role="navigation" aria-label="Main navigation">
+    <div class="nav-inner">
+      <a href="./" class="nav-brand" aria-label="UIScope home">
+        <img src="assets/icon.png" alt="UIScope icon" width="28" height="28" />
+        <span>UIScope</span>
+      </a>
+      <ul class="nav-links">
+        <li><a href="./#features">Features</a></li>
+        <li><a href="./#download">Download</a></li>
+        <li><a href="how-to-use.html">How to Use</a></li>
+        <li><a href="faq.html">FAQ</a></li>
+        <li><a href="https://github.com/TITANICBHAI/UIScope-jvm" target="_blank" rel="noopener" class="nav-github" aria-label="View source on GitHub">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
+          GitHub
+        </a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main>
+    <section class="page-hero">
+      <div class="container">
+        <div class="page-hero-badge">Releases</div>
+        <h1>Changelog</h1>
+        <p>Every change to UIScope, documented. Follows <a href="https://keepachangelog.com/en/1.0.0/" target="_blank" rel="noopener" style="color:var(--blue)">Keep a Changelog</a> and <a href="https://semver.org/" target="_blank" rel="noopener" style="color:var(--blue)">Semantic Versioning</a>.</p>
+      </div>
+    </section>
+
+    <div style="max-width:800px;margin:0 auto;padding:64px 24px 96px;">
+
+      <!-- v1.0.0 -->
+      <div class="release-block is-latest">
+        <div class="release-header">
+          <span class="release-version">v1.0.0</span>
+          <span class="release-date">5 June 2026</span>
+          <span class="release-badge latest">Latest</span>
+        </div>
+        <p style="color:var(--text-muted);font-size:.9rem;margin-top:6px;">First public release — all four product modes ship in a single installer.</p>
+
+        <div class="change-group">
+          <div class="change-group-label label-added">Added — PC Inspector</div>
+          <ul class="change-list">
+            <li>Live accessibility tree inspection for any window on Windows, macOS, and Linux</li>
+            <li><strong>Windows UIAutomation</strong> via JNA — no C++ code, pure Kotlin</li>
+            <li><strong>macOS AX API</strong> via JNA (<code>ApplicationServices.framework</code>)</li>
+            <li><strong>Linux AT-SPI2</strong> via JNA (D-Bus / <code>atspi-2.0</code>)</li>
+            <li><kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> global hotkey — locks pick mode on the element under the cursor from any app</li>
+            <li>Hover highlight overlay drawn live on the desktop (always-on-top overlay window)</li>
+            <li>PC code generation: <strong>AutoHotKey v2</strong>, <strong>Python pywinauto</strong>, <strong>C# FlaUI</strong>, <strong>PowerShell</strong></li>
+          </ul>
+        </div>
+
+        <div class="change-group">
+          <div class="change-group-label label-added">Added — Android Inspector</div>
+          <ul class="change-list">
+            <li>USB and wireless ADB device discovery (auto-scans every 5 s)</li>
+            <li>UIAutomator tree dump via <code>adb exec-out uiautomator dump /dev/tty</code> — no on-device agent</li>
+            <li>Live screencap refresh (configurable 1–30 s interval)</li>
+            <li>Bidirectional selection — click node → highlight on screenshot; click screenshot → select node</li>
+            <li>Wireless ADB: pre-Android 11 IP connect + Android 11+ pairing code flow</li>
+            <li>Android code generation: <strong>Python uiautomator2</strong>, <strong>Kotlin UIAutomator2</strong>, <strong>Appium Java</strong>, <strong>Appium Python</strong>, <strong>Maestro YAML</strong>, <strong>XPath</strong></li>
+          </ul>
+        </div>
+
+        <div class="change-group">
+          <div class="change-group-label label-added">Added — Shared Inspector</div>
+          <ul class="change-list">
+            <li>Three-panel layout: Element Tree | Device Canvas | Properties panel</li>
+            <li>Properties panel: all node fields, one-click copy per field, "Fragile selector" warning badge</li>
+            <li>Breadcrumb bar — full ancestor path, click any crumb to jump up</li>
+            <li>Bookmarks — pin/unpin any node, persisted to SQLite</li>
+            <li>Search / filter (<kbd>Ctrl</kbd>+<kbd>F</kbd>) — fuzzy match across all node fields in real time</li>
+            <li>Export: JSON, XML, UIAutomator outline</li>
+            <li>Session auto-save to <code>~/.uiscope/uiscope.db</code> + screenshot on every capture</li>
+          </ul>
+        </div>
+
+        <div class="change-group">
+          <div class="change-group-label label-added">Added — Diff Mode</div>
+          <ul class="change-list">
+            <li>Pick any two saved sessions and compare them side-by-side</li>
+            <li>Three-column view: <span class="diff-added">added</span> (green), <span class="diff-removed">removed</span> (red), <span class="diff-changed">changed</span> (amber)</li>
+            <li>Property-level diff for changed nodes</li>
+          </ul>
+        </div>
+
+        <div class="change-group">
+          <div class="change-group-label label-added">Added — Watch Mode</div>
+          <ul class="change-list">
+            <li>Define rules: element appears / disappears / text matches / text changes</li>
+            <li>Continuous monitoring on connected Android device</li>
+            <li>Toast notification + log entry when a rule fires</li>
+          </ul>
+        </div>
+
+        <div class="change-group">
+          <div class="change-group-label label-added">Added — App Shell</div>
+          <ul class="change-list">
+            <li>Launcher screen — mode picker with last-mode memory</li>
+            <li>Onboarding screen — first-run ADB and OS accessibility check with one-click fixes</li>
+            <li>History screen — browse, search, and re-open past sessions</li>
+            <li>Settings screen — ADB path, polling interval, theme, export format, screenshot quality, tray behaviour, startup mode</li>
+            <li>System tray (Windows / Linux) with quick-launch menu</li>
+            <li>Global hotkeys: <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> (pick), <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd> (refresh), <kbd>Ctrl</kbd>+<kbd>F</kbd> (search)</li>
+            <li>Auto-update check at launch — silent GitHub Releases API call, animated banner if newer version found</li>
+            <li>Multi-window: File → New Window (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>N</kbd>) opens a fully independent second inspector</li>
+            <li>Native menu bar: File + View on every window; dark/light theme toggle in View menu</li>
+          </ul>
+        </div>
+
+        <div class="change-group">
+          <div class="change-group-label label-added">Added — Distribution</div>
+          <ul class="change-list">
+            <li>Windows: <strong>EXE</strong> (NSIS), <strong>MSI</strong> (enterprise), <strong>MSIX</strong> (Microsoft Store / WinGet)</li>
+            <li>macOS: <strong>DMG</strong>, <strong>PKG</strong> — optional notarization via GitHub secrets</li>
+            <li>Linux: <strong>DEB</strong> (Ubuntu/Debian), <strong>AppImage</strong> (universal)</li>
+            <li>GitHub Actions CI — auto-builds all 7 installer formats on every <code>v*.*.*</code> tag push</li>
+            <li>Published to <a href="https://apps.microsoft.com/detail/9MWH310XHGQ5" target="_blank" rel="noopener">Microsoft Store</a></li>
+          </ul>
+        </div>
+
+        <div class="change-group">
+          <div class="change-group-label label-tech">Technical</div>
+          <ul class="change-list">
+            <li>Kotlin 2.0.0 / Compose Multiplatform Desktop 1.6.11</li>
+            <li>JVM target 19 (GraalVM CE 22.3.1 for local dev; Temurin 21 in CI)</li>
+            <li>SQLDelight 2.0.2 — SQLite at <code>~/.uiscope/uiscope.db</code></li>
+            <li>JNA 5.14.0 — pure Kotlin bindings to OS accessibility APIs, no native code</li>
+            <li>jnativehook 2.2.2 — system-wide hotkeys without OS permission dialogs</li>
+            <li>Software renderer forced on Linux (<code>-Dskiko.renderApi=SOFTWARE</code>) for VNC/headless stability</li>
+          </ul>
+        </div>
+
+        <div class="release-links">
+          <a href="https://github.com/TITANICBHAI/UIScope-jvm/releases/tag/v1.0.0" target="_blank" rel="noopener" class="btn btn-primary">Download v1.0.0</a>
+          <a href="https://apps.microsoft.com/detail/9MWH310XHGQ5" target="_blank" rel="noopener" class="btn btn-store">Microsoft Store</a>
+          <a href="https://github.com/TITANICBHAI/UIScope-jvm/releases/tag/v1.0.0" target="_blank" rel="noopener" class="btn btn-ghost">GitHub Release</a>
+        </div>
+      </div>
+
+      <!-- v0.1.0 -->
+      <div class="release-block">
+        <div class="release-header">
+          <span class="release-version">v0.1.0</span>
+          <span class="release-date">1 May 2026</span>
+          <span class="release-badge internal">Internal skeleton</span>
+        </div>
+        <p style="color:var(--text-muted);font-size:.9rem;margin-top:6px;">Internal project scaffold — not publicly released.</p>
+
+        <div class="change-group">
+          <div class="change-group-label label-added">Added</div>
+          <ul class="change-list">
+            <li>Gradle multi-module project scaffold: <code>core</code> / <code>engine</code> / <code>ui</code> / <code>app</code></li>
+            <li>SQLDelight schema: <code>sessions</code>, <code>bookmarks</code>, <code>app_settings</code> tables</li>
+            <li>Core data models: <code>ElementNode</code>, <code>Session</code>, <code>Bookmark</code>, <code>DiffResult</code>, <code>WatchRule</code></li>
+            <li>LauncherScreen and OnboardingScreen skeletons</li>
+            <li>Compose Multiplatform Desktop wired up with <code>UiScopeTheme</code> (Material 3, dark default)</li>
+          </ul>
+        </div>
+
+        <div class="release-links">
+          <a href="https://github.com/TITANICBHAI/UIScope-jvm/releases/tag/v0.1.0" target="_blank" rel="noopener" class="btn btn-ghost">GitHub Tag</a>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <footer class="footer" role="contentinfo">
+    <div class="container">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <img src="assets/icon.png" alt="UIScope" width="24" height="24" />
+          <span><strong>UIScope</strong> by <a href="https://github.com/TITANICBHAI" target="_blank" rel="noopener">TBTechs</a></span>
+        </div>
+        <nav class="footer-links" aria-label="Footer navigation">
+          <a href="./">Home</a>
+          <a href="how-to-use.html">How to Use</a>
+          <a href="faq.html">FAQ</a>
+          <a href="changelog.html">Changelog</a>
+          <a href="privacy.html">Privacy Policy</a>
+          <a href="terms.html">Terms of Use</a>
+          <a href="https://github.com/TITANICBHAI/UIScope-jvm" target="_blank" rel="noopener">GitHub</a>
+          <a href="https://apps.microsoft.com/detail/9MWH310XHGQ5" target="_blank" rel="noopener">Microsoft Store</a>
+        </nav>
+        <p class="footer-copy">&copy; 2026 TBTechs. Released under the MIT License.</p>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

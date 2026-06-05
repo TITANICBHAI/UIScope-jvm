@@ -11,4 +11,39 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://titanicbhai.github.io/UIScope-jvm/" />
   </url>
 
+  <url>
+    <loc>https://titanicbhai.github.io/UIScope-jvm/how-to-use.html</loc>
+    <lastmod>2026-06-05</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <url>
+    <loc>https://titanicbhai.github.io/UIScope-jvm/faq.html</loc>
+    <lastmod>2026-06-05</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://titanicbhai.github.io/UIScope-jvm/changelog.html</loc>
+    <lastmod>2026-06-05</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://titanicbhai.github.io/UIScope-jvm/privacy.html</loc>
+    <lastmod>2026-06-05</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.5</priority>
+  </url>
+
+  <url>
+    <loc>https://titanicbhai.github.io/UIScope-jvm/terms.html</loc>
+    <lastmod>2026-06-05</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.5</priority>
+  </url>
+
 </urlset>

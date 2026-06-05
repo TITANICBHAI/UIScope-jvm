@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>How to Use UIScope — Desktop &amp; Android UI Inspector Guide</title>
+  <meta name="description" content="Step-by-step guide to UIScope. Learn how to inspect Android apps via ADB, inspect Windows/Linux/macOS apps, generate automation code, diff sessions, and use Watch Mode." />
+  <meta name="keywords" content="UIScope tutorial, how to use UIScope, Android ADB inspector guide, Windows UIAutomation inspector, UI automation code generation, appium inspector tutorial" />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://titanicbhai.github.io/UIScope-jvm/how-to-use.html" />
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://titanicbhai.github.io/UIScope-jvm/how-to-use.html" />
+  <meta property="og:title" content="How to Use UIScope — Desktop &amp; Android UI Inspector Guide" />
+  <meta property="og:description" content="Step-by-step guide to inspecting Android and desktop app UI trees, generating automation code, diffing sessions, and using Watch Mode." />
+  <meta property="og:image" content="https://titanicbhai.github.io/UIScope-jvm/assets/icon.png" />
+  <meta property="og:site_name" content="UIScope" />
+  <link rel="icon" type="image/png" href="assets/icon.png" />
+  <link rel="stylesheet" href="assets/style.css" />
+</head>
+<body>
+
+  <nav class="nav" role="navigation" aria-label="Main navigation">
+    <div class="nav-inner">
+      <a href="./" class="nav-brand" aria-label="UIScope home">
+        <img src="assets/icon.png" alt="UIScope icon" width="28" height="28" />
+        <span>UIScope</span>
+      </a>
+      <ul class="nav-links">
+        <li><a href="./#features">Features</a></li>
+        <li><a href="./#download">Download</a></li>
+        <li><a href="how-to-use.html">How to Use</a></li>
+        <li><a href="faq.html">FAQ</a></li>
+        <li><a href="https://github.com/TITANICBHAI/UIScope-jvm" target="_blank" rel="noopener" class="nav-github" aria-label="View source on GitHub">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
+          GitHub
+        </a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main>
+    <section class="page-hero">
+      <div class="container">
+        <div class="page-hero-badge">Documentation</div>
+        <h1>How to Use UIScope</h1>
+        <p>From first install to generating automation code — everything you need to get productive in minutes.</p>
+      </div>
+    </section>
+
+    <div class="prose">
+
+      <nav class="toc" aria-label="Table of contents">
+        <h2>On this page</h2>
+        <ol>
+          <li><a href="#install">Installation</a></li>
+          <li><a href="#first-launch">First Launch &amp; Onboarding</a></li>
+          <li><a href="#android">Android Inspector</a></li>
+          <li><a href="#pc">PC Inspector</a></li>
+          <li><a href="#codegen">Code Generation</a></li>
+          <li><a href="#diff">Diff Mode</a></li>
+          <li><a href="#watch">Watch Mode</a></li>
+          <li><a href="#export">Export &amp; Sessions</a></li>
+          <li><a href="#shortcuts">Keyboard Shortcuts</a></li>
+          <li><a href="#tips">Tips &amp; Tricks</a></li>
+        </ol>
+      </nav>
+
+      <!-- ── Install ── -->
+      <h2 id="install">Installation</h2>
+
+      <h3>Windows (recommended — Microsoft Store)</h3>
+      <p>The easiest way to install UIScope on Windows is the Microsoft Store. Updates are automatic.</p>
+      <p><a href="https://apps.microsoft.com/detail/9MWH310XHGQ5" target="_blank" rel="noopener" class="btn btn-store" style="display:inline-flex;margin:4px 0 16px;">Get UIScope on Microsoft Store</a></p>
+
+      <h3>Windows (direct download)</h3>
+      <ol>
+        <li>Download the <strong>.exe installer</strong> from <a href="https://github.com/TITANICBHAI/UIScope-jvm/releases/latest" target="_blank" rel="noopener">GitHub Releases</a></li>
+        <li>Double-click the installer — no admin rights required (per-user install)</li>
+        <li>UIScope appears in the Start menu and system tray</li>
+      </ol>
+      <p>Enterprise / silent install options: <code>.msi</code> via <code>msiexec /i UIScope.msi /qn</code>, or <code>.msix</code> for WinGet / sideload.</p>
+
+      <h3>Linux (Ubuntu / Debian)</h3>
+      <pre><code>sudo dpkg -i uiscope_*.deb</code></pre>
+      <p>Or download the <strong>.AppImage</strong> for a portable, no-install option:</p>
+      <pre><code>chmod +x UIScope-*.AppImage
+./UIScope-*.AppImage</code></pre>
+
+      <h3>macOS</h3>
+      <p>Build from source — see <a href="https://github.com/TITANICBHAI/UIScope-jvm" target="_blank" rel="noopener">the GitHub repository</a> for instructions.</p>
+
+      <div class="callout info">
+        <span class="callout-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></span>
+        <div><strong>Android inspection</strong> additionally requires ADB (Android Debug Bridge) in your system PATH. UIScope can detect if ADB is missing and will guide you through installing it from the onboarding screen.</div>
+      </div>
+
+      <!-- ── First Launch ── -->
+      <h2 id="first-launch">First Launch &amp; Onboarding</h2>
+      <p>The first time you open UIScope you will see the <strong>Onboarding</strong> screen, which checks your environment:</p>
+      <div class="step-grid">
+        <div class="step-card">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <h3>ADB check</h3>
+            <p>UIScope looks for <code>adb</code> in your PATH. If it is missing, a one-click button downloads the minimal Android Platform Tools (~10 MB) and installs them for you.</p>
+          </div>
+        </div>
+        <div class="step-card">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <h3>OS accessibility check</h3>
+            <p>On macOS, UIScope requires the Accessibility permission — you will be shown the exact system preference pane to enable it. On Windows and Linux this is automatic.</p>
+          </div>
+        </div>
+        <div class="step-card">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <h3>Launcher</h3>
+            <p>Once checks pass, the Launcher screen lets you pick between <strong>PC Inspector</strong>, <strong>Android Inspector</strong>, <strong>Diff Mode</strong>, and <strong>Watch Mode</strong>. UIScope remembers your last-used mode.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Android ── -->
+      <h2 id="android">Android Inspector</h2>
+
+      <h3>Connect via USB</h3>
+      <div class="step-grid">
+        <div class="step-card">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <h3>Enable USB Debugging</h3>
+            <p>On your Android device: <strong>Settings → About phone</strong> → tap <strong>Build number</strong> seven times → go back to <strong>Settings → Developer options</strong> → enable <strong>USB Debugging</strong>.</p>
+          </div>
+        </div>
+        <div class="step-card">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <h3>Plug in the USB cable</h3>
+            <p>Connect the device to your PC. Accept the "Allow USB Debugging" dialog on the device if prompted.</p>
+          </div>
+        </div>
+        <div class="step-card">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <h3>Select the device in UIScope</h3>
+            <p>Open UIScope → <strong>Android Inspector</strong>. Your device appears in the device list within a few seconds. Click it to connect.</p>
+          </div>
+        </div>
+        <div class="step-card">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <h3>Capture &amp; inspect</h3>
+            <p>UIScope takes a screenshot and dumps the full UI tree. Navigate to any screen on the device and press <strong>Refresh</strong> (or <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd>) to re-capture.</p>
+          </div>
+        </div>
+      </div>
+
+      <h3>Connect wirelessly (Android 11+)</h3>
+      <ol>
+        <li>On the device: <strong>Developer options → Wireless Debugging</strong> → enable it → tap <strong>Pair device with pairing code</strong></li>
+        <li>In UIScope: click <strong>Pair wirelessly</strong> and enter the 6-digit code and port shown on the device</li>
+        <li>After pairing succeeds, the device appears in the list — select it to connect</li>
+      </ol>
+
+      <h3>Connect wirelessly (pre-Android 11)</h3>
+      <ol>
+        <li>Connect via USB first, then run <code>adb tcpip 5555</code> in a terminal</li>
+        <li>Unplug the USB cable</li>
+        <li>In UIScope: click <strong>Connect via IP</strong> and enter the device's IP address</li>
+      </ol>
+
+      <h3>Navigating the inspector</h3>
+      <p>The Android inspector has three panels:</p>
+      <ul>
+        <li><strong>Element Tree</strong> (left) — the full UIAutomator accessibility tree, virtualised for performance on large screens. Expand and collapse nodes. Use <kbd>Ctrl</kbd>+<kbd>F</kbd> to search.</li>
+        <li><strong>Device Canvas</strong> (centre) — live screenshot, zoomable and pannable. Click any area to select the node under that point.</li>
+        <li><strong>Properties</strong> (right) — all properties of the selected node: resource ID, text, content description, class, package, bounds, and boolean flags. Click the copy icon next to any field to copy its value.</li>
+      </ul>
+      <p><strong>Bidirectional selection:</strong> click a node in the tree → it highlights on the canvas; click the canvas → the corresponding node is selected in the tree.</p>
+
+      <!-- ── PC ── -->
+      <h2 id="pc">PC Inspector</h2>
+      <p>PC Inspector works on <strong>Windows</strong> (UIAutomation), <strong>macOS</strong> (AX API), and <strong>Linux</strong> (AT-SPI2). No additional software is required — UIScope uses the OS accessibility APIs directly via JNA.</p>
+
+      <h3>Using Pick Mode</h3>
+      <div class="step-grid">
+        <div class="step-card">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <h3>Open PC Inspector</h3>
+            <p>From the Launcher, select <strong>PC Inspector</strong>. UIScope starts in pick mode automatically.</p>
+          </div>
+        </div>
+        <div class="step-card">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <h3>Hover over a window</h3>
+            <p>Move your cursor over any window — a blue highlight overlay shows the element currently under your cursor.</p>
+          </div>
+        </div>
+        <div class="step-card">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <h3>Lock with Alt+Shift+P</h3>
+            <p>Press <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> to lock onto the window. UIScope captures the full element tree for that process and loads it into the inspector.</p>
+          </div>
+        </div>
+        <div class="step-card">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <h3>Explore the tree</h3>
+            <p>The same 3-panel layout as Android Inspector: tree on the left, canvas in the centre, properties on the right. Scroll and expand nodes, click to select, use <kbd>Ctrl</kbd>+<kbd>F</kbd> to search.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+        <div><strong>Tip:</strong> You can press <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> from anywhere — even while UIScope is in the background. The global hotkey works system-wide.</div>
+      </div>
+
+      <!-- ── Code Generation ── -->
+      <h2 id="codegen">Code Generation</h2>
+      <p>With any node selected in the tree, open the <strong>Code</strong> tab in the Properties panel to see ready-to-paste automation code.</p>
+
+      <h4>Supported frameworks</h4>
+      <table>
+        <thead><tr><th>Framework</th><th>Platform</th><th>Language</th></tr></thead>
+        <tbody>
+          <tr><td>AutoHotKey v2</td><td>Windows PC</td><td>AHK</td></tr>
+          <tr><td>pywinauto</td><td>Windows PC</td><td>Python</td></tr>
+          <tr><td>FlaUI</td><td>Windows PC</td><td>C#</td></tr>
+          <tr><td>PowerShell UIAutomation</td><td>Windows PC</td><td>PowerShell</td></tr>
+          <tr><td>uiautomator2</td><td>Android</td><td>Python</td></tr>
+          <tr><td>UIAutomator2</td><td>Android</td><td>Kotlin / Java</td></tr>
+          <tr><td>Appium</td><td>Android</td><td>Java &amp; Python</td></tr>
+          <tr><td>Maestro</td><td>Android</td><td>YAML</td></tr>
+          <tr><td>XPath</td><td>Android &amp; PC</td><td>XPath expression</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Fragile selector warnings</h3>
+      <p>UIScope analyses each generated selector and shows a <strong>yellow "Fragile" badge</strong> if the selector is likely to break. Common fragility signals include:</p>
+      <ul>
+        <li>Obfuscated resource IDs (e.g. <code>com.example:id/a1b2</code>)</li>
+        <li>No resource ID — selector falls back to text or index</li>
+        <li>Raw coordinate-based bounds that may differ across screen sizes</li>
+        <li>Deeply nested XPath that will break with minor layout changes</li>
+      </ul>
+      <p>The badge includes an explanation of why the selector is fragile and a suggestion for how to make it more stable.</p>
+
+      <!-- ── Diff Mode ── -->
+      <h2 id="diff">Diff Mode</h2>
+      <p>Diff Mode compares two saved inspection sessions and shows exactly what changed between them.</p>
+      <div class="step-grid">
+        <div class="step-card">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <h3>Save two sessions</h3>
+            <p>Every capture is saved automatically. If you want to compare before/after a code change, just inspect twice — once before and once after.</p>
+          </div>
+        </div>
+        <div class="step-card">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <h3>Open Diff Mode</h3>
+            <p>From the Launcher (or menu bar), choose <strong>Diff Mode</strong>. Pick the two sessions you want to compare from the dropdown lists.</p>
+          </div>
+        </div>
+        <div class="step-card">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <h3>Review the diff</h3>
+            <p>The diff view shows three columns: <span class="diff-added">added</span> elements, <span class="diff-removed">removed</span> elements, and <span class="diff-changed">changed</span> elements. Expand any changed element to see the exact property differences.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Watch Mode ── -->
+      <h2 id="watch">Watch Mode</h2>
+      <p>Watch Mode monitors a connected Android device continuously and fires a notification when a condition you define is met.</p>
+
+      <h3>Creating a watch rule</h3>
+      <ol>
+        <li>Open <strong>Watch Mode</strong> from the Launcher</li>
+        <li>Select your connected Android device</li>
+        <li>Click <strong>Add Rule</strong> and choose a condition type:
+          <ul>
+            <li><strong>Element appears</strong> — fires when a node matching a selector appears in the tree</li>
+            <li><strong>Element disappears</strong> — fires when a matching node is no longer present</li>
+            <li><strong>Text matches</strong> — fires when a node's text equals or contains a given string</li>
+            <li><strong>Text changes</strong> — fires whenever a node's text value changes</li>
+          </ul>
+        </li>
+        <li>Set the selector (resource ID, text, XPath, or class name)</li>
+        <li>Click <strong>Start Watching</strong></li>
+      </ol>
+      <p>When the condition is met, UIScope shows a desktop notification and logs the event in the Watch log panel. You can run multiple rules simultaneously.</p>
+
+      <!-- ── Export ── -->
+      <h2 id="export">Export &amp; Sessions</h2>
+      <h3>Exporting the element tree</h3>
+      <p>With an inspection open, click the <strong>Export</strong> button (or <strong>File → Export</strong>) and choose a format:</p>
+      <table>
+        <thead><tr><th>Format</th><th>Best for</th></tr></thead>
+        <tbody>
+          <tr><td>JSON</td><td>Scripts, diffing with external tools, machine processing</td></tr>
+          <tr><td>XML</td><td>UIAutomator-compatible output; works with Appium, other tools</td></tr>
+          <tr><td>Outline</td><td>Human-readable indented tree — great for bug reports and documentation</td></tr>
+        </tbody>
+      </table>
+      <p>You can export the entire tree or just the currently selected subtree.</p>
+
+      <h3>Session history</h3>
+      <p>All sessions are stored automatically in <code>~/.uiscope/uiscope.db</code>. Open the <strong>History</strong> screen to:</p>
+      <ul>
+        <li>Browse all past sessions by date and device</li>
+        <li>Search sessions by app name, package, or node content</li>
+        <li>Re-open any session without reconnecting the device</li>
+        <li>Delete sessions you no longer need</li>
+      </ul>
+
+      <!-- ── Shortcuts ── -->
+      <h2 id="shortcuts">Keyboard Shortcuts</h2>
+      <div class="kbd-row">
+        <div class="kbd-item"><kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> <span>Pick lock (PC inspector, global)</span></div>
+        <div class="kbd-item"><kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd> <span>Refresh capture</span></div>
+        <div class="kbd-item"><kbd>Ctrl</kbd>+<kbd>F</kbd> <span>Search tree</span></div>
+        <div class="kbd-item"><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>N</kbd> <span>New window</span></div>
+        <div class="kbd-item"><kbd>Ctrl</kbd>+<kbd>W</kbd> <span>Close window</span></div>
+        <div class="kbd-item"><kbd>Ctrl</kbd>+<kbd>Q</kbd> <span>Quit UIScope</span></div>
+        <div class="kbd-item"><kbd>↑</kbd> / <kbd>↓</kbd> <span>Navigate tree nodes</span></div>
+        <div class="kbd-item"><kbd>←</kbd> / <kbd>→</kbd> <span>Collapse / expand node</span></div>
+      </div>
+
+      <!-- ── Tips ── -->
+      <h2 id="tips">Tips &amp; Tricks</h2>
+      <ul>
+        <li><strong>Multi-window:</strong> Use <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>N</kbd> to open a second UIScope window and compare two apps or two sessions side-by-side.</li>
+        <li><strong>Bookmarks:</strong> Pin frequently referenced nodes with the bookmark icon (⭐) in the properties panel. Access all bookmarks from the sidebar.</li>
+        <li><strong>Copy any field:</strong> Every property in the Properties panel has a small copy icon. Click it to copy that field's value directly to the clipboard — useful for quickly grabbing resource IDs.</li>
+        <li><strong>XPath from breadcrumb:</strong> The breadcrumb bar above the canvas shows the full path from root to the selected node. Click <strong>Copy XPath</strong> at the right of the breadcrumb to get a working XPath expression in one click.</li>
+        <li><strong>Wireless ADB tip:</strong> On Android 11+ both devices must be on the same Wi-Fi network. If pairing fails, try toggling Wireless Debugging off and on again on the device.</li>
+        <li><strong>Large trees:</strong> UIScope virtualises the tree view, so even screens with 2 000+ nodes scroll smoothly. Use <kbd>Ctrl</kbd>+<kbd>F</kbd> to search instead of scrolling for specific nodes.</li>
+        <li><strong>Export for bug reports:</strong> The <em>Outline</em> export format produces a clean indented text tree that pastes beautifully into Jira, GitHub Issues, or any text field.</li>
+        <li><strong>Settings:</strong> Visit <strong>Settings</strong> (gear icon) to adjust ADB path, screenshot quality, refresh interval, theme, startup mode, and the auto-update check.</li>
+      </ul>
+
+    </div>
+  </main>
+
+  <footer class="footer" role="contentinfo">
+    <div class="container">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <img src="assets/icon.png" alt="UIScope" width="24" height="24" />
+          <span><strong>UIScope</strong> by <a href="https://github.com/TITANICBHAI" target="_blank" rel="noopener">TBTechs</a></span>
+        </div>
+        <nav class="footer-links" aria-label="Footer navigation">
+          <a href="./">Home</a>
+          <a href="how-to-use.html">How to Use</a>
+          <a href="faq.html">FAQ</a>
+          <a href="changelog.html">Changelog</a>
+          <a href="privacy.html">Privacy Policy</a>
+          <a href="terms.html">Terms of Use</a>
+          <a href="https://github.com/TITANICBHAI/UIScope-jvm" target="_blank" rel="noopener">GitHub</a>
+          <a href="https://apps.microsoft.com/detail/9MWH310XHGQ5" target="_blank" rel="noopener">Microsoft Store</a>
+        </nav>
+        <p class="footer-copy">&copy; 2026 TBTechs. Released under the MIT License.</p>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

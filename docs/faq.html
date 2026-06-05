@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FAQ — UIScope Desktop &amp; Android UI Inspector</title>
+  <meta name="description" content="Frequently asked questions about UIScope. Learn about ADB setup, Android connection, Windows UIAutomation, code generation, privacy, and more." />
+  <meta name="keywords" content="UIScope FAQ, UIScope questions, ADB not found, Android USB debugging, UIAutomation inspector help, Appium code generation" />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://titanicbhai.github.io/UIScope-jvm/faq.html" />
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://titanicbhai.github.io/UIScope-jvm/faq.html" />
+  <meta property="og:title" content="FAQ — UIScope Desktop &amp; Android UI Inspector" />
+  <meta property="og:description" content="Answers to the most common questions about installing and using UIScope." />
+  <meta property="og:image" content="https://titanicbhai.github.io/UIScope-jvm/assets/icon.png" />
+  <meta property="og:site_name" content="UIScope" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Does UIScope require an account or internet connection?",
+        "acceptedAnswer": { "@type": "Answer", "text": "No. UIScope is 100% offline. No account, no sign-in, no internet required. The only optional network request is a version check at startup, which can be disabled in Settings." }
+      },
+      {
+        "@type": "Question",
+        "name": "Does UIScope work without ADB installed?",
+        "acceptedAnswer": { "@type": "Answer", "text": "ADB is only needed for Android inspection. If ADB is not in your PATH, UIScope will offer to download the minimal Android Platform Tools (~10 MB) for you automatically." }
+      },
+      {
+        "@type": "Question",
+        "name": "My Android device is not showing up. What do I do?",
+        "acceptedAnswer": { "@type": "Answer", "text": "Ensure USB Debugging is enabled in Developer Options on your device, accept the 'Allow USB Debugging' dialog on the device, and make sure ADB is in your PATH. Try running 'adb devices' in a terminal to verify the device is detected." }
+      },
+      {
+        "@type": "Question",
+        "name": "Is UIScope free?",
+        "acceptedAnswer": { "@type": "Answer", "text": "Yes. UIScope is completely free, open source under the MIT License. There are no in-app purchases, no premium tier, and no ads." }
+      }
+    ]
+  }
+  </script>
+  <link rel="icon" type="image/png" href="assets/icon.png" />
+  <link rel="stylesheet" href="assets/style.css" />
+  <style>
+    .faq-section { border-top: 1px solid var(--border); padding: 80px 0; }
+    .faq-section:first-of-type { border-top: none; padding-top: 64px; }
+    .faq-list { display: flex; flex-direction: column; gap: 2px; }
+    details {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    details + details { margin-top: 6px; }
+    details[open] { border-color: var(--blue-dark); }
+    summary {
+      cursor: pointer;
+      padding: 18px 22px;
+      font-size: .95rem;
+      font-weight: 600;
+      color: var(--text);
+      list-style: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      user-select: none;
+    }
+    summary::-webkit-details-marker { display: none; }
+    summary::after {
+      content: '';
+      flex-shrink: 0;
+      width: 16px;
+      height: 16px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238b949e' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: center;
+      transition: transform .2s;
+    }
+    details[open] summary::after { transform: rotate(180deg); }
+    .faq-answer {
+      padding: 0 22px 20px;
+      color: var(--text-muted);
+      font-size: .9rem;
+      line-height: 1.75;
+      border-top: 1px solid var(--border);
+      padding-top: 16px;
+    }
+    .faq-answer a { color: var(--blue); }
+    .faq-answer code {
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: .85em;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: .15em .4em;
+      border-radius: 4px;
+    }
+    .faq-answer ul { padding-left: 20px; display: flex; flex-direction: column; gap: 5px; margin-top: 8px; }
+    .faq-answer li { color: var(--text-muted); font-size: .9rem; }
+    .faq-category-title {
+      font-size: .78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--blue);
+      margin-bottom: 18px;
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="nav" role="navigation" aria-label="Main navigation">
+    <div class="nav-inner">
+      <a href="./" class="nav-brand" aria-label="UIScope home">
+        <img src="assets/icon.png" alt="UIScope icon" width="28" height="28" />
+        <span>UIScope</span>
+      </a>
+      <ul class="nav-links">
+        <li><a href="./#features">Features</a></li>
+        <li><a href="./#download">Download</a></li>
+        <li><a href="how-to-use.html">How to Use</a></li>
+        <li><a href="faq.html">FAQ</a></li>
+        <li><a href="https://github.com/TITANICBHAI/UIScope-jvm" target="_blank" rel="noopener" class="nav-github" aria-label="View source on GitHub">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
+          GitHub
+        </a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main>
+    <section class="page-hero">
+      <div class="container">
+        <div class="page-hero-badge">Support</div>
+        <h1>Frequently Asked Questions</h1>
+        <p>Can't find an answer? <a href="https://github.com/TITANICBHAI/UIScope-jvm/issues" target="_blank" rel="noopener">Open an issue on GitHub.</a></p>
+      </div>
+    </section>
+
+    <div style="max-width:800px;margin:0 auto;padding:60px 24px 96px;">
+
+      <!-- General -->
+      <section class="faq-section">
+        <p class="faq-category-title">General</p>
+        <div class="faq-list">
+
+          <details>
+            <summary>Is UIScope free?</summary>
+            <div class="faq-answer">Yes — completely free, forever. UIScope is open source under the MIT License. There are no in-app purchases, no premium tier, no subscription, and no ads.</div>
+          </details>
+
+          <details>
+            <summary>Does UIScope require an account or internet connection?</summary>
+            <div class="faq-answer">No. UIScope is 100% offline. There is no sign-in, no account, and no cloud sync. The only optional network activity is a single version-check request to the GitHub Releases API at startup — this can be disabled in <strong>Settings → General → Check for updates on startup</strong>.</div>
+          </details>
+
+          <details>
+            <summary>What operating systems does UIScope support?</summary>
+            <div class="faq-answer">
+              Pre-built installers are available for:
+              <ul>
+                <li><strong>Windows 10 / 11</strong> (x64) — EXE, MSI, MSIX, or Microsoft Store</li>
+                <li><strong>Ubuntu 22.04+ / Debian</strong> (x64) — DEB or AppImage</li>
+              </ul>
+              macOS is supported but requires building from source. See the <a href="https://github.com/TITANICBHAI/UIScope-jvm" target="_blank" rel="noopener">GitHub repository</a> for build instructions.
+            </div>
+          </details>
+
+          <details>
+            <summary>Does UIScope collect any data about me or my apps?</summary>
+            <div class="faq-answer">No. UIScope collects no personal data, no usage statistics, and no telemetry of any kind. Everything stays on your machine. See the <a href="privacy.html">Privacy Policy</a> for full details.</div>
+          </details>
+
+          <details>
+            <summary>Where is my data stored?</summary>
+            <div class="faq-answer">All session data, bookmarks, and settings are stored in a single SQLite database at <code>~/.uiscope/uiscope.db</code>. You can back it up, move it, or delete it at any time.</div>
+          </details>
+
+        </div>
+      </section>
+
+      <!-- Installation -->
+      <section class="faq-section">
+        <p class="faq-category-title">Installation</p>
+        <div class="faq-list">
+
+          <details>
+            <summary>Do I need admin rights to install UIScope on Windows?</summary>
+            <div class="faq-answer">No. UIScope is configured as a per-user install on Windows. Neither the EXE nor the MSI requires administrator privileges. The Microsoft Store version also installs per-user.</div>
+          </details>
+
+          <details>
+            <summary>What is the difference between EXE, MSI, and MSIX?</summary>
+            <div class="faq-answer">
+              <ul>
+                <li><strong>EXE</strong> — NSIS installer; the simplest option for most users. Double-click to install.</li>
+                <li><strong>MSI</strong> — Windows Installer package; preferred for enterprise deployment via Group Policy, Intune, or SCCM. Supports silent install with <code>msiexec /i UIScope.msi /qn</code>.</li>
+                <li><strong>MSIX</strong> — Modern Windows package. Sideloadable and also available through the <a href="https://apps.microsoft.com/detail/9MWH310XHGQ5" target="_blank" rel="noopener">Microsoft Store</a>. Supports WinGet.</li>
+              </ul>
+            </div>
+          </details>
+
+          <details>
+            <summary>The installer is blocked by Windows SmartScreen. Is it safe?</summary>
+            <div class="faq-answer">Yes, it is safe. SmartScreen warnings appear for newly published executables that haven't yet accumulated enough downloads to build a reputation. UIScope is open source — you can review the full source code at <a href="https://github.com/TITANICBHAI/UIScope-jvm" target="_blank" rel="noopener">github.com/TITANICBHAI/UIScope-jvm</a>. To bypass the warning, click <strong>More info → Run anyway</strong>. To avoid the warning entirely, install from the <a href="https://apps.microsoft.com/detail/9MWH310XHGQ5" target="_blank" rel="noopener">Microsoft Store</a>.</div>
+          </details>
+
+          <details>
+            <summary>How do I install the AppImage on Linux?</summary>
+            <div class="faq-answer">Download the <code>.AppImage</code> file, make it executable, and run it:<br /><br /><code>chmod +x UIScope-*.AppImage && ./UIScope-*.AppImage</code><br /><br />For desktop integration (right-click menu, file associations), install <a href="https://github.com/TheAssassin/AppImageLauncher" target="_blank" rel="noopener">AppImageLauncher</a>.</div>
+          </details>
+
+        </div>
+      </section>
+
+      <!-- Android -->
+      <section class="faq-section">
+        <p class="faq-category-title">Android Inspection</p>
+        <div class="faq-list">
+
+          <details>
+            <summary>My Android device is not showing up in UIScope. What should I do?</summary>
+            <div class="faq-answer">
+              Check these in order:
+              <ul>
+                <li>Enable <strong>Developer Options</strong>: Settings → About phone → tap Build number 7 times</li>
+                <li>Enable <strong>USB Debugging</strong>: Settings → Developer Options → USB Debugging</li>
+                <li>Accept the <strong>"Allow USB Debugging?"</strong> dialog on the device after plugging in</li>
+                <li>Run <code>adb devices</code> in a terminal — the device should appear as "device" not "unauthorized"</li>
+                <li>Try a different USB cable or port</li>
+                <li>On some devices, change the USB mode to "File Transfer" (MTP) rather than "Charging only"</li>
+              </ul>
+            </div>
+          </details>
+
+          <details>
+            <summary>Does UIScope require installing an APK on the Android device?</summary>
+            <div class="faq-answer">No. UIScope uses <code>adb exec-out uiautomator dump</code> which is a built-in ADB command — no APK, no agent, and no root is required on the device.</div>
+          </details>
+
+          <details>
+            <summary>Does UIScope work without ADB installed?</summary>
+            <div class="faq-answer">ADB is only required for Android inspection. If ADB is not found in your PATH, UIScope will offer to download the minimal Android Platform Tools (~10 MB) automatically during onboarding. PC inspection works without ADB.</div>
+          </details>
+
+          <details>
+            <summary>Can I inspect apps on an Android emulator?</summary>
+            <div class="faq-answer">Yes. Android emulators (Android Studio AVD, Genymotion, etc.) appear in the device list just like physical devices because they are exposed via ADB. No extra setup is required.</div>
+          </details>
+
+          <details>
+            <summary>Wireless ADB pairing is not working. What can I try?</summary>
+            <div class="faq-answer">
+              <ul>
+                <li>Both the PC and Android device must be on the same Wi-Fi network</li>
+                <li>Make sure you are using the pairing code (6 digits) and port from <strong>Wireless Debugging → Pair device with pairing code</strong> — this is different from the IP and port shown on the main Wireless Debugging screen</li>
+                <li>The pairing code expires quickly — generate a fresh code if the connection fails</li>
+                <li>Toggle Wireless Debugging off and on to reset the session</li>
+                <li>Some corporate or guest Wi-Fi networks block device-to-device communication — try a personal hotspot</li>
+              </ul>
+            </div>
+          </details>
+
+          <details>
+            <summary>Some nodes in the tree show no resource ID. Why?</summary>
+            <div class="faq-answer">Many apps use code obfuscation (ProGuard/R8) which renames resource IDs, or they use dynamic views without explicit IDs. UIScope flags these nodes with a <strong>Fragile selector</strong> warning and suggests alternatives like text-based or XPath selectors. This is a limitation of how the target app was built, not UIScope.</div>
+          </details>
+
+        </div>
+      </section>
+
+      <!-- PC Inspection -->
+      <section class="faq-section">
+        <p class="faq-category-title">PC Inspection</p>
+        <div class="faq-list">
+
+          <details>
+            <summary>What Windows apps can UIScope inspect?</summary>
+            <div class="faq-answer">UIScope can inspect any app that exposes a Windows UIAutomation accessibility tree — which includes Win32, WPF, WinForms, UWP, Electron, Qt, and most modern frameworks. Apps that deliberately suppress the accessibility tree (rare) cannot be inspected. Games using custom rendering engines typically have minimal or no accessibility trees.</div>
+          </details>
+
+          <details>
+            <summary>The Alt+Shift+P hotkey is not working. What's wrong?</summary>
+            <div class="faq-answer">Another application may have claimed the <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> shortcut. Common conflicts include IME input method switchers and some remote desktop clients. You can temporarily disable the conflicting app's shortcut or use the <strong>Pick Mode</strong> button inside UIScope instead of the hotkey.</div>
+          </details>
+
+          <details>
+            <summary>macOS accessibility permission — what is it and why is it needed?</summary>
+            <div class="faq-answer">UIScope uses the macOS AX API (Accessibility API) to read the element tree of other apps. macOS requires explicit user permission for this — it's the same permission used by assistive tools like VoiceOver. UIScope will guide you to <strong>System Settings → Privacy &amp; Security → Accessibility</strong> to grant this permission. UIScope does not use this permission for any purpose other than reading UI element trees of apps you explicitly inspect.</div>
+          </details>
+
+        </div>
+      </section>
+
+      <!-- Code Generation -->
+      <section class="faq-section">
+        <p class="faq-category-title">Code Generation</p>
+        <div class="faq-list">
+
+          <details>
+            <summary>What is the "Fragile selector" warning?</summary>
+            <div class="faq-answer">UIScope analyses generated selectors and warns you if a selector is likely to break in future app versions. Common causes: obfuscated resource IDs, no resource ID (falls back to positional index), deeply nested XPath, or raw screen coordinates. The warning badge shows the reason and suggests a more stable alternative.</div>
+          </details>
+
+          <details>
+            <summary>Can I generate code for Playwright or Selenium?</summary>
+            <div class="faq-answer">Playwright and Selenium are web automation frameworks and operate on browser DOM elements — not native accessibility trees. UIScope targets native app automation (desktop and Android). For web apps, use the browser's built-in DevTools.</div>
+          </details>
+
+          <details>
+            <summary>The generated Appium code doesn't work in my test. Why?</summary>
+            <div class="faq-answer">Generated code is a starting point — it uses the selector that UIScope can see at the time of capture. Possible reasons it might not match: the app state changed between capture and test execution; the selector is fragile (check the badge); or you may need to adjust the desired capabilities in your Appium setup. Look for the "Fragile" warning badge on the generated snippet for hints.</div>
+          </details>
+
+        </div>
+      </section>
+
+      <!-- Troubleshooting -->
+      <section class="faq-section">
+        <p class="faq-category-title">Troubleshooting</p>
+        <div class="faq-list">
+
+          <details>
+            <summary>UIScope crashes on startup on Linux. What should I do?</summary>
+            <div class="faq-answer">
+              The most common cause on Linux is a missing OpenGL context (e.g., in headless or VNC environments). UIScope forces the software renderer with <code>-Dskiko.renderApi=SOFTWARE</code> when run via the provided launcher script, which avoids this. If you built from source, ensure you include this JVM flag. Also check that <code>libfuse2</code> is installed if using the AppImage.
+            </div>
+          </details>
+
+          <details>
+            <summary>How do I reset UIScope to its default settings?</summary>
+            <div class="faq-answer">Delete (or rename) the database file at <code>~/.uiscope/uiscope.db</code>. UIScope will recreate it with defaults on the next launch. This also clears all session history and bookmarks, so back it up first if you want to keep that data.</div>
+          </details>
+
+          <details>
+            <summary>I found a bug. How do I report it?</summary>
+            <div class="faq-answer">Please open an issue on GitHub at <a href="https://github.com/TITANICBHAI/UIScope-jvm/issues" target="_blank" rel="noopener">github.com/TITANICBHAI/UIScope-jvm/issues</a>. Include your OS version, UIScope version, and steps to reproduce the bug.</div>
+          </details>
+
+          <details>
+            <summary>Can I request a new feature?</summary>
+            <div class="faq-answer">Yes! Feature requests are welcome on the <a href="https://github.com/TITANICBHAI/UIScope-jvm/issues" target="_blank" rel="noopener">GitHub Issues</a> page. Check existing issues first to see if it has already been requested, and add a 👍 reaction to upvote it.</div>
+          </details>
+
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <footer class="footer" role="contentinfo">
+    <div class="container">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <img src="assets/icon.png" alt="UIScope" width="24" height="24" />
+          <span><strong>UIScope</strong> by <a href="https://github.com/TITANICBHAI" target="_blank" rel="noopener">TBTechs</a></span>
+        </div>
+        <nav class="footer-links" aria-label="Footer navigation">
+          <a href="./">Home</a>
+          <a href="how-to-use.html">How to Use</a>
+          <a href="faq.html">FAQ</a>
+          <a href="changelog.html">Changelog</a>
+          <a href="privacy.html">Privacy Policy</a>
+          <a href="terms.html">Terms of Use</a>
+          <a href="https://github.com/TITANICBHAI/UIScope-jvm" target="_blank" rel="noopener">GitHub</a>
+          <a href="https://apps.microsoft.com/detail/9MWH310XHGQ5" target="_blank" rel="noopener">Microsoft Store</a>
+        </nav>
+        <p class="footer-copy">&copy; 2026 TBTechs. Released under the MIT License.</p>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
