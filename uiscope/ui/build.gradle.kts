@@ -12,6 +12,9 @@ dependencies {
     implementation(project(":core"))
     implementation(project(":engine"))
     implementation(compose.desktop.currentOs)
+    implementation(compose.material3)
+    implementation(compose.materialIconsExtended)
+    implementation(compose.foundation)
     implementation(libs.coroutines.core)
     implementation(libs.coroutines.swing)
 }

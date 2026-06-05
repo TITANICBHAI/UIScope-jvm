@@ -13,19 +13,24 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.titanicbhai.uiscope.codegen.CodeTarget
 import com.titanicbhai.uiscope.codegen.AndroidCodegen
+import com.titanicbhai.uiscope.codegen.CodeTarget
+import com.titanicbhai.uiscope.codegen.PcCodegen
+import com.titanicbhai.uiscope.codegen.PcCodeTarget
 import com.titanicbhai.uiscope.model.ElementNode
+import com.titanicbhai.uiscope.model.InspectionMode
 import java.awt.Toolkit
 import java.awt.datatransfer.StringSelection
 
 @Composable
 fun CodegenPanel(
     selectedNode: ElementNode?,
+    mode: InspectionMode = InspectionMode.ANDROID,
     modifier: Modifier = Modifier
 ) {
     val colorScheme = MaterialTheme.colorScheme
-    var selectedTarget by remember { mutableStateOf(CodeTarget.PYTHON_UIAUTOMATOR2) }
+    var selectedAndroidTarget by remember { mutableStateOf(CodeTarget.PYTHON_UIAUTOMATOR2) }
+    var selectedPcTarget by remember { mutableStateOf(PcCodeTarget.PYTHON_PYWINAUTO) }
     var copied by remember { mutableStateOf(false) }
 
     LaunchedEffect(copied) {
@@ -35,8 +40,14 @@ fun CodegenPanel(
         }
     }
 
-    val result = remember(selectedNode, selectedTarget) {
-        selectedNode?.let { AndroidCodegen.generate(it, selectedTarget) }
+    val result = remember(selectedNode, selectedAndroidTarget, selectedPcTarget, mode) {
+        selectedNode?.let {
+            if (mode == InspectionMode.PC) {
+                PcCodegen.generate(it, selectedPcTarget)
+            } else {
+                AndroidCodegen.generate(it, selectedAndroidTarget)
+            }
+        }
     }
 
     Column(modifier = modifier.fillMaxWidth()) {
@@ -60,21 +71,33 @@ fun CodegenPanel(
                     .horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                CodeTarget.entries.forEach { target ->
-                    val isSelected = target == selectedTarget
-                    TextButton(
-                        onClick = { selectedTarget = target; copied = false },
-                        modifier = Modifier.height(28.dp),
-                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
-                        colors = ButtonDefaults.textButtonColors(
-                            contentColor = if (isSelected) colorScheme.primary else colorScheme.onSurfaceVariant
-                        )
-                    ) {
-                        Text(
-                            target.label,
-                            style = MaterialTheme.typography.labelSmall,
-                            fontSize = 10.sp
-                        )
+                if (mode == InspectionMode.PC) {
+                    PcCodeTarget.entries.forEach { target ->
+                        val isSelected = target == selectedPcTarget
+                        TextButton(
+                            onClick = { selectedPcTarget = target; copied = false },
+                            modifier = Modifier.height(28.dp),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                            colors = ButtonDefaults.textButtonColors(
+                                contentColor = if (isSelected) colorScheme.primary else colorScheme.onSurfaceVariant
+                            )
+                        ) {
+                            Text(target.label, style = MaterialTheme.typography.labelSmall, fontSize = 10.sp)
+                        }
+                    }
+                } else {
+                    CodeTarget.entries.forEach { target ->
+                        val isSelected = target == selectedAndroidTarget
+                        TextButton(
+                            onClick = { selectedAndroidTarget = target; copied = false },
+                            modifier = Modifier.height(28.dp),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                            colors = ButtonDefaults.textButtonColors(
+                                contentColor = if (isSelected) colorScheme.primary else colorScheme.onSurfaceVariant
+                            )
+                        ) {
+                            Text(target.label, style = MaterialTheme.typography.labelSmall, fontSize = 10.sp)
+                        }
                     }
                 }
             }

@@ -5,7 +5,7 @@ import com.titanicbhai.uiscope.db.DatabaseFactory
 class SettingsRepository {
     private val queries get() = DatabaseFactory.getDatabase().appSettingsQueries
 
-    fun set(key: String, value: String) = queries.upsertSetting(key = key, value = value)
+    fun set(key: String, value: String) = queries.upsertSetting(key, value)
 
     fun get(key: String, default: String? = null): String? =
         queries.selectSetting(key).executeAsOneOrNull() ?: default

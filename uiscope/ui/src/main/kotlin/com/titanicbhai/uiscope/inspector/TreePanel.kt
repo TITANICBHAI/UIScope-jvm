@@ -163,9 +163,12 @@ private fun TreeNodeRow(
 
         Column(modifier = Modifier.weight(1f)) {
             val shortClass = node.className.substringAfterLast('.')
+            val nodeText = node.text
+            val nodeContentDesc = node.contentDescription
+            val nodeResourceId = node.resourceId
             val displayName = when {
-                !node.text.isNullOrBlank() -> "\"${node.text.take(40)}\""
-                !node.contentDescription.isNullOrBlank() -> "[${node.contentDescription.take(40)}]"
+                !nodeText.isNullOrBlank() -> "\"${nodeText.take(40)}\""
+                !nodeContentDesc.isNullOrBlank() -> "[${nodeContentDesc.take(40)}]"
                 else -> shortClass
             }
             Text(
@@ -176,9 +179,9 @@ private fun TreeNodeRow(
                 overflow = TextOverflow.Ellipsis
             )
             val subLabel = when {
-                node.resourceId?.isNotBlank() == true ->
-                    "@${node.resourceId.substringAfterLast('/')}"
-                node.text.isNullOrBlank() && node.contentDescription.isNullOrBlank() -> null
+                nodeResourceId?.isNotBlank() == true ->
+                    "@${nodeResourceId.substringAfterLast('/')}"
+                nodeText.isNullOrBlank() && nodeContentDesc.isNullOrBlank() -> null
                 else -> shortClass
             }
             subLabel?.let {
