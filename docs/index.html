@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Primary SEO -->
+  <title>UIScope — Desktop &amp; Android UI Inspector</title>
+  <meta name="description" content="Free, offline UI inspector for Windows, macOS and Linux desktop apps and Android devices. Inspect live element trees, properties, generate code, diff sessions — no accounts, no telemetry." />
+  <meta name="keywords" content="UI inspector, accessibility tree inspector, Android UI testing, Windows UI automation, AT-SPI2, UIAutomation, ADB inspector, Compose Multiplatform, UI element debugger, app inspector" />
+  <meta name="author" content="TBTechs" />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://titanicbhai.github.io/UIScope-jvm/" />
+
+  <!-- Geo -->
+  <link rel="alternate" hreflang="en" href="https://titanicbhai.github.io/UIScope-jvm/" />
+  <link rel="alternate" hreflang="x-default" href="https://titanicbhai.github.io/UIScope-jvm/" />
+  <meta name="geo.region" content="US" />
+  <meta name="geo.placename" content="Worldwide" />
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://titanicbhai.github.io/UIScope-jvm/" />
+  <meta property="og:title" content="UIScope — Desktop &amp; Android UI Inspector" />
+  <meta property="og:description" content="Free, offline UI inspector. Inspect live element trees for any desktop app or Android device. No accounts, no telemetry." />
+  <meta property="og:image" content="https://titanicbhai.github.io/UIScope-jvm/assets/icon.png" />
+  <meta property="og:image:width" content="512" />
+  <meta property="og:image:height" content="512" />
+  <meta property="og:site_name" content="UIScope" />
+  <meta property="og:locale" content="en_US" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="UIScope — Desktop &amp; Android UI Inspector" />
+  <meta name="twitter:description" content="Free, offline UI inspector. Inspect live element trees for any desktop app or Android device." />
+  <meta name="twitter:image" content="https://titanicbhai.github.io/UIScope-jvm/assets/icon.png" />
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="assets/icon.png" />
+  <link rel="apple-touch-icon" href="assets/icon.png" />
+
+  <!-- Structured data: SoftwareApplication -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "UIScope",
+    "alternateName": "UIScope: Desktop & Android UI Inspector",
+    "description": "Free, offline UI inspector for Windows, macOS, Linux and Android. Inspect live element trees, properties, generate automation code, diff sessions, and watch for UI changes.",
+    "url": "https://titanicbhai.github.io/UIScope-jvm/",
+    "applicationCategory": "DeveloperApplication",
+    "applicationSubCategory": "Testing & QA",
+    "operatingSystem": "Windows 10, Windows 11, Linux, macOS, Android",
+    "softwareVersion": "1.0.0",
+    "releaseNotes": "https://github.com/TITANICBHAI/UIScope-jvm/releases",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "downloadUrl": "https://github.com/TITANICBHAI/UIScope-jvm/releases/latest",
+    "installUrl": "https://apps.microsoft.com/detail/9MWH310XHGQ5",
+    "screenshot": "https://titanicbhai.github.io/UIScope-jvm/assets/icon.png",
+    "author": {
+      "@type": "Organization",
+      "name": "TBTechs",
+      "url": "https://github.com/TITANICBHAI"
+    },
+    "license": "https://github.com/TITANICBHAI/UIScope-jvm/blob/main/uiscope/LICENSE",
+    "codeRepository": "https://github.com/TITANICBHAI/UIScope-jvm",
+    "isAccessibleForFree": true,
+    "featureList": [
+      "Live element tree inspection for any desktop app",
+      "Android UI inspection via ADB — no on-device agent",
+      "Session diff — compare two UI snapshots side-by-side",
+      "Watch mode — monitor UI conditions continuously",
+      "Export to JSON, XML, outline",
+      "Code generation for AHK, pywinauto, uiautomator2, Appium, Maestro",
+      "No accounts, no telemetry, fully offline"
+    ]
+  }
+  </script>
+
+  <link rel="stylesheet" href="assets/style.css" />
+</head>
+<body>
+
+  <!-- ── Navigation ─────────────────────────────────────────────────────── -->
+  <nav class="nav" role="navigation" aria-label="Main navigation">
+    <div class="nav-inner">
+      <a href="#" class="nav-brand" aria-label="UIScope home">
+        <img src="assets/icon.png" alt="UIScope icon" width="28" height="28" />
+        <span>UIScope</span>
+      </a>
+      <ul class="nav-links">
+        <li><a href="#features">Features</a></li>
+        <li><a href="#download">Download</a></li>
+        <li><a href="https://github.com/TITANICBHAI/UIScope-jvm" target="_blank" rel="noopener" class="nav-github" aria-label="View source on GitHub">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
+          GitHub
+        </a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main>
+    <!-- ── Hero ───────────────────────────────────────────────────────────── -->
+    <section class="hero" id="home" aria-label="Introduction">
+      <div class="container">
+        <div class="hero-badge">Free &amp; Open Source · No Accounts · No Telemetry</div>
+        <h1 class="hero-title">See what your UI<br />is made of.</h1>
+        <p class="hero-subtitle">
+          UIScope inspects live UI element trees for <strong>any desktop app</strong> on Windows, macOS or Linux
+          — and <strong>any Android device</strong> connected via ADB. Full properties, bounds, and code generation.
+          All offline.
+        </p>
+        <div class="hero-cta">
+          <a href="https://apps.microsoft.com/detail/9MWH310XHGQ5"
+             target="_blank" rel="noopener"
+             class="btn btn-store"
+             aria-label="Get UIScope on Microsoft Store">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M11.5 2.75v8.75H2.75V2.75h8.75zm0 9.75v8.75H2.75v-8.75h8.75zm1 0h8.75v8.75H12.5v-8.75zm0-1V2.75h8.75v8.75H12.5z"/></svg>
+            Microsoft Store
+          </a>
+          <a href="https://github.com/TITANICBHAI/UIScope-jvm/releases/latest"
+             target="_blank" rel="noopener"
+             class="btn btn-primary"
+             aria-label="Download latest release from GitHub">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Download
+          </a>
+          <a href="https://github.com/TITANICBHAI/UIScope-jvm"
+             target="_blank" rel="noopener"
+             class="btn btn-ghost"
+             aria-label="View source code on GitHub">
+            View Source
+          </a>
+        </div>
+        <div class="hero-platforms" aria-label="Supported platforms">
+          <span class="platform-tag">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801"/></svg>
+            Windows 10/11
+          </span>
+          <span class="platform-tag">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/></svg>
+            Linux
+          </span>
+          <span class="platform-tag">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/></svg>
+            macOS
+          </span>
+          <span class="platform-tag">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.523 15.34l.023-.08c.188-.55.294-1.135.294-1.744a5.33 5.33 0 00-5.334-5.332A5.33 5.33 0 007.17 13.516a5.33 5.33 0 005.333 5.333c1.646 0 3.121-.748 4.11-1.924l2.91 2.91a1 1 0 001.414-1.414l-2.91-2.91-.504-.17zM8.836 13.516a3.672 3.672 0 117.344 0 3.672 3.672 0 01-7.344 0z"/><path d="M16.05 2.52a1 1 0 00-.707-1.707H8.657a1 1 0 00-.707 1.707l1.96 1.96A9.27 9.27 0 002.67 13.4a1 1 0 001.999.107A7.27 7.27 0 0111.836 6.6a7.27 7.27 0 017.166 6.908 1 1 0 001.999-.107 9.27 9.27 0 00-6.91-8.92l1.959-1.96z"/></svg>
+            Android (via ADB)
+          </span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Features ───────────────────────────────────────────────────────── -->
+    <section class="features" id="features" aria-label="Features">
+      <div class="container">
+        <h2 class="section-title">Four inspection modes. One install.</h2>
+        <p class="section-subtitle">Every mode shares the same session history, bookmarks, export, and code generation.</p>
+
+        <div class="features-grid">
+          <article class="feature-card" aria-label="PC Inspector mode">
+            <div class="feature-icon" aria-hidden="true">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/><circle cx="12" cy="10" r="3"/></svg>
+            </div>
+            <h3>PC Inspector</h3>
+            <p>Hover any window → lock with <kbd>Alt+Shift+P</kbd> → get a full element tree with properties, bounds, roles, and code generation. Works with any app via Windows UIAutomation, macOS AX API, or Linux AT-SPI2.</p>
+          </article>
+
+          <article class="feature-card" aria-label="Android Inspector mode">
+            <div class="feature-icon" aria-hidden="true">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><circle cx="12" cy="17" r="1"/></svg>
+            </div>
+            <h3>Android Inspector</h3>
+            <p>Connect via USB or wireless ADB. Get a live screencap with bidirectional node selection — tap a node in the tree to highlight it on-screen, or tap the screen to select the node. <strong>No on-device agent needed.</strong></p>
+          </article>
+
+          <article class="feature-card" aria-label="Diff mode">
+            <div class="feature-icon" aria-hidden="true">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/></svg>
+            </div>
+            <h3>Diff Mode</h3>
+            <p>Pick any two saved inspection sessions and instantly see what was <span class="diff-added">added</span>, <span class="diff-removed">removed</span>, or <span class="diff-changed">changed</span> between them. Great for verifying UI changes after code updates.</p>
+          </article>
+
+          <article class="feature-card" aria-label="Watch mode">
+            <div class="feature-icon" aria-hidden="true">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </div>
+            <h3>Watch Mode</h3>
+            <p>Define a condition — element appears, disappears, text matches — and monitor a device continuously. UIScope fires a notification the moment the condition is met. Perfect for automated QA workflows.</p>
+          </article>
+        </div>
+
+        <!-- Extra capabilities row -->
+        <div class="extras-grid" aria-label="Additional capabilities">
+          <div class="extra-item">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+            Code gen: AHK, pywinauto, C#, PowerShell, uiautomator2, Appium, Maestro, XPath
+          </div>
+          <div class="extra-item">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Export sessions as JSON, XML, or plain outline
+          </div>
+          <div class="extra-item">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+            Multi-window: open independent inspectors side-by-side
+          </div>
+          <div class="extra-item">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+            Bookmarks, search, session history with SQLite storage
+          </div>
+          <div class="extra-item">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            Zero accounts · Zero telemetry · Fully offline
+          </div>
+          <div class="extra-item">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            JNA-based native OS APIs — no C++ code, no root required
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Download ───────────────────────────────────────────────────────── -->
+    <section class="download" id="download" aria-label="Download">
+      <div class="container">
+        <h2 class="section-title">Download UIScope</h2>
+        <p class="section-subtitle">Free forever. All builds are produced by GitHub Actions CI and published to GitHub Releases.</p>
+
+        <div class="download-grid">
+          <!-- Windows -->
+          <div class="download-card" aria-label="Windows downloads">
+            <div class="download-card-header">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M11.5 2.75v8.75H2.75V2.75h8.75zm0 9.75v8.75H2.75v-8.75h8.75zm1 0h8.75v8.75H12.5v-8.75zm0-1V2.75h8.75v8.75H12.5z"/></svg>
+              <h3>Windows</h3>
+            </div>
+            <p class="download-os-desc">Windows 10 / 11 (x64)</p>
+            <div class="download-btns">
+              <a href="https://apps.microsoft.com/detail/9MWH310XHGQ5"
+                 target="_blank" rel="noopener"
+                 class="btn btn-store btn-full"
+                 aria-label="Get UIScope on Microsoft Store">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M11.5 2.75v8.75H2.75V2.75h8.75zm0 9.75v8.75H2.75v-8.75h8.75zm1 0h8.75v8.75H12.5v-8.75zm0-1V2.75h8.75v8.75H12.5z"/></svg>
+                Get from Microsoft Store
+              </a>
+              <a href="https://github.com/TITANICBHAI/UIScope-jvm/releases/latest"
+                 target="_blank" rel="noopener"
+                 class="btn btn-secondary btn-full"
+                 aria-label="Download EXE installer from GitHub">
+                Download .exe installer
+              </a>
+              <a href="https://github.com/TITANICBHAI/UIScope-jvm/releases/latest"
+                 target="_blank" rel="noopener"
+                 class="btn btn-ghost btn-full"
+                 aria-label="Download MSI package from GitHub">
+                .msi (enterprise / silent)
+              </a>
+              <a href="https://github.com/TITANICBHAI/UIScope-jvm/releases/latest"
+                 target="_blank" rel="noopener"
+                 class="btn btn-ghost btn-full"
+                 aria-label="Download MSIX package from GitHub">
+                .msix (sideload / WinGet)
+              </a>
+            </div>
+          </div>
+
+          <!-- Linux -->
+          <div class="download-card" aria-label="Linux downloads">
+            <div class="download-card-header">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12.504 0c-.155 0-.315.008-.48.021-4.226.333-3.105 4.807-3.17 6.298-.076 1.092-.3 1.953-1.05 3.02-.885 1.051-2.127 2.75-2.716 4.521-.278.832-.41 1.684-.287 2.489a.424.424 0 00-.11.135c-.26.268-.45.6-.663.839-.199.199-.485.267-.797.4-.313.136-.658.269-.864.68-.09.189-.136.394-.132.602 0 .199.027.4.055.536.058.399.116.728.04.97-.249.68-.28 1.145-.106 1.484.174.334.535.47.94.601.81.247 2.048.315 3.287.985.5.26 1.059.3 1.508.063h.012c.2-.095.385-.233.54-.403a8.01 8.01 0 001.079-.102c1.143-.195 1.54-.6 1.765-1.063.14-.29.25-.62.37-.91.24-.59.46-1.18.34-1.63-.12-.44-.55-.73-1.11-.66-.56.07-1.24.44-1.81.81-.57.37-1.07.68-1.39.65-.33-.03-.43-.36-.4-.71.02-.22.04-.48.03-.73-.01-.24-.06-.48-.18-.63-.12-.15-.32-.22-.58-.18-.26.04-.56.18-.92.37-.36.19-.79.43-1.31.51-.77.12-1.38-.14-1.59-.53-.22-.39-.05-.93.32-1.39.37-.46.94-.87 1.4-1.29.23-.21.44-.43.57-.66.13-.23.17-.47.03-.67-.14-.2-.44-.32-.74-.4-.3-.08-.61-.12-.84-.22-.23-.1-.37-.26-.39-.5-.02-.24.09-.5.26-.73.17-.23.41-.44.67-.62.26-.18.54-.33.78-.49.24-.16.44-.33.54-.53.1-.2.09-.43-.02-.61-.11-.18-.32-.31-.56-.44-.24-.13-.52-.26-.75-.44-.23-.18-.41-.4-.44-.66-.03-.26.08-.55.27-.81.19-.26.46-.5.74-.72.28-.22.57-.42.8-.64.23-.22.39-.46.38-.73-.01-.27-.2-.56-.48-.81-.28-.25-.65-.47-1.01-.67-.36-.2-.71-.38-.97-.59-.26-.21-.43-.44-.42-.72.01-.28.21-.59.5-.85.29-.26.67-.48 1.03-.66.36-.18.7-.32.93-.5.23-.18.36-.39.32-.63-.04-.24-.24-.5-.52-.72-.28-.22-.64-.41-.99-.58-.35-.17-.69-.32-.94-.52-.25-.2-.41-.44-.39-.72.02-.28.19-.56.43-.77.24-.21.55-.35.85-.48.3-.13.59-.25.79-.4.2-.15.31-.33.28-.54-.03-.21-.2-.42-.42-.6-.22-.18-.5-.32-.77-.44-.27-.12-.54-.22-.73-.35-.19-.13-.29-.29-.26-.48.03-.19.18-.37.38-.52.2-.15.46-.27.71-.38.25-.11.5-.21.67-.34.17-.13.26-.28.22-.45-.04-.17-.2-.33-.41-.47-.21-.14-.47-.25-.73-.35-.26-.1-.52-.19-.71-.3-.19-.11-.31-.24-.29-.4.02-.16.16-.3.34-.43.18-.13.41-.24.63-.35.22-.11.44-.22.6-.34.16-.12.27-.25.24-.4-.03-.15-.17-.3-.36-.43-.19-.13-.44-.25-.69-.37-.25-.12-.51-.24-.69-.38-.18-.14-.28-.3-.25-.47.03-.17.17-.32.35-.45a8.34 8.34 0 01.41-.28c-.34-.01-.69 0-1.06.03"/></svg>
+              <h3>Linux</h3>
+            </div>
+            <p class="download-os-desc">Ubuntu 22.04+ / Debian (x64)</p>
+            <div class="download-btns">
+              <a href="https://github.com/TITANICBHAI/UIScope-jvm/releases/latest"
+                 target="_blank" rel="noopener"
+                 class="btn btn-primary btn-full"
+                 aria-label="Download DEB package from GitHub">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Download .deb (Ubuntu/Debian)
+              </a>
+              <a href="https://github.com/TITANICBHAI/UIScope-jvm/releases/latest"
+                 target="_blank" rel="noopener"
+                 class="btn btn-ghost btn-full"
+                 aria-label="Download AppImage from GitHub">
+                .AppImage (universal Linux)
+              </a>
+            </div>
+            <p class="download-note">Install .deb: <code>sudo dpkg -i uiscope_*.deb</code></p>
+          </div>
+        </div>
+
+        <!-- Source code CTA -->
+        <div class="source-cta" aria-label="Source code">
+          <div class="source-cta-inner">
+            <div>
+              <h3>Open Source · MIT License</h3>
+              <p>Built with Kotlin 2.0 + Compose Multiplatform Desktop. Contributions welcome.</p>
+            </div>
+            <a href="https://github.com/TITANICBHAI/UIScope-jvm"
+               target="_blank" rel="noopener"
+               class="btn btn-ghost"
+               aria-label="View UIScope source code on GitHub">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
+              View on GitHub
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Requirements ───────────────────────────────────────────────────── -->
+    <section class="requirements" id="requirements" aria-label="System requirements">
+      <div class="container">
+        <h2 class="section-title">System Requirements</h2>
+        <div class="req-grid">
+          <div class="req-card">
+            <h4>Windows</h4>
+            <ul>
+              <li>Windows 10 / 11 (x64)</li>
+              <li>No admin rights needed (per-user install)</li>
+              <li>PC inspection via UIAutomation — works with any app</li>
+              <li>Android inspection: ADB in PATH</li>
+            </ul>
+          </div>
+          <div class="req-card">
+            <h4>Linux</h4>
+            <ul>
+              <li>Ubuntu 22.04+ or equivalent (x64)</li>
+              <li>PC inspection via AT-SPI2</li>
+              <li>Android inspection: ADB in PATH</li>
+              <li>.deb or AppImage — no install required for AppImage</li>
+            </ul>
+          </div>
+          <div class="req-card">
+            <h4>macOS</h4>
+            <ul>
+              <li>macOS 11+ (x64 / Apple Silicon via Rosetta)</li>
+              <li>PC inspection via AX API (Accessibility permission required)</li>
+              <li>Android inspection: ADB in PATH</li>
+              <li>Build from source (see GitHub)</li>
+            </ul>
+          </div>
+          <div class="req-card">
+            <h4>Android Inspection</h4>
+            <ul>
+              <li>USB Debugging enabled on device</li>
+              <li>ADB in system PATH</li>
+              <li>USB cable or same-network wireless ADB</li>
+              <li>No APK install on device needed</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ── Footer ─────────────────────────────────────────────────────────── -->
+  <footer class="footer" role="contentinfo">
+    <div class="container">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <img src="assets/icon.png" alt="UIScope" width="24" height="24" />
+          <span><strong>UIScope</strong> by <a href="https://github.com/TITANICBHAI" target="_blank" rel="noopener">TBTechs</a></span>
+        </div>
+        <nav class="footer-links" aria-label="Footer navigation">
+          <a href="https://github.com/TITANICBHAI/UIScope-jvm" target="_blank" rel="noopener">Source Code</a>
+          <a href="https://github.com/TITANICBHAI/UIScope-jvm/releases" target="_blank" rel="noopener">Releases</a>
+          <a href="https://github.com/TITANICBHAI/UIScope-jvm/issues" target="_blank" rel="noopener">Issues</a>
+          <a href="https://github.com/TITANICBHAI/UIScope-jvm/blob/main/uiscope/LICENSE" target="_blank" rel="noopener">MIT License</a>
+          <a href="https://apps.microsoft.com/detail/9MWH310XHGQ5" target="_blank" rel="noopener">Microsoft Store</a>
+        </nav>
+        <p class="footer-copy">&copy; 2026 TBTechs. Released under the MIT License.</p>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
