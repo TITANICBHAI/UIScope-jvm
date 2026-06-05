@@ -1,0 +1,23 @@
+Place your platform icon files in this directory.
+
+Required files:
+  icon.ico   — Windows (multi-resolution: 16, 24, 32, 48, 64, 128, 256 px in one file)
+  icon.icns  — macOS  (multi-resolution Apple Icon Image)
+  icon.png   — Linux  (at least 512×512 px, square)
+
+Converting from a master SVG / PNG:
+  Windows .ico
+    Online: https://convertico.com/   or   https://www.icoconverter.com/
+    CLI:    ImageMagick  →  convert icon.png -define icon:auto-resize=256,64,48,32,16 icon.ico
+
+  macOS .icns
+    macOS only:
+      mkdir UIScope.iconset
+      sips -z 1024 1024 icon.png --out UIScope.iconset/icon_512x512@2x.png
+      # (generate all required sizes — see Apple HIG)
+      iconutil -c icns UIScope.iconset
+
+  Linux .png
+    Just a high-resolution PNG — 512×512 recommended.
+
+Logo design guidelines — see DISTRIBUTION.md §2.

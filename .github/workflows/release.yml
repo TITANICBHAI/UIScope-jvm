@@ -1,0 +1,342 @@
+name: Build & Release UIScope
+
+# ─── Triggers ─────────────────────────────────────────────────────────────────
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'          # e.g. v1.0.0
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (no "v" prefix, e.g. 1.0.0)'
+        required: true
+        default: '1.0.0'
+
+# ─── Shared version string ────────────────────────────────────────────────────
+env:
+  APP_VERSION: >-
+    ${{ startsWith(github.ref, 'refs/tags/')
+        && github.ref_name
+        || format('v{0}', inputs.version) }}
+
+permissions:
+  contents: write      # needed to create GitHub Releases
+
+# ─── Jobs ─────────────────────────────────────────────────────────────────────
+jobs:
+
+  # ╔══════════════════════════════════════════════════════════════════════════╗
+  # ║  WINDOWS — EXE · MSI · MSIX                                            ║
+  # ╚══════════════════════════════════════════════════════════════════════════╝
+  build-windows:
+    name: Windows (EXE · MSI · MSIX)
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Cache Gradle packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: windows-gradle-${{ hashFiles('uiscope/**/*.gradle.kts', 'uiscope/gradle/libs.versions.toml') }}
+          restore-keys: windows-gradle-
+
+      # Strip leading 'v' from tag name → pure semver for Gradle & MSI
+      - name: Resolve semver
+        id: ver
+        run: |
+          $raw = "${{ env.APP_VERSION }}"
+          $sem = $raw.TrimStart('v')
+          echo "SEM=$sem" >> $env:GITHUB_ENV
+
+      - name: Build EXE + MSI
+        working-directory: uiscope
+        env:
+          APP_VERSION: ${{ env.SEM }}
+        run: .\gradlew.bat :app:packageExe :app:packageMsi --no-daemon
+
+      # ── Create MSIX (Microsoft Store) ─────────────────────────────────────
+      - name: Prepare MSIX layout
+        run: |
+          # App image created by Compose Desktop (unzipped into a directory)
+          $appImg = "uiscope\app\build\compose\binaries\main\app\UIScope"
+          $layout = "msix-layout"
+
+          # Copy app content
+          New-Item -ItemType Directory -Path "$layout\UIScope" -Force | Out-Null
+          Copy-Item "$appImg\*" "$layout\UIScope\" -Recurse -Force
+
+          # Copy MSIX visual assets & manifest
+          Copy-Item "uiscope\app\src\main\msix\assets" "$layout\" -Recurse -Force
+          Copy-Item "uiscope\app\src\main\msix\AppxManifest.xml" "$layout\" -Force
+
+          # Patch version in manifest
+          (Get-Content "$layout\AppxManifest.xml") `
+            -replace 'Version="1\.0\.0\.0"', "Version=`"${{ env.SEM }}.0`"" |
+            Set-Content "$layout\AppxManifest.xml"
+
+      - name: Package MSIX
+        run: |
+          # makeappx.exe ships with the Windows SDK on every GitHub Windows runner
+          $sdk = "C:\Program Files (x86)\Windows Kits\10\bin"
+          $makeappx = Get-ChildItem $sdk -Filter makeappx.exe -Recurse |
+                      Where-Object { $_.FullName -match "x64" } |
+                      Sort-Object FullName -Descending |
+                      Select-Object -First 1 -ExpandProperty FullName
+
+          if (-not $makeappx) { throw "makeappx.exe not found in Windows SDK" }
+
+          & $makeappx pack /d msix-layout /p "UIScope-${{ env.SEM }}-x64.msix" /o
+          Write-Host "MSIX created: UIScope-${{ env.SEM }}-x64.msix"
+
+      # Optional: self-sign for sideload testing (skip for Store upload — MSFT signs it)
+      - name: Self-sign MSIX (sideload test only — NOT for Store)
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        run: |
+          $cert = New-SelfSignedCertificate `
+            -Subject "CN=TITANICBHAI" `
+            -KeyAlgorithm RSA -KeyLength 2048 `
+            -Type CodeSigningCert `
+            -CertStoreLocation Cert:\CurrentUser\My
+          $pfxPath = "uiscope-selfsign.pfx"
+          $pwd = ConvertTo-SecureString -String "changeme" -Force -AsPlainText
+          Export-PfxCertificate -Cert $cert -FilePath $pfxPath -Password $pwd
+          & "C:\Program Files (x86)\Windows Kits\10\bin\10.0.22621.0\x64\signtool.exe" `
+            sign /fd sha256 /p7co 1.2.840.113549.1.7.1 /p7 . `
+            /pfx $pfxPath /p changeme "UIScope-${{ env.SEM }}-x64.msix" 2>$null || true
+          Write-Host "Self-sign step done (informational only)"
+
+      - name: Upload EXE
+        uses: actions/upload-artifact@v4
+        with:
+          name: UIScope-windows-exe
+          path: uiscope/app/build/compose/binaries/main/exe/*.exe
+          if-no-files-found: warn
+
+      - name: Upload MSI
+        uses: actions/upload-artifact@v4
+        with:
+          name: UIScope-windows-msi
+          path: uiscope/app/build/compose/binaries/main/msi/*.msi
+          if-no-files-found: warn
+
+      - name: Upload MSIX
+        uses: actions/upload-artifact@v4
+        with:
+          name: UIScope-windows-msix
+          path: UIScope-*.msix
+          if-no-files-found: warn
+
+
+  # ╔══════════════════════════════════════════════════════════════════════════╗
+  # ║  macOS — DMG · PKG                                                      ║
+  # ╚══════════════════════════════════════════════════════════════════════════╝
+  build-macos:
+    name: macOS (DMG · PKG)
+    runs-on: macos-14          # Apple Silicon runner
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: macos-gradle-${{ hashFiles('uiscope/**/*.gradle.kts', 'uiscope/gradle/libs.versions.toml') }}
+          restore-keys: macos-gradle-
+
+      - name: Resolve semver
+        id: ver
+        run: |
+          RAW="${{ env.APP_VERSION }}"
+          SEM="${RAW#v}"
+          echo "SEM=$SEM" >> $GITHUB_ENV
+
+      # Import Apple Developer cert from GitHub secret (optional — only if secrets are set)
+      - name: Import Apple signing certificate
+        if: ${{ env.APPLE_SIGNING_CERT != '' }}
+        env:
+          APPLE_SIGNING_CERT: ${{ secrets.APPLE_SIGNING_CERT_P12_BASE64 }}
+          APPLE_SIGNING_CERT_PWD: ${{ secrets.APPLE_SIGNING_CERT_PASSWORD }}
+        run: |
+          echo "$APPLE_SIGNING_CERT" | base64 --decode > /tmp/cert.p12
+          security create-keychain -p "" build.keychain
+          security import /tmp/cert.p12 -k build.keychain -P "$APPLE_SIGNING_CERT_PWD" -A
+          security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain
+          security list-keychains -s build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "" build.keychain
+
+      - name: Build DMG + PKG
+        working-directory: uiscope
+        env:
+          APP_VERSION: ${{ env.SEM }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID:               ${{ secrets.APPLE_ID }}
+          APPLE_APP_PASSWORD:     ${{ secrets.APPLE_APP_PASSWORD }}
+          APPLE_TEAM_ID:          ${{ secrets.APPLE_TEAM_ID }}
+        run: ./gradlew :app:packageDmg :app:packagePkg --no-daemon
+
+      - name: Upload DMG
+        uses: actions/upload-artifact@v4
+        with:
+          name: UIScope-macos-dmg
+          path: uiscope/app/build/compose/binaries/main/dmg/*.dmg
+          if-no-files-found: warn
+
+      - name: Upload PKG
+        uses: actions/upload-artifact@v4
+        with:
+          name: UIScope-macos-pkg
+          path: uiscope/app/build/compose/binaries/main/pkg/*.pkg
+          if-no-files-found: warn
+
+
+  # ╔══════════════════════════════════════════════════════════════════════════╗
+  # ║  Linux — DEB · AppImage                                                 ║
+  # ╚══════════════════════════════════════════════════════════════════════════╝
+  build-linux:
+    name: Linux (DEB · AppImage)
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Install native packaging deps
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y fakeroot binutils rpm libfuse2
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: linux-gradle-${{ hashFiles('uiscope/**/*.gradle.kts', 'uiscope/gradle/libs.versions.toml') }}
+          restore-keys: linux-gradle-
+
+      - name: Resolve semver
+        run: |
+          RAW="${{ env.APP_VERSION }}"
+          echo "SEM=${RAW#v}" >> $GITHUB_ENV
+
+      - name: Build DEB + AppImage
+        working-directory: uiscope
+        env:
+          APP_VERSION: ${{ env.SEM }}
+        run: ./gradlew :app:packageDeb :app:packageAppImage --no-daemon
+
+      - name: Upload DEB
+        uses: actions/upload-artifact@v4
+        with:
+          name: UIScope-linux-deb
+          path: uiscope/app/build/compose/binaries/main/deb/*.deb
+          if-no-files-found: warn
+
+      - name: Upload AppImage
+        uses: actions/upload-artifact@v4
+        with:
+          name: UIScope-linux-appimage
+          path: uiscope/app/build/compose/binaries/main/app/*.AppImage
+          if-no-files-found: warn
+
+
+  # ╔══════════════════════════════════════════════════════════════════════════╗
+  # ║  RELEASE — collect all artifacts and publish to GitHub Releases         ║
+  # ╚══════════════════════════════════════════════════════════════════════════╝
+  release:
+    name: Publish GitHub Release
+    needs: [build-windows, build-macos, build-linux]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+
+    steps:
+      - name: Checkout (for release notes)
+        uses: actions/checkout@v4
+
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist/
+
+      - name: List collected files
+        run: find dist/ -type f | sort
+
+      - name: Resolve semver
+        run: |
+          RAW="${{ github.ref_name }}"
+          echo "SEM=${RAW#v}" >> $GITHUB_ENV
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: UIScope ${{ github.ref_name }}
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          body: |
+            ## UIScope ${{ github.ref_name }}
+
+            **See what your UI is made of.** Live inspection of Android device UI trees and (coming in Phase 3) Windows / macOS / Linux accessibility trees — all in one desktop app.
+
+            ### What's in this release
+
+            | File | Platform | Notes |
+            |------|----------|-------|
+            | `UIScope-Setup-*.exe` | Windows | NSIS installer — recommended for most users |
+            | `UIScope-*.msi` | Windows | MSI — for enterprise / Group Policy deployment |
+            | `UIScope-*.msix` | Windows | MSIX — sideload or submit to Microsoft Store |
+            | `UIScope-*.dmg` | macOS | Drag-to-Applications disk image |
+            | `UIScope-*.pkg` | macOS | Flat package for managed deployment |
+            | `UIScope-*.deb` | Linux (Debian/Ubuntu) | `sudo dpkg -i UIScope-*.deb` |
+            | `UIScope-*.AppImage` | Linux (universal) | `chmod +x && ./UIScope-*.AppImage` |
+
+            ### Requirements
+            - **Windows** 10 / 11 (x64)
+            - **macOS** 12 Monterey or later (Apple Silicon + Intel)
+            - **Linux** Ubuntu 22.04 or equivalent (x64)
+            - **Android inspection** — ADB in PATH and USB Debugging enabled on device
+
+            ### Changelog
+            See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/uiscope/CHANGELOG.md) for full details.
+
+          files: |
+            dist/**/*.exe
+            dist/**/*.msi
+            dist/**/*.msix
+            dist/**/*.dmg
+            dist/**/*.pkg
+            dist/**/*.deb
+            dist/**/*.AppImage
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

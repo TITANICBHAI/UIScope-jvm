@@ -1,0 +1,20 @@
+Place your MSIX visual asset PNGs in this directory.
+
+Required files and sizes:
+  StoreLogo.png         50×50   px   (Microsoft Store listing icon)
+  Square44x44Logo.png   44×44   px   (taskbar + start menu small)
+  Square71x71Logo.png   71×71   px   (start menu medium — not required but recommended)
+  Square150x150Logo.png 150×150 px   (start menu medium tile — required)
+  Square310x310Logo.png 310×310 px   (start menu large tile)
+  Wide310x150Logo.png   310×150 px   (start menu wide tile)
+  SplashScreen.png      620×300 px   (splash screen during cold start)
+  BadgeLogo.png         24×24   px   (lock-screen badge — monochrome white)
+
+All PNGs should use a transparent or brand-colored background.
+Use target-size variants (e.g. Square44x44Logo.targetsize-16.png) for
+crisp rendering at every DPI — see DISTRIBUTION.md §2 for details.
+
+Tools to generate these from a single SVG:
+  - https://www.pngtoico.com/
+  - Microsoft's Asset Generator in Visual Studio
+  - https://github.com/faizanu94/msix-assets-generator

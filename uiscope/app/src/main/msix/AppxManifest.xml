@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  UIScope — Microsoft Store / MSIX manifest
+  See DISTRIBUTION.md §4 for full guidance on signing and Store submission.
+
+  BEFORE PUBLISHING TO STORE:
+    1. Replace Publisher="CN=TITANICBHAI" with your actual Partner Center publisher identity string.
+    2. Replace all asset PNGs in assets/ with your real logo art (see DISTRIBUTION.md §2).
+    3. Bump Version="X.Y.Z.0" to match your release. The CI workflow patches this automatically.
+-->
+<Package
+  xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:uap3="http://schemas.microsoft.com/appx/manifest/uap/windows10/3"
+  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+  IgnorableNamespaces="uap uap3 rescap">
+
+  <Identity
+    Name="TITANICBHAI.UIScope"
+    Publisher="CN=TITANICBHAI"
+    Version="1.0.0.0"
+    ProcessorArchitecture="x64" />
+
+  <Properties>
+    <DisplayName>UIScope</DisplayName>
+    <PublisherDisplayName>TITANICBHAI</PublisherDisplayName>
+    <Description>See what your UI is made of. Live inspector for Android device UI trees and PC app accessibility trees. Inspect element hierarchies, generate automation code, and export trees in seconds.</Description>
+    <Logo>assets\StoreLogo.png</Logo>
+  </Properties>
+
+  <Dependencies>
+    <!-- Windows 10 1809 (build 17763) minimum — Windows 11 fully supported -->
+    <TargetDeviceFamily
+      Name="Windows.Desktop"
+      MinVersion="10.0.17763.0"
+      MaxVersionTested="10.0.22621.0" />
+  </Dependencies>
+
+  <Resources>
+    <Resource Language="en-US" />
+  </Resources>
+
+  <Applications>
+    <Application
+      Id="UIScope"
+      Executable="UIScope\UIScope.exe"
+      EntryPoint="Windows.FullTrustApplication">
+
+      <uap:VisualElements
+        DisplayName="UIScope"
+        Description="See what your UI is made of."
+        BackgroundColor="transparent"
+        Square150x150Logo="assets\Square150x150Logo.png"
+        Square44x44Logo="assets\Square44x44Logo.png">
+
+        <uap:DefaultTile
+          ShortName="UIScope"
+          Wide310x150Logo="assets\Wide310x150Logo.png"
+          Square71x71Logo="assets\Square71x71Logo.png"
+          Square310x310Logo="assets\Square310x310Logo.png">
+          <uap:ShowNameOnTiles>
+            <uap:ShowOn Tile="square150x150Logo" />
+            <uap:ShowOn Tile="wide310x150Logo" />
+            <uap:ShowOn Tile="square310x310Logo" />
+          </uap:ShowNameOnTiles>
+        </uap:DefaultTile>
+
+        <uap:SplashScreen Image="assets\SplashScreen.png" BackgroundColor="#0D1117" />
+        <uap:LockScreen BadgeLogo="assets\BadgeLogo.png" Notification="badge" />
+
+      </uap:VisualElements>
+
+      <Extensions>
+        <!-- Associate with .uiscope session files (future) -->
+        <!--
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="uiscope">
+            <uap:SupportedFileTypes>
+              <uap:FileType>.uiscope</uap:FileType>
+            </uap:SupportedFileTypes>
+            <uap:DisplayName>UIScope Session</uap:DisplayName>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+        -->
+      </Extensions>
+
+    </Application>
+  </Applications>
+
+  <Capabilities>
+    <!-- Required for launching full-trust desktop apps from MSIX -->
+    <rescap:Capability Name="runFullTrust" />
+  </Capabilities>
+
+</Package>
