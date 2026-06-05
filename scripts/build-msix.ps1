@@ -79,7 +79,7 @@ $xml += "    Publisher=`"$Publisher`""
 $xml += "    Version=`"$msixVersion`""
 $xml += '    ProcessorArchitecture="x64" />'
 $xml += '  <Properties>'
-$xml += '    <DisplayName>UIScope: Desktop and Android UI Inspector</DisplayName>'
+$xml += '    <DisplayName>UIScope: Desktop &amp; Android UI Inspector</DisplayName>'
 $xml += "    <PublisherDisplayName>$PublisherDisplay</PublisherDisplayName>"
 $xml += '    <Logo>Assets\StoreLogo.png</Logo>'
 $xml += '  </Properties>'
@@ -90,7 +90,7 @@ $xml += '  <Resources><Resource Language="en-us" /></Resources>'
 $xml += '  <Applications>'
 $xml += '    <Application Id="UIScope" Executable="UIScope.exe" EntryPoint="Windows.FullTrustApplication">'
 $xml += '      <uap:VisualElements'
-$xml += '        DisplayName="UIScope: Desktop and Android UI Inspector"'
+$xml += '        DisplayName="UIScope: Desktop &amp; Android UI Inspector"'
 $xml += '        Description="See what your UI is made of. Live inspection of Android and Windows UI trees."'
 $xml += '        BackgroundColor="transparent"'
 $xml += '        Square150x150Logo="Assets\Square150x150Logo.png"'

@@ -7,7 +7,7 @@ plugins {
 }
 
 kotlin {
-    jvmToolchain(19)
+    jvmToolchain(21)
 }
 
 // ─── Resolve version from env (injected by CI) or fall back to file/default ───
