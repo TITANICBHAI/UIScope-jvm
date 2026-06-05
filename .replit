@@ -1,4 +1,4 @@
-modules = ["nodejs-20", "bash", "web"]
+modules = ["nodejs-20", "bash", "web", "python-3.11"]
 
 [deployment]
 router = "application"
@@ -24,6 +24,10 @@ args = "Push to UIScope-jvm"
 task = "workflow.run"
 args = "Run UIScope (VNC)"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Serve Docs"
+
 [[workflows.workflow]]
 name = "Push to UIScope-jvm"
 author = "agent"
@@ -46,6 +50,18 @@ args = "bash scripts/run-uiscope.sh"
 [workflows.workflow.metadata]
 outputType = "vnc"
 
+[[workflows.workflow]]
+name = "Serve Docs"
+author = "agent"
+
+[workflows.workflow.metadata]
+outputType = "webview"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python3 -m http.server 5000 --directory /home/runner/workspace/docs"
+waitForPort = 5000
+
 [agent]
 stack = "BEST_EFFORT_FALLBACK"
 expertMode = true
@@ -56,11 +72,11 @@ timeoutMs = 20000
 
 [[ports]]
 localPort = 8080
-externalPort = 80
+externalPort = 8080
 
 [[ports]]
-localPort = 8081
-externalPort = 8081
+localPort = 5000
+externalPort = 80
 
 [nix]
 channel = "stable-25_05"
