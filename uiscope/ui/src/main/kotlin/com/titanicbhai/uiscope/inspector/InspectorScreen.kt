@@ -110,6 +110,7 @@ fun InspectorScreen(
     var devices by remember { mutableStateOf<List<AdbDevice>>(emptyList()) }
     var isLoadingDevices by remember { mutableStateOf(false) }
     var selectedDevice by remember { mutableStateOf<AdbDevice?>(null) }
+    var selectedDevices by remember { mutableStateOf<List<AdbDevice>>(emptyList()) }
     var showWirelessDialog by remember { mutableStateOf(false) }
 
     // Shared inspection state
@@ -135,7 +136,7 @@ fun InspectorScreen(
     var searchQuery by remember { mutableStateOf("") }
     var showSearch by remember { mutableStateOf(false) }
 
-    val adbAvailable = remember { adbManager.isAdbAvailable() }
+    var adbAvailable by remember { mutableStateOf(adbManager.isAdbAvailable()) }
 
     // Check PC permissions on entry to PC mode
     LaunchedEffect(mode) {
@@ -274,16 +275,33 @@ fun InspectorScreen(
     fun rescanDevices() {
         scope.launch {
             isLoadingDevices = true
-            devices = adbManager.listDevices()
+            val found = adbManager.listDevices()
+            devices = found
             isLoadingDevices = false
+            // Auto-select if exactly 1 usable device and none selected yet
+            val usable = found.filter { it.state.isUsable }
+            if (usable.size == 1 && selectedDevice == null) {
+                selectedDevices = usable
+                selectedDevice = usable[0]
+                elementTree = emptyList()
+                screenshot = null
+                inspectorError = null
+            }
         }
     }
 
     LaunchedEffect(mode) {
         if (mode == InspectionMode.ANDROID && adbAvailable) {
             isLoadingDevices = true
-            devices = adbManager.listDevices()
+            val found = adbManager.listDevices()
+            devices = found
             isLoadingDevices = false
+            // Auto-select if exactly 1 usable device
+            val usable = found.filter { it.state.isUsable }
+            if (usable.size == 1) {
+                selectedDevices = usable
+                selectedDevice = usable[0]
+            }
         }
         // Reset state on mode switch
         elementTree = emptyList()
@@ -389,7 +407,24 @@ fun InspectorScreen(
         Box(modifier = Modifier.weight(1f)) {
             when {
                 !adbAvailable && mode == InspectionMode.ANDROID ->
-                    AdbNotFoundScreen()
+                    AdbNotFoundScreen(
+                        adbManager = adbManager,
+                        onAdbInstalled = {
+                            adbAvailable = true
+                            // Kick off device scan now that ADB is available
+                            scope.launch {
+                                isLoadingDevices = true
+                                val found = adbManager.listDevices()
+                                devices = found
+                                isLoadingDevices = false
+                                val usable = found.filter { it.state.isUsable }
+                                if (usable.size == 1) {
+                                    selectedDevices = usable
+                                    selectedDevice = usable[0]
+                                }
+                            }
+                        }
+                    )
 
                 mode == InspectionMode.PC && !pcPermissionGranted ->
                     PcPermissionScreen(
@@ -407,11 +442,14 @@ fun InspectorScreen(
                     DeviceSelectionContent(
                         devices = devices,
                         isLoading = isLoadingDevices,
-                        onDeviceSelected = {
-                            selectedDevice = it
-                            elementTree = emptyList()
-                            screenshot = null
-                            inspectorError = null
+                        onDevicesSelected = { chosen ->
+                            if (chosen.isNotEmpty()) {
+                                selectedDevices = chosen
+                                selectedDevice = chosen[0]
+                                elementTree = emptyList()
+                                screenshot = null
+                                inspectorError = null
+                            }
                         },
                         onRescan = ::rescanDevices,
                         onWireless = { showWirelessDialog = true }
@@ -425,6 +463,22 @@ fun InspectorScreen(
 
                 else -> {
                     Column(modifier = Modifier.fillMaxSize()) {
+                        // Device switcher: only visible when 2+ devices were selected
+                        if (mode == InspectionMode.ANDROID && selectedDevices.size > 1) {
+                            DeviceSwitcherBar(
+                                devices = selectedDevices,
+                                activeDevice = selectedDevice,
+                                onDeviceSwitch = { device ->
+                                    if (device != selectedDevice) {
+                                        selectedDevice = device
+                                        elementTree = emptyList()
+                                        screenshot = null
+                                        inspectorError = null
+                                    }
+                                }
+                            )
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+                        }
                         Row(modifier = Modifier.weight(1f).fillMaxWidth()) {
                             Box(
                                 modifier = Modifier
@@ -933,26 +987,82 @@ private fun InspectorTopBar(
     }
 }
 
+// ── Device Switcher Bar ───────────────────────────────────────────────────────
+
+@Composable
+private fun DeviceSwitcherBar(
+    devices: List<AdbDevice>,
+    activeDevice: AdbDevice?,
+    onDeviceSwitch: (AdbDevice) -> Unit
+) {
+    val colorScheme = MaterialTheme.colorScheme
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(colorScheme.surface)
+            .padding(horizontal = 16.dp, vertical = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            "Devices:",
+            style = MaterialTheme.typography.labelSmall,
+            color = colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(end = 4.dp)
+        )
+        devices.forEach { device ->
+            val isActive = device == activeDevice
+            FilterChip(
+                selected = isActive,
+                onClick = { onDeviceSwitch(device) },
+                label = {
+                    Text(
+                        device.displayName,
+                        style = MaterialTheme.typography.labelSmall,
+                        maxLines = 1
+                    )
+                }
+            )
+        }
+    }
+}
+
+// ── Device Selection ──────────────────────────────────────────────────────────
+
 @Composable
 private fun DeviceSelectionContent(
     devices: List<AdbDevice>,
     isLoading: Boolean,
-    onDeviceSelected: (AdbDevice) -> Unit,
+    onDevicesSelected: (List<AdbDevice>) -> Unit,
     onRescan: () -> Unit,
     onWireless: () -> Unit
 ) {
     val colorScheme = MaterialTheme.colorScheme
+    val usableDevices = devices.filter { it.state.isUsable }
+    val multiMode = usableDevices.size > 1
+    var checkedSerials by remember(devices) { mutableStateOf<Set<String>>(emptySet()) }
+
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(
-            modifier = Modifier.width(500.dp),
+            modifier = Modifier.width(520.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                "Connect a Device",
+                if (multiMode) "Select Devices to Inspect" else "Connect a Device",
                 style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.SemiBold),
                 color = colorScheme.onBackground
             )
+
+            if (multiMode) {
+                Text(
+                    "Select one or more devices. You can switch between them inside the inspector.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colorScheme.onSurfaceVariant,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+            }
+
             Surface(
                 shape = MaterialTheme.shapes.medium,
                 color = colorScheme.surface,
@@ -965,7 +1075,11 @@ private fun DeviceSelectionContent(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Detected Devices", style = MaterialTheme.typography.labelLarge, color = colorScheme.onSurfaceVariant)
+                        Text(
+                            "Detected Devices (${devices.size})",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = colorScheme.onSurfaceVariant
+                        )
                         TextButton(onClick = onRescan, enabled = !isLoading) {
                             Text("↺ Rescan", style = MaterialTheme.typography.labelSmall, color = colorScheme.primary)
                         }
@@ -976,11 +1090,43 @@ private fun DeviceSelectionContent(
                         NoDeviceHint()
                     } else {
                         devices.forEach { device ->
-                            DeviceRow(device = device, onClick = { onDeviceSelected(device) })
+                            if (multiMode) {
+                                MultiSelectDeviceRow(
+                                    device = device,
+                                    checked = device.serial in checkedSerials,
+                                    onCheckedChange = { on ->
+                                        checkedSerials = if (on) checkedSerials + device.serial
+                                        else checkedSerials - device.serial
+                                    }
+                                )
+                            } else {
+                                SingleDeviceRow(
+                                    device = device,
+                                    onClick = { onDevicesSelected(listOf(device)) }
+                                )
+                            }
                         }
                     }
                 }
             }
+
+            // Multi-mode: show "Inspect Selected" button
+            if (multiMode) {
+                val chosen = usableDevices.filter { it.serial in checkedSerials }
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Button(
+                        onClick = { onDevicesSelected(chosen) },
+                        enabled = chosen.isNotEmpty()
+                    ) {
+                        Text(
+                            if (chosen.isEmpty()) "Select at least one device"
+                            else "Inspect ${chosen.size} Device${if (chosen.size > 1) "s" else ""}",
+                            style = MaterialTheme.typography.labelMedium
+                        )
+                    }
+                }
+            }
+
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedButton(onClick = onWireless) { Text("Pair Android 11+ via Code") }
                 OutlinedButton(onClick = onWireless) { Text("Manual IP Connect") }
@@ -1014,7 +1160,7 @@ private fun NoDeviceHint() {
 }
 
 @Composable
-private fun DeviceRow(device: AdbDevice, onClick: () -> Unit) {
+private fun SingleDeviceRow(device: AdbDevice, onClick: () -> Unit) {
     val colorScheme = MaterialTheme.colorScheme
     Row(
         modifier = Modifier
@@ -1050,13 +1196,70 @@ private fun DeviceRow(device: AdbDevice, onClick: () -> Unit) {
 }
 
 @Composable
-private fun AdbNotFoundScreen() {
+private fun MultiSelectDeviceRow(
+    device: AdbDevice,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit
+) {
     val colorScheme = MaterialTheme.colorScheme
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                when {
+                    checked -> colorScheme.primaryContainer.copy(alpha = 0.35f)
+                    device.state.isUsable -> colorScheme.primaryContainer.copy(alpha = 0.12f)
+                    else -> colorScheme.surfaceVariant
+                },
+                shape = MaterialTheme.shapes.small
+            )
+            .clickable(enabled = device.state.isUsable) { onCheckedChange(!checked) }
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Checkbox(
+            checked = checked,
+            onCheckedChange = if (device.state.isUsable) onCheckedChange else null,
+            enabled = device.state.isUsable
+        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                device.displayName,
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                color = colorScheme.onSurface
+            )
+            Text(
+                "${device.serial}  ·  ${device.state.label}",
+                style = MaterialTheme.typography.bodySmall,
+                color = if (device.state.isUsable) colorScheme.primary else colorScheme.onSurfaceVariant
+            )
+        }
+        if (device.state == AdbDeviceState.UNAUTHORIZED) {
+            Text("Tap Allow on device →", style = MaterialTheme.typography.bodySmall, color = colorScheme.error)
+        }
+    }
+}
+
+// ── ADB Not Found ─────────────────────────────────────────────────────────────
+
+@Composable
+private fun AdbNotFoundScreen(
+    adbManager: AdbManager,
+    onAdbInstalled: () -> Unit
+) {
+    val colorScheme = MaterialTheme.colorScheme
+    val scope = rememberCoroutineScope()
+
+    var downloadState by remember { mutableStateOf<AdbDownloadState>(AdbDownloadState.Idle) }
+    var customPath by remember { mutableStateOf("") }
+    var customPathError by remember { mutableStateOf<String?>(null) }
+
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(
-            modifier = Modifier.width(480.dp),
+            modifier = Modifier.width(520.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             Text("🔌", style = MaterialTheme.typography.displaySmall)
             Text(
@@ -1065,23 +1268,166 @@ private fun AdbNotFoundScreen() {
                 color = colorScheme.onBackground
             )
             Text(
-                "UIScope can't find adb. Make sure Android Platform Tools are installed and adb is in your PATH.",
+                "UIScope can't find adb. You can let UIScope download it automatically into your home directory, or point it to an existing installation.",
                 style = MaterialTheme.typography.bodyMedium,
-                color = colorScheme.onSurfaceVariant
+                color = colorScheme.onSurfaceVariant,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )
+
+            // ── Auto-download card ───────────────────────────────────────────
+            Surface(
+                color = colorScheme.surface,
+                tonalElevation = 2.dp,
+                shape = MaterialTheme.shapes.medium,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        "Option 1 — Auto-download ADB",
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                        color = colorScheme.onSurface
+                    )
+                    Text(
+                        "Downloads Android Platform Tools from Google into ~/.uiscope/platform-tools/. No admin required.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colorScheme.onSurfaceVariant
+                    )
+
+                    when (val state = downloadState) {
+                        is AdbDownloadState.Idle -> {
+                            Button(
+                                onClick = {
+                                    downloadState = AdbDownloadState.Downloading("Starting download…")
+                                    scope.launch {
+                                        val path = adbManager.downloadAndInstallAdb { msg ->
+                                            downloadState = AdbDownloadState.Downloading(msg)
+                                        }
+                                        downloadState = if (path != null) {
+                                            AdbDownloadState.Done(path)
+                                        } else {
+                                            AdbDownloadState.Failed("Download failed. Check your internet connection.")
+                                        }
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("⬇  Download ADB automatically")
+                            }
+                        }
+                        is AdbDownloadState.Downloading -> {
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                                Text(
+                                    state.message,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                        is AdbDownloadState.Done -> {
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text(
+                                    "✓ ADB installed at ${state.path}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = colorScheme.primary
+                                )
+                                Button(
+                                    onClick = onAdbInstalled,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) { Text("Continue to Android Inspection →") }
+                            }
+                        }
+                        is AdbDownloadState.Failed -> {
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text(
+                                    "✗ ${state.reason}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = colorScheme.error
+                                )
+                                OutlinedButton(
+                                    onClick = { downloadState = AdbDownloadState.Idle },
+                                    modifier = Modifier.fillMaxWidth()
+                                ) { Text("Try again") }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ── Manual path card ─────────────────────────────────────────────
+            Surface(
+                color = colorScheme.surface,
+                tonalElevation = 2.dp,
+                shape = MaterialTheme.shapes.medium,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        "Option 2 — Use existing ADB",
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                        color = colorScheme.onSurface
+                    )
+                    OutlinedTextField(
+                        value = customPath,
+                        onValueChange = { customPath = it; customPathError = null },
+                        label = { Text("Path to adb binary") },
+                        placeholder = { Text("/usr/local/bin/adb  or  C:\\platform-tools\\adb.exe") },
+                        isError = customPathError != null,
+                        supportingText = customPathError?.let { { Text(it, color = colorScheme.error) } },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Button(
+                        onClick = {
+                            val trimmed = customPath.trim()
+                            if (trimmed.isBlank()) {
+                                customPathError = "Path cannot be empty"
+                                return@Button
+                            }
+                            val file = File(trimmed)
+                            if (!file.exists()) {
+                                customPathError = "File not found: $trimmed"
+                                return@Button
+                            }
+                            adbManager.setAdbPath(trimmed)
+                            if (adbManager.isAdbAvailable()) {
+                                onAdbInstalled()
+                            } else {
+                                customPathError = "ADB binary found but 'adb version' failed — check the path"
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text("Use this ADB") }
+                }
+            }
+
+            // ── Manual install hint ───────────────────────────────────────────
             Surface(color = colorScheme.surfaceVariant, shape = MaterialTheme.shapes.small) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Quick fix:", style = MaterialTheme.typography.labelLarge, color = colorScheme.onSurface)
-                    Text("macOS / Linux:", style = MaterialTheme.typography.labelMedium, color = colorScheme.onSurfaceVariant)
-                    Text("  brew install android-platform-tools", style = MaterialTheme.typography.bodySmall, color = colorScheme.primary)
-                    Text("Windows:", style = MaterialTheme.typography.labelMedium, color = colorScheme.onSurfaceVariant)
-                    Text("  Download from developer.android.com/tools/releases/platform-tools",
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("Or install manually:", style = MaterialTheme.typography.labelMedium, color = colorScheme.onSurface)
+                    Text("macOS / Linux:  brew install android-platform-tools",
                         style = MaterialTheme.typography.bodySmall, color = colorScheme.primary)
-                    Text("Then restart UIScope.", style = MaterialTheme.typography.bodySmall, color = colorScheme.onSurfaceVariant)
+                    Text("Windows:  scoop install adb  (or download from developer.android.com)",
+                        style = MaterialTheme.typography.bodySmall, color = colorScheme.primary)
+                    Text("Then restart UIScope and it will be detected automatically.",
+                        style = MaterialTheme.typography.bodySmall, color = colorScheme.onSurfaceVariant)
                 }
             }
         }
     }
+}
+
+private sealed class AdbDownloadState {
+    object Idle : AdbDownloadState()
+    data class Downloading(val message: String) : AdbDownloadState()
+    data class Done(val path: String) : AdbDownloadState()
+    data class Failed(val reason: String) : AdbDownloadState()
 }
 
 @Composable

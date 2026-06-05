@@ -31,6 +31,9 @@ import com.titanicbhai.uiscope.onboarding.OnboardingScreen
 import com.titanicbhai.uiscope.repository.SettingsRepository
 import com.titanicbhai.uiscope.settings.SettingsScreen
 import com.titanicbhai.uiscope.theme.AccentBlue
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
+import androidx.compose.ui.graphics.Color
 import com.titanicbhai.uiscope.watch.WatchScreen
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -42,6 +45,51 @@ import java.net.URI
 import java.net.URL
 
 enum class AppScreen { ONBOARDING, LAUNCHER, INSPECTOR, HISTORY, SETTINGS, DIFF, WATCH }
+
+// Inline theme — avoids cross-module @Composable import issues in the app module.
+private val DarkColorScheme = darkColorScheme(
+    primary              = Color(0xFF58A6FF),
+    onPrimary            = Color(0xFF0D1117),
+    primaryContainer     = Color(0xFF1C3A5E),
+    onPrimaryContainer   = Color(0xFF58A6FF),
+    secondary            = Color(0xFF3FB950),
+    onSecondary          = Color(0xFF0D1117),
+    error                = Color(0xFFF85149),
+    onError              = Color(0xFF0D1117),
+    surface              = Color(0xFF161B22),
+    onSurface            = Color(0xFFE6EDF3),
+    surfaceVariant       = Color(0xFF21262D),
+    onSurfaceVariant     = Color(0xFF8B949E),
+    background           = Color(0xFF0D1117),
+    onBackground         = Color(0xFFE6EDF3),
+    outline              = Color(0xFF30363D)
+)
+
+private val LightColorScheme = lightColorScheme(
+    primary              = Color(0xFF1A6EC7),
+    onPrimary            = Color.White,
+    primaryContainer     = Color(0xFFD6E4FF),
+    onPrimaryContainer   = Color(0xFF001D3D),
+    secondary            = Color(0xFF1E8A3A),
+    onSecondary          = Color.White,
+    error                = Color(0xFFBA1A1A),
+    onError              = Color.White,
+    surface              = Color(0xFFF8F9FC),
+    onSurface            = Color(0xFF1A1C1E),
+    surfaceVariant       = Color(0xFFECEDF1),
+    onSurfaceVariant     = Color(0xFF43474E),
+    background           = Color(0xFFFFFFFF),
+    onBackground         = Color(0xFF1A1C1E),
+    outline              = Color(0xFFCDD0D5)
+)
+
+@androidx.compose.runtime.Composable
+private fun UiScopeTheme(darkTheme: Boolean, content: @androidx.compose.runtime.Composable () -> Unit) {
+    androidx.compose.material3.MaterialTheme(
+        colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme,
+        content = content
+    )
+}
 
 private const val APP_VERSION = "1.0.0"
 private const val GITHUB_RELEASES_API =

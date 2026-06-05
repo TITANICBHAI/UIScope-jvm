@@ -2,6 +2,9 @@ package com.titanicbhai.uiscope.android
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.File
+import java.net.URL
+import java.util.zip.ZipInputStream
 
 class AdbManager(private var adbPath: String = "adb") {
 
@@ -77,6 +80,78 @@ class AdbManager(private var adbPath: String = "adb") {
     } catch (_: Exception) {
         false
     }
+
+    // ── ADB Auto-download (Plan §5 / §6) ─────────────────────────────────────
+
+    /** Returns the OS-appropriate platform-tools download URL from Google. */
+    fun getPlatformToolsDownloadUrl(): String {
+        val os = System.getProperty("os.name").lowercase()
+        return when {
+            os.contains("win") ->
+                "https://dl.google.com/android/repository/platform-tools-latest-windows.zip"
+            os.contains("mac") ->
+                "https://dl.google.com/android/repository/platform-tools-latest-darwin.zip"
+            else ->
+                "https://dl.google.com/android/repository/platform-tools-latest-linux.zip"
+        }
+    }
+
+    /**
+     * Downloads the minimal ADB platform-tools from Google, extracts them to
+     * `~/.uiscope/platform-tools/`, marks the binary executable, updates [adbPath],
+     * and returns the absolute path to the adb binary on success, or null on failure.
+     *
+     * No admin/root required — everything goes into the user's home directory.
+     */
+    suspend fun downloadAndInstallAdb(onProgress: (String) -> Unit): String? =
+        withContext(Dispatchers.IO) {
+            try {
+                val uiscopeDir = File(System.getProperty("user.home"), ".uiscope")
+                uiscopeDir.mkdirs()
+                val zipFile = File(uiscopeDir, "platform-tools.zip")
+
+                onProgress("Downloading ADB platform-tools from Google…")
+                val url = URL(getPlatformToolsDownloadUrl())
+                val conn = url.openConnection()
+                conn.connectTimeout = 15_000
+                conn.readTimeout = 120_000
+                conn.getInputStream().use { input ->
+                    zipFile.outputStream().use { output -> input.copyTo(output) }
+                }
+
+                onProgress("Extracting platform-tools…")
+                val extractDir = uiscopeDir
+                ZipInputStream(zipFile.inputStream()).use { zip ->
+                    var entry = zip.nextEntry
+                    while (entry != null) {
+                        val target = File(extractDir, entry.name)
+                        if (entry.isDirectory) {
+                            target.mkdirs()
+                        } else {
+                            target.parentFile?.mkdirs()
+                            target.outputStream().use { zip.copyTo(it) }
+                        }
+                        zip.closeEntry()
+                        entry = zip.nextEntry
+                    }
+                }
+
+                val isWindows = System.getProperty("os.name").lowercase().contains("win")
+                val adbBin = File(extractDir, "platform-tools/${if (isWindows) "adb.exe" else "adb"}")
+                if (!adbBin.exists()) return@withContext null
+
+                onProgress("Configuring ADB…")
+                adbBin.setExecutable(true, false)
+                zipFile.delete()
+                setAdbPath(adbBin.absolutePath)
+
+                adbBin.absolutePath
+            } catch (e: Exception) {
+                null
+            }
+        }
+
+    // ── Internals ─────────────────────────────────────────────────────────────
 
     private fun runAdb(vararg args: String): String {
         val process = ProcessBuilder(listOf(adbPath) + args.toList())
