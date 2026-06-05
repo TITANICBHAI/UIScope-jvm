@@ -40,6 +40,8 @@ import com.titanicbhai.uiscope.pc.OsKind
 import com.titanicbhai.uiscope.pc.PcInspector
 import com.titanicbhai.uiscope.pc.PcInspectorFactory
 import com.titanicbhai.uiscope.pc.PermissionInstructions
+import com.titanicbhai.uiscope.model.Bookmark
+import com.titanicbhai.uiscope.repository.BookmarkRepository
 import com.titanicbhai.uiscope.repository.SessionRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -74,13 +76,30 @@ fun InspectorScreen(
     onSwitchMode: (InspectionMode) -> Unit,
     onBack: () -> Unit,
     onHistory: () -> Unit = {},
-    onSettings: () -> Unit = {}
+    onSettings: () -> Unit = {},
+    onDiff: () -> Unit = {},
+    onWatch: () -> Unit = {}
 ) {
     val colorScheme = MaterialTheme.colorScheme
     val scope = rememberCoroutineScope()
     val parser = remember { UiAutomatorParser() }
     val screencapMgr = remember { ScreencapManager(adbManager) }
     val sessionRepo = remember { SessionRepository() }
+    val bookmarkRepo = remember { BookmarkRepository() }
+    var bookmarkedNodeIds by remember { mutableStateOf<Set<String>>(emptySet()) }
+
+    LaunchedEffect(Unit) {
+        bookmarkedNodeIds = withContext(Dispatchers.IO) {
+            runCatching { bookmarkRepo.getAll().map { it.elementId }.toSet() }.getOrDefault(emptySet())
+        }
+    }
+
+    fun flattenNodes(nodes: List<ElementNode>): List<ElementNode> {
+        val result = mutableListOf<ElementNode>()
+        fun visit(n: ElementNode) { result.add(n); n.children.forEach { visit(it) } }
+        nodes.forEach { visit(it) }
+        return result
+    }
 
     val pcInspector = remember { PcInspectorFactory.create() }
     val osKind = remember { PcInspectorFactory.currentOs }
@@ -356,7 +375,9 @@ fun InspectorScreen(
                 showSearch = !showSearch
                 if (!showSearch) searchQuery = ""
             },
-            onSearchQueryChange = { searchQuery = it }
+            onSearchQueryChange = { searchQuery = it },
+            onDiff = onDiff,
+            onWatch = onWatch
         )
 
         HorizontalDivider(color = colorScheme.outline)
@@ -415,7 +436,8 @@ fun InspectorScreen(
                                     rootNodes = elementTree,
                                     selectedNode = selectedNode,
                                     onNodeSelected = { selectedNode = it },
-                                    searchQuery = searchQuery
+                                    searchQuery = searchQuery,
+                                    bookmarkedNodeIds = bookmarkedNodeIds
                                 )
                             }
 
@@ -448,7 +470,8 @@ fun InspectorScreen(
                                             rootNodes = elementTree,
                                             selectedNode = selectedNode,
                                             onNodeSelected = { selectedNode = it },
-                                            mode = mode
+                                            mode = mode,
+                                            bookmarkedNodeIds = bookmarkedNodeIds
                                         )
                                     }
                                 }
@@ -470,7 +493,40 @@ fun InspectorScreen(
                                     .width(290.dp)
                                     .background(colorScheme.surface)
                             ) {
-                                PropertiesPanel(node = selectedNode, mode = mode)
+                                PropertiesPanel(
+                                    node = selectedNode,
+                                    mode = mode,
+                                    isBookmarked = selectedNode?.id in bookmarkedNodeIds,
+                                    onBookmark = { node ->
+                                        scope.launch(Dispatchers.IO) {
+                                            runCatching {
+                                                bookmarkRepo.insert(
+                                                    Bookmark(
+                                                        id = java.util.UUID.randomUUID().toString(),
+                                                        label = node.name.takeIf { it.isNotBlank() }
+                                                            ?: node.className.substringAfterLast('.'),
+                                                        elementId = node.id,
+                                                        className = node.className,
+                                                        resourceId = node.resourceId,
+                                                        sessionId = null,
+                                                        createdAt = System.currentTimeMillis()
+                                                    )
+                                                )
+                                                bookmarkedNodeIds = bookmarkRepo.getAll().map { it.elementId }.toSet()
+                                            }
+                                        }
+                                    },
+                                    onRemoveBookmark = { node ->
+                                        scope.launch(Dispatchers.IO) {
+                                            runCatching {
+                                                val bm = bookmarkRepo.getAll().find { it.elementId == node.id }
+                                                bm?.let { bookmarkRepo.delete(it.id) }
+                                                bookmarkedNodeIds = bookmarkRepo.getAll().map { it.elementId }.toSet()
+                                            }
+                                        }
+                                    },
+                                    allNodes = flattenNodes(elementTree)
+                                )
                             }
                         }
 
@@ -741,7 +797,9 @@ private fun InspectorTopBar(
     onExport: () -> Unit,
     onTogglePick: () -> Unit,
     onToggleSearch: () -> Unit,
-    onSearchQueryChange: (String) -> Unit
+    onSearchQueryChange: (String) -> Unit,
+    onDiff: () -> Unit = {},
+    onWatch: () -> Unit = {}
 ) {
     val colorScheme = MaterialTheme.colorScheme
     Column(modifier = Modifier.fillMaxWidth()) {
@@ -819,6 +877,12 @@ private fun InspectorTopBar(
                 }
                 TextButton(onClick = onExport) {
                     Text("Export…", style = MaterialTheme.typography.labelMedium, color = colorScheme.onSurfaceVariant)
+                }
+                TextButton(onClick = onDiff) {
+                    Text("⚖ Diff", style = MaterialTheme.typography.labelMedium, color = colorScheme.onSurfaceVariant)
+                }
+                TextButton(onClick = onWatch) {
+                    Text("👁 Watch", style = MaterialTheme.typography.labelMedium, color = colorScheme.onSurfaceVariant)
                 }
                 TextButton(onClick = onHistory) {
                     Text("📋 History", style = MaterialTheme.typography.labelMedium, color = colorScheme.onSurfaceVariant)

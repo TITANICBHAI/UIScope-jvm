@@ -7,42 +7,55 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
 private val DarkColors = darkColorScheme(
-    primary = Color(0xFF6EABF6),
-    onPrimary = Color(0xFF003B6F),
-    primaryContainer = Color(0xFF004D92),
-    onPrimaryContainer = Color(0xFFD6E4FF),
-    surface = Color(0xFF1E2124),
-    onSurface = Color(0xFFE2E2E5),
-    surfaceVariant = Color(0xFF282B2F),
-    onSurfaceVariant = Color(0xFFBFC3C8),
-    background = Color(0xFF16181A),
-    onBackground = Color(0xFFE2E2E5),
-    outline = Color(0xFF3E4246),
-    error = Color(0xFFFFB4AB),
-    onError = Color(0xFF690005)
+    primary                = AccentBlue,
+    onPrimary              = Background,
+    primaryContainer       = Color(0xFF1C3A5E),
+    onPrimaryContainer     = AccentBlue,
+    secondary              = AccentGreen,
+    onSecondary            = Background,
+    secondaryContainer     = Color(0xFF0F3320),
+    onSecondaryContainer   = AccentGreen,
+    tertiary               = AccentPurple,
+    onTertiary             = Background,
+    error                  = AccentRed,
+    onError                = Background,
+    surface                = Surface,
+    onSurface              = OnBackground,
+    surfaceVariant         = SurfaceVar,
+    onSurfaceVariant       = Muted,
+    background             = Background,
+    onBackground           = OnBackground,
+    outline                = Outline,
+    outlineVariant         = Outline.copy(alpha = 0.5f),
+    inverseSurface         = OnBackground,
+    inverseOnSurface       = Background,
+    inversePrimary         = AccentBlue.copy(alpha = 0.7f),
+    scrim                  = Color.Black.copy(alpha = 0.4f)
 )
 
 private val LightColors = lightColorScheme(
-    primary = Color(0xFF1A6EC7),
-    onPrimary = Color.White,
-    primaryContainer = Color(0xFFD6E4FF),
-    onPrimaryContainer = Color(0xFF001D3D),
-    surface = Color(0xFFF8F9FC),
-    onSurface = Color(0xFF1A1C1E),
-    surfaceVariant = Color(0xFFECEDF1),
-    onSurfaceVariant = Color(0xFF43474E),
-    background = Color(0xFFFFFFFF),
-    onBackground = Color(0xFF1A1C1E),
-    outline = Color(0xFFCDD0D5),
-    error = Color(0xFFBA1A1A),
-    onError = Color.White
+    primary                = Color(0xFF1A6EC7),
+    onPrimary              = Color.White,
+    primaryContainer       = Color(0xFFD6E4FF),
+    onPrimaryContainer     = Color(0xFF001D3D),
+    secondary              = Color(0xFF1E8A3A),
+    onSecondary            = Color.White,
+    error                  = Color(0xFFBA1A1A),
+    onError                = Color.White,
+    surface                = Color(0xFFF8F9FC),
+    onSurface              = Color(0xFF1A1C1E),
+    surfaceVariant         = Color(0xFFECEDF1),
+    onSurfaceVariant       = Color(0xFF43474E),
+    background             = Color(0xFFFFFFFF),
+    onBackground           = Color(0xFF1A1C1E),
+    outline                = Color(0xFFCDD0D5)
 )
 
 enum class AppThemeMode { SYSTEM, LIGHT, DARK }
 
 @Composable
 fun UiScopeTheme(
-    darkTheme: Boolean = false,
+    darkTheme: Boolean = true,
     content: @Composable () -> Unit
 ) {
     MaterialTheme(

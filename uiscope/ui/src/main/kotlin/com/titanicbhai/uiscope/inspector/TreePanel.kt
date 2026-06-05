@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -64,7 +65,8 @@ fun TreePanel(
     rootNodes: List<ElementNode>,
     selectedNode: ElementNode?,
     onNodeSelected: (ElementNode) -> Unit,
-    searchQuery: String = ""
+    searchQuery: String = "",
+    bookmarkedNodeIds: Set<String> = emptySet()
 ) {
     val colorScheme = MaterialTheme.colorScheme
     val total = remember(rootNodes) { countAll(rootNodes) }
@@ -94,8 +96,16 @@ fun TreePanel(
                 .background(colorScheme.surfaceVariant)
                 .padding(horizontal = 16.dp, vertical = 10.dp)
         ) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text("Element Tree", style = MaterialTheme.typography.labelLarge, color = colorScheme.onSurfaceVariant)
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "Element Tree",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = colorScheme.onSurfaceVariant
+                )
                 if (isSearching) {
                     Text(
                         "${searchResults.size} matches",
@@ -139,8 +149,8 @@ fun TreePanel(
                     items(searchResults, key = { it.id }) { node ->
                         SearchResultRow(
                             node = node,
-                            query = searchQuery,
                             isSelected = node.id == selectedNode?.id,
+                            isBookmarked = node.id in bookmarkedNodeIds,
                             onClick = { onNodeSelected(node) }
                         )
                     }
@@ -152,6 +162,7 @@ fun TreePanel(
                     TreeNodeRow(
                         flatNode = flatNode,
                         isSelected = flatNode.node.id == selectedNode?.id,
+                        isBookmarked = flatNode.node.id in bookmarkedNodeIds,
                         onToggleCollapse = {
                             collapsedIds = if (flatNode.node.id in collapsedIds)
                                 collapsedIds - flatNode.node.id
@@ -169,8 +180,8 @@ fun TreePanel(
 @Composable
 private fun SearchResultRow(
     node: ElementNode,
-    query: String,
     isSelected: Boolean,
+    isBookmarked: Boolean,
     onClick: () -> Unit
 ) {
     val colorScheme = MaterialTheme.colorScheme
@@ -181,18 +192,24 @@ private fun SearchResultRow(
         else -> shortClass
     }
     val sub = node.resourceId?.let { "@${it.substringAfterLast('/')}" } ?: shortClass
+    val (fill, border) = nodeColors(node)
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(
-                if (isSelected) colorScheme.primaryContainer
-                else colorScheme.surface
-            )
+            .background(if (isSelected) colorScheme.primaryContainer else colorScheme.surface)
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        // Type color dot
+        Box(
+            modifier = Modifier
+                .size(7.dp)
+                .background(border, CircleShape)
+        )
+        Spacer(Modifier.width(7.dp))
+
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 label,
@@ -210,6 +227,10 @@ private fun SearchResultRow(
                 overflow = TextOverflow.Ellipsis
             )
         }
+
+        if (isBookmarked) {
+            Text("📌", fontSize = 11.sp, modifier = Modifier.padding(start = 4.dp))
+        }
     }
     HorizontalDivider(color = colorScheme.outline.copy(alpha = 0.12f))
 }
@@ -218,26 +239,34 @@ private fun SearchResultRow(
 private fun TreeNodeRow(
     flatNode: FlatNode,
     isSelected: Boolean,
+    isBookmarked: Boolean,
     onToggleCollapse: () -> Unit,
     onClick: () -> Unit
 ) {
     val colorScheme = MaterialTheme.colorScheme
     val node = flatNode.node
     val indentDp = (node.depth * 12).dp
+    val (_, border) = nodeColors(node)
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(
-                when {
-                    isSelected -> colorScheme.primaryContainer
-                    else -> colorScheme.surface
-                }
-            )
+            .background(when {
+                isSelected -> colorScheme.primaryContainer
+                else -> colorScheme.surface
+            })
             .clickable(onClick = onClick)
             .padding(start = 8.dp + indentDp, end = 8.dp, top = 4.dp, bottom = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        // Type color dot
+        Box(
+            modifier = Modifier
+                .size(6.dp)
+                .background(border, CircleShape)
+        )
+        Spacer(Modifier.width(6.dp))
+
         if (flatNode.hasChildren) {
             Text(
                 text = if (flatNode.isCollapsed) "▶" else "▼",
@@ -271,8 +300,7 @@ private fun TreeNodeRow(
                 overflow = TextOverflow.Ellipsis
             )
             val subLabel = when {
-                nodeResourceId?.isNotBlank() == true ->
-                    "@${nodeResourceId.substringAfterLast('/')}"
+                nodeResourceId?.isNotBlank() == true -> "@${nodeResourceId.substringAfterLast('/')}"
                 nodeText.isNullOrBlank() && nodeContentDesc.isNullOrBlank() -> null
                 else -> shortClass
             }
@@ -286,6 +314,10 @@ private fun TreeNodeRow(
                     overflow = TextOverflow.Ellipsis
                 )
             }
+        }
+
+        if (isBookmarked) {
+            Text("📌", fontSize = 10.sp, modifier = Modifier.padding(end = 4.dp))
         }
     }
 }

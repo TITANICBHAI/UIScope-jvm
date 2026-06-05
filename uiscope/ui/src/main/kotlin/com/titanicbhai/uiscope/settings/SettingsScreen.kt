@@ -165,6 +165,35 @@ fun SettingsScreen(onBack: () -> Unit) {
                 )
             }
 
+            SettingsSection(title = "Android Screenshot") {
+                SettingsRowChoice(
+                    label = "Screenshot quality",
+                    options = listOf("FULL" to "Full resolution", "SCALED" to "Scaled (faster)"),
+                    value = repo.get("screenshot_quality", "FULL") ?: "FULL",
+                    onValueChange = { scope.launch { withContext(Dispatchers.IO) { repo.set("screenshot_quality", it) } } }
+                )
+                Text(
+                    "Full resolution produces better quality; Scaled is faster on slow ADB connections.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                )
+            }
+
+            SettingsSection(title = "System") {
+                SettingsRowToggle(
+                    label = "Launch at system startup",
+                    description = "Start UIScope hidden in the tray when you log in. (Requires restart to take effect.)",
+                    value = repo.getBoolean("launch_at_startup", false),
+                    onToggle = { scope.launch { withContext(Dispatchers.IO) { repo.setBoolean("launch_at_startup", it) } } }
+                )
+                SettingsRowToggle(
+                    label = "Minimize to system tray",
+                    description = "When you close the window, UIScope stays running in the system tray / menu bar.",
+                    value = repo.getBoolean("minimize_to_tray", true),
+                    onToggle = { scope.launch { withContext(Dispatchers.IO) { repo.setBoolean("minimize_to_tray", it) } } }
+                )
+            }
+
             SettingsSection(title = "Keyboard Shortcuts (read-only)") {
                 val shortcuts = listOf(
                     "Alt + Shift + P" to "Pick mode (PC)",

@@ -16,6 +16,10 @@ import androidx.compose.ui.input.pointer.*
 import androidx.compose.ui.unit.*
 import com.titanicbhai.uiscope.model.ElementNode
 import com.titanicbhai.uiscope.model.InspectionMode
+import com.titanicbhai.uiscope.theme.AccentGreen
+import com.titanicbhai.uiscope.theme.AccentRed
+import com.titanicbhai.uiscope.theme.AccentBlue
+import com.titanicbhai.uiscope.theme.NodeSelectedBorder
 import java.awt.Toolkit
 import java.awt.datatransfer.StringSelection
 import java.io.File
@@ -51,11 +55,11 @@ fun VisualCanvas(
     selectedNode: ElementNode?,
     onNodeSelected: (ElementNode) -> Unit,
     mode: InspectionMode,
+    bookmarkedNodeIds: Set<String> = emptySet(),
     modifier: Modifier = Modifier
 ) {
     val colorScheme = MaterialTheme.colorScheme
-    val highlightColor = if (mode == InspectionMode.ANDROID)
-        Color(0xFFE53935) else Color(0xFF1A6EC7)
+    val highlightColor = if (mode == InspectionMode.ANDROID) AccentRed else AccentBlue
 
     var zoomScale by remember(screenshot) { mutableStateOf(1f) }
     var panOffset by remember(screenshot) { mutableStateOf(Offset.Zero) }
@@ -67,7 +71,164 @@ fun VisualCanvas(
     val flatNodes = remember(rootNodes) { flattenAll(rootNodes) }
 
     Box(modifier = modifier.fillMaxSize()) {
-        if (screenshot == null) {
+        // ── No-screenshot fallback: draw coloured node rectangles ──────────
+        if (screenshot == null && rootNodes.isNotEmpty()) {
+            BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                val canvasW = constraints.maxWidth.toFloat()
+                val canvasH = constraints.maxHeight.toFloat()
+
+                // Determine the scene bounds from all root nodes
+                val allFlat = flatNodes
+                val maxR = allFlat.mapNotNull { it.bounds?.let { b -> b.x + b.width } }.maxOrNull() ?: 1080
+                val maxB = allFlat.mapNotNull { it.bounds?.let { b -> b.y + b.height } }.maxOrNull() ?: 1920
+                val scX = canvasW / maxR.toFloat().coerceAtLeast(1f)
+                val scY = canvasH / maxB.toFloat().coerceAtLeast(1f)
+                val sc = minOf(scX, scY)
+                val offX = (canvasW - maxR * sc) / 2f
+                val offY = (canvasH - maxB * sc) / 2f
+
+                Canvas(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .onPointerEvent(PointerEventType.Move) { event ->
+                            val pos = event.changes.firstOrNull()?.position ?: return@onPointerEvent
+                            mousePos = pos
+                            val ix = (pos.x - offX) / sc
+                            val iy = (pos.y - offY) / sc
+                            hoveredNode = hitTest(flatNodes, ix, iy)
+                        }
+                        .onPointerEvent(PointerEventType.Press) { event ->
+                            val pos = event.changes.firstOrNull()?.position ?: return@onPointerEvent
+                            val ix = (pos.x - offX) / sc
+                            val iy = (pos.y - offY) / sc
+                            hitTest(flatNodes, ix, iy)?.let { onNodeSelected(it) }
+                        }
+                ) {
+                    // Background
+                    drawRect(color = Color(0xFF0D1117))
+
+                    // Draw each node as a colored rectangle
+                    allFlat.forEach { node ->
+                        val b = node.bounds ?: return@forEach
+                        val (fill, border) = nodeColors(node)
+                        val l = offX + b.x * sc
+                        val t = offY + b.y * sc
+                        val w = b.width * sc
+                        val h = b.height * sc
+                        if (w > 0 && h > 0) {
+                            drawRect(color = fill, topLeft = Offset(l, t), size = Size(w, h))
+                            drawRect(
+                                color = border.copy(alpha = 0.6f),
+                                topLeft = Offset(l, t),
+                                size = Size(w, h),
+                                style = Stroke(width = 1f)
+                            )
+                        }
+                    }
+
+                    // Bookmarked nodes: AccentGreen fill (25% alpha) + solid border
+                    allFlat.filter { it.id in bookmarkedNodeIds }.forEach { node ->
+                        val b = node.bounds ?: return@forEach
+                        val l = offX + b.x * sc
+                        val t = offY + b.y * sc
+                        val w = b.width * sc
+                        val h = b.height * sc
+                        if (w > 0 && h > 0) {
+                            drawRect(
+                                color = AccentGreen.copy(alpha = 0.25f),
+                                topLeft = Offset(l, t),
+                                size = Size(w, h)
+                            )
+                            drawRect(
+                                color = AccentGreen,
+                                topLeft = Offset(l, t),
+                                size = Size(w, h),
+                                style = Stroke(width = 2f)
+                            )
+                        }
+                    }
+
+                    // Hovered node
+                    hoveredNode?.takeIf { it.id != selectedNode?.id }?.bounds?.let { b ->
+                        val l = offX + b.x * sc
+                        val t = offY + b.y * sc
+                        val w = b.width * sc
+                        val h = b.height * sc
+                        drawRect(
+                            color = Color.White.copy(alpha = 0.5f),
+                            topLeft = Offset(l, t),
+                            size = Size(w, h),
+                            style = Stroke(width = 1.5f)
+                        )
+                    }
+
+                    // Selected node: white dashed border
+                    selectedNode?.bounds?.let { b ->
+                        val l = offX + b.x * sc
+                        val t = offY + b.y * sc
+                        val w = b.width * sc
+                        val h = b.height * sc
+                        drawRect(
+                            color = highlightColor.copy(alpha = 0.15f),
+                            topLeft = Offset(l, t),
+                            size = Size(w, h)
+                        )
+                        drawRect(
+                            color = NodeSelectedBorder,
+                            topLeft = Offset(l, t),
+                            size = Size(w, h),
+                            style = Stroke(
+                                width = 2.5f,
+                                pathEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 4f))
+                            )
+                        )
+                    }
+                }
+
+                // Hover tooltip for no-screenshot mode
+                hoveredNode?.takeIf { it.id != selectedNode?.id }?.let { hovered ->
+                    val tooltip = buildString {
+                        append(friendlyNodeKind(hovered))
+                        hovered.resourceId?.let { append("\n@${it.substringAfterLast('/')}") }
+                        hovered.text?.let { if (it.isNotBlank()) append("\n\"${it.take(30)}\"") }
+                        hovered.bounds?.let { b -> append("\n[${b.x},${b.y}] ${b.width}×${b.height}") }
+                    }
+                    val tx = (mousePos.x + 12f).dp.coerceAtMost((canvasW - 200f).dp)
+                    val ty = (mousePos.y + 12f).dp.coerceAtMost((canvasH - 80f).dp)
+                    Box(
+                        modifier = Modifier
+                            .offset(tx, ty)
+                            .background(
+                                color = colorScheme.inverseSurface.copy(alpha = 0.92f),
+                                shape = MaterialTheme.shapes.small
+                            )
+                            .padding(horizontal = 8.dp, vertical = 6.dp)
+                    ) {
+                        Text(
+                            tooltip,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = colorScheme.inverseOnSurface,
+                            fontSize = 10.sp
+                        )
+                    }
+                }
+
+                // "No screenshot" label
+                Box(
+                    modifier = Modifier.align(Alignment.TopCenter).padding(top = 8.dp)
+                        .background(Color.Black.copy(alpha = 0.55f), MaterialTheme.shapes.small)
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        "Structural view — no screenshot captured",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.White.copy(alpha = 0.7f),
+                        fontSize = 10.sp
+                    )
+                }
+            }
+        } else if (screenshot == null) {
+            // Empty state — no tree, no screenshot
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -96,6 +257,7 @@ fun VisualCanvas(
                 }
             }
         } else {
+            // ── Screenshot mode ──────────────────────────────────────────────
             BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
                 val canvasW = constraints.maxWidth.toFloat()
                 val canvasH = constraints.maxHeight.toFloat()
@@ -161,6 +323,28 @@ fun VisualCanvas(
                         )
                     )
 
+                    // Bookmarked nodes: AccentGreen highlight
+                    flatNodes.filter { it.id in bookmarkedNodeIds }.forEach { node ->
+                        node.bounds?.let { b ->
+                            val l = effOffX + b.x * effScale
+                            val t = effOffY + b.y * effScale
+                            val w = b.width * effScale
+                            val h = b.height * effScale
+                            drawRect(
+                                color = AccentGreen.copy(alpha = 0.25f),
+                                topLeft = Offset(l, t),
+                                size = Size(w, h)
+                            )
+                            drawRect(
+                                color = AccentGreen,
+                                topLeft = Offset(l, t),
+                                size = Size(w, h),
+                                style = Stroke(width = 2f)
+                            )
+                        }
+                    }
+
+                    // Hovered (not selected) node
                     hoveredNode?.takeIf { it.id != selectedNode?.id }?.bounds?.let { b ->
                         val l = effOffX + b.x * effScale
                         val t = effOffY + b.y * effScale
@@ -174,6 +358,7 @@ fun VisualCanvas(
                         )
                     }
 
+                    // Selected node
                     selectedNode?.bounds?.let { b ->
                         val l = effOffX + b.x * effScale
                         val t = effOffY + b.y * effScale
@@ -195,11 +380,12 @@ fun VisualCanvas(
 
                 hoveredNode?.takeIf { it.id != selectedNode?.id }?.let { hovered ->
                     val tooltip = buildString {
-                        append(hovered.className.substringAfterLast('.'))
+                        append(friendlyNodeKind(hovered))
                         hovered.resourceId?.let { append("\n@${it.substringAfterLast('/')}") }
+                        hovered.text?.let { if (it.isNotBlank()) append("\n\"${it.take(30)}\"") }
                         hovered.bounds?.let { b -> append("\n[${b.x},${b.y}] ${b.width}×${b.height}") }
                     }
-                    val tx = (mousePos.x + 12f).dp.coerceAtMost((canvasW - 180f).dp)
+                    val tx = (mousePos.x + 12f).dp.coerceAtMost((canvasW - 200f).dp)
                     val ty = (mousePos.y + 12f).dp.coerceAtMost((canvasH - 80f).dp)
                     Box(
                         modifier = Modifier
@@ -238,6 +424,16 @@ fun VisualCanvas(
                                 text = { Text("Copy bounds", style = MaterialTheme.typography.bodySmall) },
                                 onClick = {
                                     copyText("[${b.x},${b.y}][${b.x + b.width},${b.y + b.height}]")
+                                    showContextMenu = false
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Copy selector", style = MaterialTheme.typography.bodySmall) },
+                                onClick = {
+                                    val sel = selectedNode.resourceId?.let { "By.res(\"$it\")" }
+                                        ?: selectedNode.text?.let { "By.text(\"$it\")" }
+                                        ?: "By.clazz(\"${selectedNode.className}\")"
+                                    copyText(sel)
                                     showContextMenu = false
                                 }
                             )
