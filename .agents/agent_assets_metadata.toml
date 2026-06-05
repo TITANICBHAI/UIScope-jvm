@@ -1,0 +1,50 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "iCFV6B9EXHmcnJdeOLWza"
+uri = "file://docs/screenshots/shot-01-android-inspector.jpg"
+type = "image"
+title = "Screenshot 1 — Android Inspector (hero)"
+
+[[outputs]]
+id = "2gUkBLZ5pCeJOuOTFOMhv"
+uri = "file://docs/screenshots/shot-02-pc-inspector.jpg"
+type = "image"
+title = "Screenshot 2 — Windows Inspector + Pick Mode"
+
+[[outputs]]
+id = "p_Y1gORt7b4eplExQlb7K"
+uri = "file://docs/screenshots/shot-03-code-generation.jpg"
+type = "image"
+title = "Screenshot 3 — Code Generation + Fragile Badge"
+
+[[outputs]]
+id = "d9Yn_D1BCJLDx3igFxJVX"
+uri = "file://docs/screenshots/shot-04-diff-mode.jpg"
+type = "image"
+title = "Screenshot 4 — Diff Mode"
+
+[[outputs]]
+id = "6xqIxVY1Qqr6Ja_7oscpe"
+uri = "file://docs/screenshots/shot-05-watch-mode.jpg"
+type = "image"
+title = "Screenshot 5 — Watch Mode + Live Monitor"
+
+[[outputs]]
+id = "5sGmdMof6pSx3j8guvCXj"
+uri = "file://docs/screenshots/shot-06-breadcrumb-xpath.jpg"
+type = "image"
+title = "Screenshot 6 — Breadcrumb + XPath Copy"
+
+[[outputs]]
+id = "aa8wOBenVyEpmSkzCoXjG"
+uri = "file://docs/screenshots/shot-07-history.jpg"
+type = "image"
+title = "Screenshot 7 — Session History"
+
+[[outputs]]
+id = "zzBB65yoy4rje4CeUo19L"
+uri = "file://docs/screenshots/shot-08-launcher.jpg"
+type = "image"
+title = "Screenshot 8 — Launcher / Mode Picker"
