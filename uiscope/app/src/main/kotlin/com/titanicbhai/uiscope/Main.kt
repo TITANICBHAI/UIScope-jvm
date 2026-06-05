@@ -10,13 +10,17 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.painter.BitmapPainter
+import androidx.compose.ui.graphics.toComposeImageBitmap
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Tray
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowState
 import androidx.compose.ui.window.application
+import androidx.compose.ui.window.rememberTrayState
 import com.titanicbhai.uiscope.android.AdbManager
 import com.titanicbhai.uiscope.diff.DiffScreen
 import com.titanicbhai.uiscope.history.HistoryScreen
@@ -27,12 +31,13 @@ import com.titanicbhai.uiscope.onboarding.OnboardingScreen
 import com.titanicbhai.uiscope.repository.SettingsRepository
 import com.titanicbhai.uiscope.settings.SettingsScreen
 import com.titanicbhai.uiscope.theme.AccentBlue
-import com.titanicbhai.uiscope.theme.Background
-import com.titanicbhai.uiscope.theme.UiScopeTheme
 import com.titanicbhai.uiscope.watch.WatchScreen
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.awt.BasicStroke
 import java.awt.Desktop
+import java.awt.RenderingHints
+import java.awt.image.BufferedImage
 import java.net.URI
 import java.net.URL
 
@@ -41,6 +46,32 @@ enum class AppScreen { ONBOARDING, LAUNCHER, INSPECTOR, HISTORY, SETTINGS, DIFF,
 private const val APP_VERSION = "1.0.0"
 private const val GITHUB_RELEASES_API =
     "https://api.github.com/repos/TITANICBHAI/UIScope/releases/latest"
+
+/** Builds the tray icon programmatically — a crosshair inside a blue rounded square. */
+private fun buildTrayIcon(): ImageBitmap {
+    val size = 64
+    val img = BufferedImage(size, size, BufferedImage.TYPE_INT_ARGB)
+    val g = img.createGraphics()
+    g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
+
+    // Blue rounded square background
+    g.color = java.awt.Color(0x58, 0xA6, 0xFF)
+    g.fillRoundRect(2, 2, size - 4, size - 4, 14, 14)
+
+    // White crosshair
+    g.color = java.awt.Color.WHITE
+    g.stroke = BasicStroke(4f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND)
+    val cx = size / 2; val cy = size / 2; val arm = 14; val gap = 7
+    g.drawLine(cx - arm, cy, cx - gap, cy)
+    g.drawLine(cx + gap, cy, cx + arm, cy)
+    g.drawLine(cx, cy - arm, cx, cy - gap)
+    g.drawLine(cx, cy + gap, cx, cy + arm)
+    g.stroke = BasicStroke(3f)
+    g.drawOval(cx - 5, cy - 5, 10, 10)
+
+    g.dispose()
+    return img.toComposeImageBitmap()
+}
 
 fun main() = application {
     val settings = remember { SettingsRepository() }
@@ -52,6 +83,8 @@ fun main() = application {
     var mode by remember { mutableStateOf(InspectionMode.PC) }
     var adbAvailable by remember { mutableStateOf(false) }
     var updateVersion by remember { mutableStateOf<String?>(null) }
+    var windowVisible by remember { mutableStateOf(true) }
+    var minimizeToTray by remember { mutableStateOf(true) }
 
     LaunchedEffect(Unit) {
         val lastMode = settings.get(SettingsRepository.LAST_MODE)
@@ -67,6 +100,7 @@ fun main() = application {
         }
 
         adbAvailable = withContext(Dispatchers.IO) { adbManager.isAdbAvailable() }
+        minimizeToTray = settings.getBoolean("minimize_to_tray", true)
 
         val onboardingSeen = settings.getBoolean(SettingsRepository.ONBOARDING_SEEN, false)
         screen = if (onboardingSeen) AppScreen.LAUNCHER else AppScreen.ONBOARDING
@@ -75,8 +109,50 @@ fun main() = application {
         updateVersion = withContext(Dispatchers.IO) { checkForUpdate() }
     }
 
+    // System tray (Plan §19) — visible only when the main window is hidden
+    val trayIcon = remember { buildTrayIcon() }
+    val trayState = rememberTrayState()
+
+    if (minimizeToTray && !windowVisible) {
+        Tray(
+            icon = BitmapPainter(trayIcon),
+            state = trayState,
+            tooltip = "UIScope — See what your UI is made of.",
+            menu = {
+                Item("Open UIScope", onClick = { windowVisible = true })
+                Separator()
+                Item(
+                    "Quick Pick (${mode.name} mode)",
+                    onClick = {
+                        windowVisible = true
+                        screen = AppScreen.INSPECTOR
+                    }
+                )
+                Separator()
+                Item(
+                    if (mode == InspectionMode.PC) "Switch to Android Mode" else "Switch to PC Mode",
+                    onClick = {
+                        mode = if (mode == InspectionMode.PC) InspectionMode.ANDROID else InspectionMode.PC
+                        settings.set(SettingsRepository.LAST_MODE, mode.name)
+                        windowVisible = true
+                        screen = AppScreen.INSPECTOR
+                    }
+                )
+                Separator()
+                Item("Quit UIScope", onClick = ::exitApplication)
+            }
+        )
+    }
+
     Window(
-        onCloseRequest = ::exitApplication,
+        onCloseRequest = {
+            if (minimizeToTray) {
+                windowVisible = false
+            } else {
+                exitApplication()
+            }
+        },
+        visible = windowVisible,
         title = "UIScope — See what your UI is made of.",
         state = WindowState(size = DpSize(1280.dp, 820.dp))
     ) {
@@ -139,6 +215,7 @@ fun main() = application {
                             darkTheme = theme2 != "LIGHT"
                             val savedPath = settings.get(SettingsRepository.ADB_PATH)
                             if (!savedPath.isNullOrBlank()) adbManager.setAdbPath(savedPath)
+                            minimizeToTray = settings.getBoolean("minimize_to_tray", true)
                             screen = previousScreen
                         }
                     )

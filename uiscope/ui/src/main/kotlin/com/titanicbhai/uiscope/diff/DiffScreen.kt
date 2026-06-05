@@ -73,7 +73,7 @@ fun DiffScreen(onBack: () -> Unit) {
     var expandedB by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
-        sessions = withContext(Dispatchers.IO) { sessionRepo.getAllSessions() }
+        sessions = withContext(Dispatchers.IO) { sessionRepo.getAll() }
         isLoading = false
     }
 
@@ -150,7 +150,7 @@ fun DiffScreen(onBack: () -> Unit) {
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
-                            sessionA?.let { "${it.label} — ${it.mode.name}" } ?: "Select session…",
+                            sessionA?.let { "${it.appName ?: it.packageName ?: "Session"} — ${it.mode.name}" } ?: "Select session…",
                             style = MaterialTheme.typography.bodySmall,
                             maxLines = 1
                         )
@@ -163,9 +163,9 @@ fun DiffScreen(onBack: () -> Unit) {
                             DropdownMenuItem(
                                 text = {
                                     Column {
-                                        Text(s.label, style = MaterialTheme.typography.bodySmall)
+                                        Text(s.appName ?: s.packageName ?: "Session", style = MaterialTheme.typography.bodySmall)
                                         Text(
-                                            "${s.mode.name} · ${s.nodeCount} nodes",
+                                            "${s.mode.name} · ${s.deviceName ?: ""}",
                                             style = MaterialTheme.typography.labelSmall,
                                             color = colorScheme.onSurfaceVariant
                                         )
@@ -192,7 +192,7 @@ fun DiffScreen(onBack: () -> Unit) {
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
-                            sessionB?.let { "${it.label} — ${it.mode.name}" } ?: "Select session…",
+                            sessionB?.let { "${it.appName ?: it.packageName ?: "Session"} — ${it.mode.name}" } ?: "Select session…",
                             style = MaterialTheme.typography.bodySmall,
                             maxLines = 1
                         )
@@ -205,9 +205,9 @@ fun DiffScreen(onBack: () -> Unit) {
                             DropdownMenuItem(
                                 text = {
                                     Column {
-                                        Text(s.label, style = MaterialTheme.typography.bodySmall)
+                                        Text(s.appName ?: s.packageName ?: "Session", style = MaterialTheme.typography.bodySmall)
                                         Text(
-                                            "${s.mode.name} · ${s.nodeCount} nodes",
+                                            "${s.mode.name} · ${s.deviceName ?: ""}",
                                             style = MaterialTheme.typography.labelSmall,
                                             color = colorScheme.onSurfaceVariant
                                         )
