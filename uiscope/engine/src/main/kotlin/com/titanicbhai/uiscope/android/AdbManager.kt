@@ -5,8 +5,41 @@ import kotlinx.coroutines.withContext
 
 class AdbManager(private var adbPath: String = "adb") {
 
+    val currentAdbPath: String get() = adbPath
+
     fun setAdbPath(path: String) {
         adbPath = path.ifBlank { "adb" }
+    }
+
+    suspend fun dumpUiHierarchy(serial: String): String = withContext(Dispatchers.IO) {
+        runAdbDevice(serial, "shell", "uiautomator", "dump", "/dev/stdout")
+    }
+
+    suspend fun captureScreenshotBytes(serial: String): ByteArray = withContext(Dispatchers.IO) {
+        val process = ProcessBuilder(listOf(adbPath, "-s", serial, "exec-out", "screencap", "-p"))
+            .redirectErrorStream(false)
+            .start()
+        val bytes = process.inputStream.readBytes()
+        process.waitFor()
+        bytes
+    }
+
+    suspend fun pairDevice(address: String, code: String): Boolean = withContext(Dispatchers.IO) {
+        try {
+            val output = runAdb("pair", address.trim(), code.trim())
+            output.contains("Successfully paired") || output.contains("success", ignoreCase = true)
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    private fun runAdbDevice(serial: String, vararg args: String): String {
+        val process = ProcessBuilder(listOf(adbPath, "-s", serial) + args.toList())
+            .redirectErrorStream(true)
+            .start()
+        val output = process.inputStream.bufferedReader().readText()
+        process.waitFor()
+        return output
     }
 
     suspend fun listDevices(): List<AdbDevice> = withContext(Dispatchers.IO) {
