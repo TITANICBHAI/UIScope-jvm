@@ -1,0 +1,13 @@
+plugins {
+    alias(libs.plugins.kotlin.jvm)
+}
+
+kotlin {
+    jvmToolchain(19)
+}
+
+dependencies {
+    implementation(project(":core"))
+    implementation(libs.kotlin.stdlib)
+    implementation(libs.coroutines.core)
+}

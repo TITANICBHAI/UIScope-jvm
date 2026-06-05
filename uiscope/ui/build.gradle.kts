@@ -1,0 +1,17 @@
+plugins {
+    alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.compose.desktop)
+    alias(libs.plugins.compose.compiler)
+}
+
+kotlin {
+    jvmToolchain(19)
+}
+
+dependencies {
+    implementation(project(":core"))
+    implementation(project(":engine"))
+    implementation(compose.desktop.currentOs)
+    implementation(libs.coroutines.core)
+    implementation(libs.coroutines.swing)
+}
