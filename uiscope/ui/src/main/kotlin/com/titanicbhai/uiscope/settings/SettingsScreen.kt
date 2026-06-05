@@ -223,9 +223,9 @@ fun SettingsScreen(onBack: () -> Unit) {
                     }
                 }
                 Text(
-                    "Global hotkeys (Phase 4): jnativehook integration planned.",
+                    "Global hotkeys active via jnativehook — Alt+Shift+P works even when UIScope is in the background.",
                     style = MaterialTheme.typography.labelSmall,
-                    color = colorScheme.onSurfaceVariant.copy(alpha = 0.45f),
+                    color = colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                     modifier = Modifier.padding(top = 8.dp)
                 )
             }

@@ -16,6 +16,9 @@ import androidx.compose.ui.graphics.toComposeImageBitmap
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyShortcut
+import androidx.compose.ui.window.MenuBar
 import androidx.compose.ui.window.Tray
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowState
@@ -137,6 +140,12 @@ fun main() = application {
     var windowVisible by remember { mutableStateOf(true) }
     var minimizeToTray by remember { mutableStateOf(true) }
 
+    // Second window state — independent session, mode, and ADB manager (Plan §20)
+    var secondWindowOpen by remember { mutableStateOf(false) }
+    var secondMode by remember { mutableStateOf(InspectionMode.PC) }
+    var secondScreen by remember { mutableStateOf(AppScreen.LAUNCHER) }
+    val secondAdbManager = remember { AdbManager() }
+
     LaunchedEffect(Unit) {
         val lastMode = settings.get(SettingsRepository.LAST_MODE)
         if (lastMode != null) {
@@ -218,6 +227,32 @@ fun main() = application {
         title = "UIScope — See what your UI is made of.",
         state = WindowState(size = DpSize(1280.dp, 820.dp))
     ) {
+        // ── Native menu bar (Plan §20 — multi-window via File → New Window) ──
+        MenuBar {
+            Menu("File", mnemonic = 'F') {
+                Item(
+                    "New Window",
+                    shortcut = KeyShortcut(Key.N, ctrl = true, shift = true),
+                    onClick = {
+                        secondWindowOpen = true
+                        secondScreen = AppScreen.LAUNCHER
+                    }
+                )
+                Separator()
+                Item(
+                    "Quit UIScope",
+                    shortcut = KeyShortcut(Key.Q, ctrl = true),
+                    onClick = ::exitApplication
+                )
+            }
+            Menu("View", mnemonic = 'V') {
+                Item(
+                    if (darkTheme) "Switch to Light Theme" else "Switch to Dark Theme",
+                    onClick = { darkTheme = !darkTheme }
+                )
+            }
+        }
+
         UiScopeTheme(darkTheme = darkTheme) {
             Box(modifier = Modifier.fillMaxSize()) {
                 when (screen) {
@@ -328,6 +363,66 @@ fun main() = application {
                             }
                         }
                     }
+                }
+            }
+        }
+    }
+
+    // ── Second window (Plan §20 — multi-window support) ───────────────────────
+    if (secondWindowOpen) {
+        Window(
+            onCloseRequest = { secondWindowOpen = false },
+            title = "UIScope — Window 2",
+            state = WindowState(size = DpSize(1280.dp, 820.dp))
+        ) {
+            MenuBar {
+                Menu("File", mnemonic = 'F') {
+                    Item(
+                        "Close Window",
+                        shortcut = KeyShortcut(Key.W, ctrl = true),
+                        onClick = { secondWindowOpen = false }
+                    )
+                    Separator()
+                    Item(
+                        "Quit UIScope",
+                        shortcut = KeyShortcut(Key.Q, ctrl = true),
+                        onClick = ::exitApplication
+                    )
+                }
+            }
+            UiScopeTheme(darkTheme = darkTheme) {
+                when (secondScreen) {
+                    AppScreen.LAUNCHER, AppScreen.ONBOARDING -> LauncherScreen(
+                        onModeSelected = { selected ->
+                            secondMode = selected
+                            secondScreen = AppScreen.INSPECTOR
+                        },
+                        onHistory = { secondScreen = AppScreen.HISTORY },
+                        onSettings = { secondScreen = AppScreen.SETTINGS }
+                    )
+                    AppScreen.INSPECTOR -> InspectorScreen(
+                        mode = secondMode,
+                        adbManager = secondAdbManager,
+                        onSwitchMode = { secondMode = it },
+                        onBack = { secondScreen = AppScreen.LAUNCHER },
+                        onHistory = { secondScreen = AppScreen.HISTORY },
+                        onSettings = { secondScreen = AppScreen.SETTINGS },
+                        onDiff = { secondScreen = AppScreen.DIFF },
+                        onWatch = { secondScreen = AppScreen.WATCH }
+                    )
+                    AppScreen.HISTORY -> HistoryScreen(
+                        onBack = { secondScreen = AppScreen.LAUNCHER }
+                    )
+                    AppScreen.SETTINGS -> SettingsScreen(
+                        onBack = { secondScreen = AppScreen.LAUNCHER }
+                    )
+                    AppScreen.DIFF -> DiffScreen(
+                        onBack = { secondScreen = AppScreen.INSPECTOR }
+                    )
+                    AppScreen.WATCH -> WatchScreen(
+                        adbManager = secondAdbManager,
+                        onBack = { secondScreen = AppScreen.INSPECTOR }
+                    )
                 }
             }
         }
