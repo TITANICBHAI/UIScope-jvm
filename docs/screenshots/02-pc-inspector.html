@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1366">
+<title>UIScope — Windows Inspector</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{width:1366px;height:768px;overflow:hidden;font-family:'Segoe UI',system-ui,sans-serif;background:#0D1117;color:#E6EDF3;font-size:13px}
+  .topbar{height:48px;background:#161B22;border-bottom:1px solid #30363D;display:flex;align-items:center;padding:0 10px;gap:6px;flex-shrink:0}
+  .topbar-back{width:28px;height:28px;border-radius:6px;background:transparent;border:1px solid #30363D;color:#8B949E;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px}
+  .topbar-sep{width:1px;height:24px;background:#30363D;margin:0 4px}
+  .mode-tabs{display:flex;gap:2px;background:#0D1117;border-radius:6px;padding:2px}
+  .mode-tab{padding:4px 10px;border-radius:4px;font-size:12px;cursor:pointer;color:#8B949E}
+  .mode-tab.active{background:#21262D;color:#D2A8FF;font-weight:600}
+  .device-badge{background:#21262D;border:1px solid #30363D;border-radius:20px;padding:3px 10px;font-size:11px;color:#E6EDF3;display:flex;align-items:center;gap:5px}
+  .device-dot{width:7px;height:7px;border-radius:50%;background:#3FB950}
+  .spacer{flex:1}
+  .tb-btn{width:30px;height:30px;border-radius:6px;background:transparent;border:1px solid #30363D;color:#8B949E;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px}
+  .tb-btn.pick-active{background:#1A2E1A;border-color:#3FB950;color:#3FB950;animation:pulse 1.5s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
+  .tb-btn-label{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:6px;border:1px solid #30363D;color:#8B949E;font-size:12px;cursor:pointer}
+  .main{display:flex;height:calc(768px - 48px)}
+  .tree-panel{width:270px;background:#161B22;border-right:1px solid #30363D;display:flex;flex-direction:column;flex-shrink:0}
+  .panel-header{height:38px;background:#0D1117;border-bottom:1px solid #30363D;display:flex;align-items:center;padding:0 12px;gap:8px}
+  .panel-title{font-size:12px;font-weight:600;color:#E6EDF3;letter-spacing:.3px}
+  .count-badge{background:#21262D;border-radius:10px;padding:1px 7px;font-size:10px;color:#8B949E}
+  .win-badge{background:#1A2040;border:1px solid #D2A8FF;border-radius:10px;padding:1px 7px;font-size:10px;color:#D2A8FF}
+  .tree-search{height:30px;background:#21262D;border:1px solid #30363D;border-radius:6px;margin:6px 8px;display:flex;align-items:center;padding:0 8px;gap:6px;color:#8B949E;font-size:12px}
+  .tree-scroll{flex:1;overflow-y:auto;padding:4px 0}
+  .tree-node{display:flex;align-items:center;padding:3px 0;cursor:pointer;position:relative}
+  .tree-node:hover{background:#21262D}
+  .tree-node.selected{background:#1A2040}
+  .tree-node.selected::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:#D2A8FF}
+  .tree-caret{width:14px;flex-shrink:0;text-align:center;color:#8B949E;font-size:10px}
+  .tree-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-right:5px}
+  .tree-name{font-size:12px;color:#E6EDF3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tree-sub{font-size:10px;color:#8B949E;margin-left:4px;white-space:nowrap}
+  .center-panel{flex:1;display:flex;flex-direction:column;background:#0D1117;overflow:hidden}
+  .canvas-area{flex:1;background:#0D1117;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+  /* Windows calculator mockup */
+  .win-app{width:320px;height:480px;background:#1C1C1C;border-radius:8px;border:1px solid #555;box-shadow:0 20px 60px rgba(0,0,0,.8);overflow:hidden;position:relative}
+  .win-titlebar{height:32px;background:#1F1F1F;display:flex;align-items:center;padding:0 12px;gap:8px}
+  .win-title{font-size:12px;color:#CCCCCC;flex:1}
+  .win-controls{display:flex;gap:2px}
+  .win-btn{width:46px;height:32px;display:flex;align-items:center;justify-content:center;color:#CCCCCC;font-size:12px;cursor:pointer}
+  .win-btn:hover{background:#3D3D3D}
+  .win-btn.close:hover{background:#C42B1C;color:white}
+  .calc-display{height:100px;background:#1C1C1C;padding:16px;display:flex;flex-direction:column;align-items:flex-end;justify-content:flex-end}
+  .calc-expr{font-size:14px;color:#888;margin-bottom:4px}
+  .calc-result{font-size:40px;color:#FFFFFF;font-weight:200}
+  .calc-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:#111;flex:1}
+  .calc-btn{background:#2B2B2B;color:#FFFFFF;font-size:16px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-weight:300}
+  .calc-btn.op{background:#3B3B3B}
+  .calc-btn.eq{background:#003E92;color:white}
+  .calc-btn.special{background:#1E1E1E;color:#888;font-size:12px}
+  /* hover highlight overlay */
+  .hover-highlight{position:absolute;border:2px solid #3FB950;background:rgba(63,185,80,.12);pointer-events:none;border-radius:3px}
+  .hover-tooltip{position:absolute;background:#161B22;border:1px solid #3FB950;border-radius:5px;padding:4px 8px;font-size:10px;color:#3FB950;white-space:nowrap;box-shadow:0 4px 12px rgba(0,0,0,.5)}
+  .breadcrumb{height:34px;background:#161B22;border-top:1px solid #30363D;display:flex;align-items:center;padding:0 12px;gap:4px;overflow:hidden}
+  .bc-item{font-size:11px;color:#8B949E;cursor:pointer;white-space:nowrap}
+  .bc-item.last{color:#D2A8FF}
+  .bc-sep{color:#30363D;font-size:11px}
+  .bc-copy-btn{margin-left:auto;font-size:10px;color:#D2A8FF;border:1px solid #30363D;border-radius:4px;padding:2px 7px;cursor:pointer;white-space:nowrap;background:transparent}
+  .props-panel{width:280px;background:#161B22;border-left:1px solid #30363D;display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
+  .props-header{height:38px;background:#0D1117;border-bottom:1px solid #30363D;display:flex;align-items:center;padding:0 12px;gap:8px}
+  .conf-badge{background:#1A2040;border:1px solid #D2A8FF;border-radius:10px;padding:1px 8px;font-size:10px;color:#D2A8FF;margin-left:auto}
+  .props-scroll{flex:1;overflow-y:auto;padding:8px 0}
+  .prop-section{padding:4px 12px 2px;font-size:10px;color:#8B949E;font-weight:600;text-transform:uppercase;letter-spacing:.8px}
+  .prop-row{display:flex;align-items:center;padding:5px 12px;gap:8px}
+  .prop-row:hover{background:#21262D}
+  .prop-key{font-size:11px;color:#8B949E;width:96px;flex-shrink:0}
+  .prop-val{font-size:11px;color:#E6EDF3;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:'Cascadia Code','Consolas',monospace}
+  .prop-val.green{color:#3FB950}
+  .prop-val.blue{color:#58A6FF}
+  .prop-val.purple{color:#D2A8FF}
+  .prop-val.orange{color:#F0883E}
+  .prop-val.muted{color:#8B949E}
+  .divider-line{height:1px;background:#21262D;margin:6px 12px}
+  .codegen-strip{height:100px;background:#1E1E2E;border-top:1px solid #30363D;flex-shrink:0;overflow:hidden}
+  .codegen-topbar{height:30px;background:#161B22;border-bottom:1px solid #30363D;display:flex;align-items:center;padding:0 10px;gap:8px}
+  .lang-pill{padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;background:#1A2040;color:#D2A8FF;border:1px solid #D2A8FF}
+  .code-pre{padding:8px 12px;font-size:11px;line-height:1.6;font-family:'Cascadia Code','Consolas',monospace;color:#CDD6F4}
+  .c-kw{color:#CBA6F7}.c-fn{color:#89B4FA}.c-str{color:#A6E3A1}.c-cm{color:#6C7086}.c-num{color:#FAB387}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="topbar-back">←</div>
+  <div class="topbar-sep"></div>
+  <div class="mode-tabs">
+    <div class="mode-tab">Android</div>
+    <div class="mode-tab active">Windows</div>
+    <div class="mode-tab">macOS</div>
+  </div>
+  <div class="topbar-sep"></div>
+  <div class="device-badge"><div class="device-dot"></div>Calculator — Windows 11</div>
+  <div class="spacer"></div>
+  <div class="tb-btn pick-active" title="Pick mode active">⊕</div>
+  <div class="tb-btn" title="Refresh">↺</div>
+  <div class="tb-btn" title="Search">⌕</div>
+  <div class="tb-btn" title="Code Gen">&lt;/&gt;</div>
+  <div class="tb-btn" title="Export">⬇</div>
+  <div class="tb-btn-label">Diff</div>
+  <div class="tb-btn-label">Watch</div>
+</div>
+
+<div class="main">
+  <!-- TREE PANEL -->
+  <div class="tree-panel">
+    <div class="panel-header">
+      <span class="panel-title">UI Tree</span>
+      <span class="count-badge">23 nodes</span>
+      <span class="win-badge" style="margin-left:auto">UIA3</span>
+    </div>
+    <div class="tree-search">🔍 <span>Filter nodes…</span></div>
+    <div class="tree-scroll">
+      <div class="tree-node" style="padding-left:8px">
+        <div class="tree-caret">▼</div>
+        <div class="tree-dot" style="background:#D2A8FF"></div>
+        <div class="tree-name">Window</div>
+        <div class="tree-sub">Calculator</div>
+      </div>
+      <div class="tree-node" style="padding-left:20px">
+        <div class="tree-caret">▼</div>
+        <div class="tree-dot" style="background:#D2A8FF"></div>
+        <div class="tree-name">TitleBar</div>
+      </div>
+      <div class="tree-node" style="padding-left:32px">
+        <div class="tree-caret"> </div>
+        <div class="tree-dot" style="background:#E6EDF3"></div>
+        <div class="tree-name">"Calculator"</div>
+        <div class="tree-sub">TitleBar</div>
+      </div>
+      <div class="tree-node" style="padding-left:20px">
+        <div class="tree-caret">▼</div>
+        <div class="tree-dot" style="background:#D2A8FF"></div>
+        <div class="tree-name">Group</div>
+        <div class="tree-sub">NumberPad</div>
+      </div>
+      <div class="tree-node" style="padding-left:32px">
+        <div class="tree-caret"> </div>
+        <div class="tree-dot" style="background:#3FB950"></div>
+        <div class="tree-name">Button</div>
+        <div class="tree-sub">num7Button</div>
+      </div>
+      <div class="tree-node selected" style="padding-left:32px">
+        <div class="tree-caret"> </div>
+        <div class="tree-dot" style="background:#3FB950"></div>
+        <div class="tree-name">Button</div>
+        <div class="tree-sub" style="color:#D2A8FF">num5Button ●</div>
+      </div>
+      <div class="tree-node" style="padding-left:32px">
+        <div class="tree-caret"> </div>
+        <div class="tree-dot" style="background:#3FB950"></div>
+        <div class="tree-name">Button</div>
+        <div class="tree-sub">num3Button</div>
+      </div>
+      <div class="tree-node" style="padding-left:32px">
+        <div class="tree-caret"> </div>
+        <div class="tree-dot" style="background:#F0883E"></div>
+        <div class="tree-name">Button</div>
+        <div class="tree-sub">divideButton</div>
+      </div>
+      <div class="tree-node" style="padding-left:32px">
+        <div class="tree-caret"> </div>
+        <div class="tree-dot" style="background:#F0883E"></div>
+        <div class="tree-name">Button</div>
+        <div class="tree-sub">equalButton</div>
+      </div>
+      <div class="tree-node" style="padding-left:20px">
+        <div class="tree-caret"> </div>
+        <div class="tree-dot" style="background:#58A6FF"></div>
+        <div class="tree-name">Text</div>
+        <div class="tree-sub">CalculatorResults</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CENTER -->
+  <div class="center-panel">
+    <div class="canvas-area">
+      <svg style="position:absolute;inset:0;width:100%;height:100%;opacity:.04" xmlns="http://www.w3.org/2000/svg">
+        <defs><pattern id="g" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M 20 0 L 0 0 0 20" fill="none" stroke="#E6EDF3" stroke-width="0.5"/></pattern></defs>
+        <rect width="100%" height="100%" fill="url(#g)"/>
+      </svg>
+
+      <!-- Pick mode banner -->
+      <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);background:#1A2E1A;border:1px solid #3FB950;border-radius:20px;padding:5px 16px;font-size:11px;color:#3FB950;display:flex;align-items:center;gap:6px;z-index:10">
+        <span style="width:6px;height:6px;border-radius:50%;background:#3FB950;animation:pulse 1s infinite"></span>
+        Pick mode active — hover over any element to inspect
+      </div>
+
+      <!-- Windows Calculator mockup -->
+      <div class="win-app">
+        <div class="win-titlebar">
+          <span style="font-size:14px">🔢</span>
+          <span class="win-title">Calculator</span>
+          <div class="win-controls">
+            <div class="win-btn">─</div>
+            <div class="win-btn">□</div>
+            <div class="win-btn close">✕</div>
+          </div>
+        </div>
+        <div class="calc-display">
+          <div class="calc-expr">12 ÷</div>
+          <div class="calc-result">5</div>
+        </div>
+        <div class="calc-grid" style="height:347px">
+          <div class="calc-btn special">%</div><div class="calc-btn special">CE</div><div class="calc-btn special">C</div><div class="calc-btn special">⌫</div>
+          <div class="calc-btn op">1/x</div><div class="calc-btn op">x²</div><div class="calc-btn op">√</div><div class="calc-btn op">÷</div>
+          <div class="calc-btn">7</div><div class="calc-btn">8</div><div class="calc-btn">9</div><div class="calc-btn op">×</div>
+          <div class="calc-btn">4</div><div class="calc-btn" style="background:#383838;border:2px solid #3FB950">5</div><div class="calc-btn">6</div><div class="calc-btn op">−</div>
+          <div class="calc-btn">1</div><div class="calc-btn">2</div><div class="calc-btn">3</div><div class="calc-btn op">+</div>
+          <div class="calc-btn">±</div><div class="calc-btn">0</div><div class="calc-btn">.</div><div class="calc-btn eq">=</div>
+        </div>
+        <!-- hover highlight on "5" button -->
+        <div class="hover-highlight" style="left:80px;top:235px;width:79px;height:57px"></div>
+      </div>
+
+      <!-- Hover tooltip -->
+      <div class="hover-tooltip" style="bottom:120px;left:calc(50% + 60px)">
+        Button · "Five" · AutomationId: num5Button
+      </div>
+
+      <div style="position:absolute;bottom:16px;right:16px;background:#161B22;border:1px solid #30363D;border-radius:6px;padding:6px 10px;font-size:11px;color:#8B949E;display:flex;gap:12px">
+        <span>Zoom: <b style="color:#E6EDF3">100%</b></span>
+        <span>320 × 480</span>
+        <span style="color:#D2A8FF">⊞ Fit</span>
+      </div>
+    </div>
+
+    <div class="breadcrumb">
+      <span style="font-size:11px;color:#8B949E">Window</span><span style="color:#30363D;font-size:11px">/</span>
+      <span style="font-size:11px;color:#8B949E">Group[NumberPad]</span><span style="color:#30363D;font-size:11px">/</span>
+      <span style="font-size:11px;color:#D2A8FF">Button[num5Button]</span>
+      <div class="spacer"></div>
+      <span style="font-size:10px;color:#8B949E;font-family:monospace;margin-right:8px">/Window[@Name="Calculator"]/Group/Button[@AutomationId="num5Button"]</span>
+      <div class="bc-copy-btn">⎘ Copy XPath</div>
+    </div>
+
+    <div class="codegen-strip">
+      <div class="codegen-topbar">
+        <span class="lang-pill">Python</span>
+        <span style="font-size:11px;color:#8B949E">pywinauto</span>
+        <div class="spacer"></div>
+        <div style="font-size:10px;color:#8B949E;border:1px solid #30363D;border-radius:4px;padding:2px 7px;cursor:pointer">⎘ Copy</div>
+      </div>
+      <div class="code-pre"><span class="c-kw">from</span> pywinauto <span class="c-kw">import</span> Application
+app = Application(backend=<span class="c-str">"uia"</span>).<span class="c-fn">connect</span>(title=<span class="c-str">"Calculator"</span>)
+app.Calculator.GroupNumberPad.Button5.<span class="c-fn">click</span>()</div>
+    </div>
+  </div>
+
+  <!-- PROPERTIES PANEL -->
+  <div class="props-panel">
+    <div class="props-header">
+      <span class="panel-title">Properties</span>
+      <span class="conf-badge">Windows UIA</span>
+    </div>
+    <div class="props-scroll">
+      <div class="prop-section">Identity</div>
+      <div class="prop-row"><span class="prop-key">ControlType</span><span class="prop-val purple">Button</span></div>
+      <div class="prop-row"><span class="prop-key">AutomationId</span><span class="prop-val blue">num5Button</span></div>
+      <div class="prop-row"><span class="prop-key">Name</span><span class="prop-val">"Five"</span></div>
+      <div class="prop-row"><span class="prop-key">ClassName</span><span class="prop-val muted">Button</span></div>
+      <div class="prop-row"><span class="prop-key">RuntimeId</span><span class="prop-val muted">[2.65536.7]</span></div>
+
+      <div class="divider-line"></div>
+      <div class="prop-section">Geometry</div>
+      <div class="prop-row"><span class="prop-key">BoundingRect</span><span class="prop-val">{80,235,159,292}</span></div>
+      <div class="prop-row"><span class="prop-key">Width</span><span class="prop-val orange">79 px</span></div>
+      <div class="prop-row"><span class="prop-key">Height</span><span class="prop-val orange">57 px</span></div>
+
+      <div class="divider-line"></div>
+      <div class="prop-section">State</div>
+      <div class="prop-row"><span class="prop-key">IsEnabled</span><span class="prop-val green">True</span></div>
+      <div class="prop-row"><span class="prop-key">IsOffscreen</span><span class="prop-val muted">False</span></div>
+      <div class="prop-row"><span class="prop-key">IsKeyboard…</span><span class="prop-val green">True</span></div>
+      <div class="prop-row"><span class="prop-key">HasKeyboard…</span><span class="prop-val muted">False</span></div>
+
+      <div class="divider-line"></div>
+      <div class="prop-section">Patterns</div>
+      <div class="prop-row"><span class="prop-key">Invoke</span><span class="prop-val green">✓ supported</span></div>
+      <div class="prop-row"><span class="prop-key">Toggle</span><span class="prop-val muted">✗ none</span></div>
+      <div class="prop-row"><span class="prop-key">Selection</span><span class="prop-val muted">✗ none</span></div>
+
+      <div style="margin:8px;background:#1A2E1A;border:1px solid #3FB950;border-radius:8px;padding:10px">
+        <div style="font-size:11px;font-weight:600;color:#3FB950;margin-bottom:4px">✓ Stable selector</div>
+        <div style="font-size:11px;color:#8B949E;line-height:1.5"><code style="color:#3FB950;background:#0D1117;padding:1px 4px;border-radius:3px">AutomationId</code> is developer-assigned and stable across app versions.</div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

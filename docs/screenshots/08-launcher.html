@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1366">
+<title>UIScope — Launcher</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{width:1366px;height:768px;overflow:hidden;font-family:'Segoe UI',system-ui,sans-serif;background:#0D1117;color:#E6EDF3;font-size:13px}
+  /* Top bar */
+  .topbar{height:48px;background:#161B22;border-bottom:1px solid #30363D;display:flex;align-items:center;padding:0 16px;gap:8px}
+  .app-logo{display:flex;align-items:center;gap:8px}
+  .logo-icon{width:28px;height:28px;border-radius:6px;background:linear-gradient(135deg,#1A3549,#0D2137);border:1px solid #58A6FF;display:flex;align-items:center;justify-content:center;font-size:14px}
+  .logo-text{font-size:15px;font-weight:700;color:#58A6FF;letter-spacing:.3px}
+  .logo-version{font-size:10px;color:#8B949E;margin-left:2px;padding:1px 5px;border-radius:4px;background:#21262D;border:1px solid #30363D}
+  .spacer{flex:1}
+  .nav-btn{padding:5px 12px;border-radius:6px;border:1px solid #30363D;color:#8B949E;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:5px}
+  .nav-btn:hover{background:#21262D;color:#E6EDF3}
+  /* main content */
+  .main{height:calc(768px - 48px);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px;background:radial-gradient(ellipse at 50% 30%, #0F2135 0%, #0D1117 60%)}
+  /* grid bg */
+  .main::before{content:'';position:absolute;inset:48px 0 0 0;background-image:radial-gradient(circle, #30363D 1px, transparent 1px);background-size:32px 32px;opacity:.25;pointer-events:none}
+  /* hero */
+  .hero{text-align:center;margin-bottom:48px;position:relative;z-index:1}
+  .hero-icon{font-size:52px;margin-bottom:14px;filter:drop-shadow(0 0 20px rgba(88,166,255,.4))}
+  .hero-title{font-size:38px;font-weight:700;color:#E6EDF3;letter-spacing:-.5px;margin-bottom:8px}
+  .hero-title span{color:#58A6FF}
+  .hero-sub{font-size:16px;color:#8B949E;max-width:480px;margin:0 auto;line-height:1.6}
+  /* mode cards */
+  .mode-cards{display:flex;gap:24px;position:relative;z-index:1}
+  .mode-card{width:280px;background:#161B22;border:2px solid #30363D;border-radius:16px;padding:28px 24px;cursor:pointer;transition:all .2s;display:flex;flex-direction:column;align-items:center;text-align:center;position:relative;overflow:hidden}
+  .mode-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;opacity:0;transition:opacity .2s}
+  .mode-card.android::before{background:linear-gradient(90deg,#3FB950,#58A6FF);opacity:1}
+  .mode-card.windows::before{background:linear-gradient(90deg,#D2A8FF,#58A6FF);opacity:1}
+  .mode-card:hover{transform:translateY(-4px);box-shadow:0 16px 48px rgba(0,0,0,.5)}
+  .mode-card.android:hover{border-color:#3FB950}
+  .mode-card.windows:hover{border-color:#D2A8FF}
+  .card-icon{font-size:40px;margin-bottom:16px}
+  .card-title{font-size:18px;font-weight:700;color:#E6EDF3;margin-bottom:6px}
+  .card-sub{font-size:13px;color:#8B949E;line-height:1.5;margin-bottom:18px}
+  .card-features{text-align:left;width:100%;margin-bottom:20px}
+  .card-feature{display:flex;align-items:center;gap:8px;padding:3px 0;font-size:12px;color:#8B949E}
+  .card-feature-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+  .card-btn{width:100%;padding:10px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all .15s}
+  .card-btn.android{background:linear-gradient(135deg,#1A3A1E,#122116);color:#3FB950;border:1px solid #3FB950}
+  .card-btn.android:hover{background:linear-gradient(135deg,#3FB950,#2E8B45);color:white}
+  .card-btn.windows{background:linear-gradient(135deg,#1A2040,#0F1530);color:#D2A8FF;border:1px solid #D2A8FF}
+  .card-btn.windows:hover{background:linear-gradient(135deg,#D2A8FF,#9B59B6);color:white}
+  /* device status strip */
+  .device-strip{display:flex;gap:12px;margin-top:28px;position:relative;z-index:1}
+  .device-chip{background:#161B22;border:1px solid #30363D;border-radius:20px;padding:6px 14px;font-size:11px;display:flex;align-items:center;gap:6px;cursor:pointer}
+  .device-chip:hover{border-color:#58A6FF}
+  .device-chip.connected{border-color:#3FB950}
+  .device-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+  .device-dot.green{background:#3FB950}
+  .device-dot.grey{background:#8B949E}
+  /* recent history quick links */
+  .recent-strip{display:flex;gap:10px;margin-top:16px;position:relative;z-index:1}
+  .recent-chip{background:#161B22;border:1px solid #30363D;border-radius:8px;padding:6px 12px;font-size:11px;color:#8B949E;cursor:pointer;display:flex;align-items:center;gap:5px}
+  .recent-chip:hover{border-color:#58A6FF;color:#E6EDF3}
+</style>
+</head>
+<body>
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="app-logo">
+    <div class="logo-icon">🔍</div>
+    <span class="logo-text">UIScope</span>
+    <span class="logo-version">v1.0</span>
+  </div>
+  <div class="spacer"></div>
+  <div class="nav-btn">📋 History</div>
+  <div class="nav-btn">⬇ Export</div>
+  <div class="nav-btn">⚙ Settings</div>
+  <div style="width:1px;height:24px;background:#30363D;margin:0 4px"></div>
+  <div style="font-size:11px;color:#8B949E;cursor:pointer">? Help</div>
+</div>
+
+<!-- MAIN -->
+<div class="main" style="position:relative">
+  <!-- grid bg rendered as SVG inline for reliability -->
+  <svg style="position:absolute;inset:0;width:100%;height:100%;opacity:.15;pointer-events:none" xmlns="http://www.w3.org/2000/svg">
+    <defs><pattern id="dots" width="32" height="32" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="1" fill="#30363D"/></pattern></defs>
+    <rect width="100%" height="100%" fill="url(#dots)"/>
+  </svg>
+  <!-- glow -->
+  <div style="position:absolute;top:0;left:50%;transform:translateX(-50%);width:600px;height:300px;background:radial-gradient(ellipse,rgba(88,166,255,.08),transparent 70%);pointer-events:none"></div>
+
+  <!-- Hero -->
+  <div class="hero">
+    <div class="hero-icon">🔍</div>
+    <h1 class="hero-title">UI<span>Scope</span></h1>
+    <p class="hero-sub">Live UI inspection for Android devices and Windows apps. Inspect, copy selectors, generate test code.</p>
+  </div>
+
+  <!-- Mode cards -->
+  <div class="mode-cards">
+    <!-- Android card -->
+    <div class="mode-card android">
+      <div class="card-icon">📱</div>
+      <div class="card-title">Inspect Android</div>
+      <div class="card-sub">Connect via ADB and inspect any Android app's UI hierarchy in real time.</div>
+      <div class="card-features">
+        <div class="card-feature"><div class="card-feature-dot" style="background:#3FB950"></div><span>Live element tree via ADB</span></div>
+        <div class="card-feature"><div class="card-feature-dot" style="background:#3FB950"></div><span>Python / Java / Kotlin codegen</span></div>
+        <div class="card-feature"><div class="card-feature-dot" style="background:#3FB950"></div><span>uiautomator2 &amp; Appium output</span></div>
+        <div class="card-feature"><div class="card-feature-dot" style="background:#3FB950"></div><span>Fragile selector warnings</span></div>
+        <div class="card-feature"><div class="card-feature-dot" style="background:#3FB950"></div><span>Watch mode &amp; diff mode</span></div>
+      </div>
+      <button class="card-btn android">📱 Connect Android device</button>
+    </div>
+
+    <!-- Windows card -->
+    <div class="mode-card windows">
+      <div class="card-icon">🖥️</div>
+      <div class="card-title">Inspect This PC</div>
+      <div class="card-sub">Inspect any running Windows application using the UI Automation API.</div>
+      <div class="card-features">
+        <div class="card-feature"><div class="card-feature-dot" style="background:#D2A8FF"></div><span>Windows UI Automation (UIA3)</span></div>
+        <div class="card-feature"><div class="card-feature-dot" style="background:#D2A8FF"></div><span>Pick element with cursor hover</span></div>
+        <div class="card-feature"><div class="card-feature-dot" style="background:#D2A8FF"></div><span>pywinauto / WinAppDriver output</span></div>
+        <div class="card-feature"><div class="card-feature-dot" style="background:#D2A8FF"></div><span>AutomationId stable selectors</span></div>
+        <div class="card-feature"><div class="card-feature-dot" style="background:#D2A8FF"></div><span>All running apps listed</span></div>
+      </div>
+      <button class="card-btn windows">🖥️ Inspect running app</button>
+    </div>
+  </div>
+
+  <!-- Device status chips -->
+  <div class="device-strip">
+    <div class="device-chip connected">
+      <div class="device-dot green"></div>
+      <span style="color:#3FB950">Pixel 7 · Android 14</span>
+      <span style="color:#30363D">·</span>
+      <span style="color:#8B949E;font-size:10px">FA80U0305260</span>
+    </div>
+    <div class="device-chip">
+      <div class="device-dot grey"></div>
+      <span>No other devices</span>
+      <span style="margin-left:4px;padding:1px 6px;background:#21262D;border-radius:4px;font-size:10px;color:#58A6FF;cursor:pointer">+ Add</span>
+    </div>
+  </div>
+
+  <!-- Recent sessions quick-open -->
+  <div class="recent-strip">
+    <span style="font-size:11px;color:#8B949E;display:flex;align-items:center">Recent:</span>
+    <div class="recent-chip">📱 Session B — After navigation <span style="color:#8B949E;font-size:10px;margin-left:4px">10:31 AM</span></div>
+    <div class="recent-chip">📱 Session A — Before login <span style="color:#8B949E;font-size:10px;margin-left:4px">10:24 AM</span></div>
+    <div class="recent-chip">🖥️ Calculator inspection <span style="color:#8B949E;font-size:10px;margin-left:4px">9:48 AM</span></div>
+    <div class="recent-chip" style="color:#58A6FF;border-color:#30363D">View all →</div>
+  </div>
+</div>
+</body>
+</html>

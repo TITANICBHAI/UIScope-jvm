@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1366">
+<title>UIScope — Diff Mode</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{width:1366px;height:768px;overflow:hidden;font-family:'Segoe UI',system-ui,sans-serif;background:#0D1117;color:#E6EDF3;font-size:13px}
+  .topbar{height:48px;background:#161B22;border-bottom:1px solid #30363D;display:flex;align-items:center;padding:0 10px;gap:8px}
+  .back-btn{width:28px;height:28px;border-radius:6px;border:1px solid #30363D;color:#8B949E;display:flex;align-items:center;justify-content:center;font-size:14px}
+  .page-title{font-size:14px;font-weight:600;color:#E6EDF3}
+  .page-sub{font-size:12px;color:#8B949E}
+  .spacer{flex:1}
+  .tb-btn{padding:5px 12px;border-radius:6px;border:1px solid #30363D;color:#8B949E;font-size:12px;display:flex;align-items:center;gap:5px;cursor:pointer}
+  .tb-btn.accent{background:#1A3549;border-color:#58A6FF;color:#58A6FF}
+  .diff-container{height:calc(768px - 48px);display:flex;flex-direction:column}
+  /* Session picker bar */
+  .session-bar{height:72px;background:#161B22;border-bottom:1px solid #30363D;display:flex;align-items:center;padding:0 16px;gap:16px;flex-shrink:0}
+  .session-picker{flex:1;background:#0D1117;border:1px solid #30363D;border-radius:8px;padding:8px 12px;display:flex;align-items:center;gap:10px;cursor:pointer}
+  .session-picker:hover{border-color:#58A6FF}
+  .session-picker-label{font-size:10px;color:#8B949E;margin-bottom:2px}
+  .session-name{font-size:12px;font-weight:600;color:#E6EDF3}
+  .session-time{font-size:10px;color:#8B949E}
+  .session-node-count{background:#21262D;border-radius:10px;padding:1px 7px;font-size:10px;color:#8B949E;margin-left:auto}
+  .diff-arrow{font-size:20px;color:#30363D;flex-shrink:0}
+  .compare-btn{padding:8px 20px;border-radius:8px;background:#1A3549;border:1px solid #58A6FF;color:#58A6FF;font-size:13px;font-weight:600;cursor:pointer;flex-shrink:0}
+  /* Summary bar */
+  .summary-bar{height:48px;background:#0D1117;border-bottom:1px solid #30363D;display:flex;align-items:center;padding:0 16px;gap:16px;flex-shrink:0}
+  .summary-chip{display:flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer}
+  .chip-added{background:#122116;border:1px solid #3FB950;color:#3FB950}
+  .chip-removed{background:#1A0A0A;border:1px solid #F85149;color:#F85149}
+  .chip-changed{background:#1A1400;border:1px solid #E3B341;color:#E3B341}
+  .chip-unchanged{background:#161B22;border:1px solid #30363D;color:#8B949E}
+  .filter-active{box-shadow:0 0 0 2px rgba(88,166,255,.3)}
+  /* diff list body */
+  .diff-body{flex:1;display:flex;overflow:hidden}
+  .diff-list{flex:1;overflow-y:auto;padding:8px 0}
+  .diff-item{border-bottom:1px solid #21262D;cursor:pointer}
+  .diff-item:hover{background:#21262D}
+  .diff-item.selected{background:#1A3549}
+  .diff-row{display:flex;align-items:stretch;min-height:52px}
+  .diff-stripe{width:4px;flex-shrink:0}
+  .stripe-added{background:#3FB950}
+  .stripe-removed{background:#F85149}
+  .stripe-changed{background:#E3B341}
+  .stripe-unchanged{background:transparent}
+  .diff-icon{width:36px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+  .diff-content{flex:1;padding:8px 12px 8px 4px}
+  .diff-node-name{font-size:12px;font-weight:600;color:#E6EDF3}
+  .diff-node-path{font-size:10px;color:#8B949E;margin-top:2px}
+  .diff-changes{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px}
+  .diff-change-pill{font-size:10px;padding:2px 7px;border-radius:4px}
+  .pill-added{background:#122116;color:#3FB950;border:1px solid #1a3a1e}
+  .pill-removed{background:#1A0A0A;color:#F85149;border:1px solid #3a1a1a}
+  .pill-changed{background:#1A1400;color:#E3B341;border:1px solid #3a3000}
+  .diff-timestamp{font-size:10px;color:#8B949E;padding:8px 12px;white-space:nowrap;flex-shrink:0;display:flex;align-items:center}
+  /* detail panel */
+  .detail-panel{width:420px;background:#161B22;border-left:1px solid #30363D;display:flex;flex-direction:column;flex-shrink:0}
+  .detail-header{height:44px;background:#0D1117;border-bottom:1px solid #30363D;display:flex;align-items:center;padding:0 14px;gap:8px}
+  .detail-title{font-size:12px;font-weight:600;color:#E6EDF3}
+  .detail-body{flex:1;overflow-y:auto}
+  .detail-section{padding:10px 14px 4px;font-size:10px;color:#8B949E;font-weight:600;text-transform:uppercase;letter-spacing:.8px}
+  .field-diff-row{display:flex;padding:4px 14px;gap:8px;align-items:flex-start}
+  .field-diff-row:hover{background:#21262D}
+  .fd-key{font-size:11px;color:#8B949E;width:80px;flex-shrink:0;padding-top:1px}
+  .fd-vals{flex:1;display:flex;flex-direction:column;gap:3px}
+  .fd-old{font-size:11px;color:#F85149;background:#1A0A0A;border-radius:3px;padding:1px 6px;font-family:monospace;text-decoration:line-through;opacity:.7}
+  .fd-new{font-size:11px;color:#3FB950;background:#122116;border-radius:3px;padding:1px 6px;font-family:monospace}
+  .fd-same{font-size:11px;color:#8B949E;font-family:monospace}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="back-btn">←</div>
+  <span class="page-title">Diff Mode</span>
+  <span class="page-sub">— Compare UI snapshots</span>
+  <div class="spacer"></div>
+  <div class="tb-btn">⬇ Export diff</div>
+  <div class="tb-btn accent">⎘ Copy report</div>
+</div>
+
+<div class="diff-container">
+  <!-- Session picker -->
+  <div class="session-bar">
+    <div class="session-picker">
+      <div>
+        <div class="session-picker-label">Baseline snapshot</div>
+        <div class="session-name">Session A — Before login flow</div>
+        <div class="session-time">Today, 10:24 AM · Pixel 7</div>
+      </div>
+      <div class="session-node-count">47 nodes</div>
+    </div>
+    <div class="diff-arrow">→</div>
+    <div class="session-picker">
+      <div>
+        <div class="session-picker-label">Target snapshot</div>
+        <div class="session-name">Session B — After navigation</div>
+        <div class="session-time">Today, 10:31 AM · Pixel 7</div>
+      </div>
+      <div class="session-node-count">51 nodes</div>
+    </div>
+    <div class="compare-btn">Compare ↺</div>
+  </div>
+
+  <!-- Summary -->
+  <div class="summary-bar">
+    <span style="font-size:12px;color:#8B949E">Showing changes:</span>
+    <div class="summary-chip chip-added filter-active">+ 4 added</div>
+    <div class="summary-chip chip-removed">− 2 removed</div>
+    <div class="summary-chip chip-changed">~ 6 changed</div>
+    <div class="summary-chip chip-unchanged">= 35 unchanged</div>
+    <div class="spacer"></div>
+    <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#8B949E">
+      Sort by: <span style="color:#E6EDF3;cursor:pointer">Type ▾</span>
+    </div>
+  </div>
+
+  <!-- Body -->
+  <div class="diff-body">
+    <div class="diff-list">
+
+      <!-- Added items -->
+      <div style="padding:6px 14px 2px;font-size:10px;color:#3FB950;font-weight:600;text-transform:uppercase;letter-spacing:.8px">Added (4)</div>
+
+      <div class="diff-item">
+        <div class="diff-row">
+          <div class="diff-stripe stripe-added"></div>
+          <div class="diff-icon" style="color:#3FB950">+</div>
+          <div class="diff-content">
+            <div class="diff-node-name">FloatingActionButton</div>
+            <div class="diff-node-path">FrameLayout / LinearLayout / CoordinatorLayout</div>
+            <div class="diff-changes">
+              <span class="diff-change-pill pill-added">fab_compose</span>
+              <span class="diff-change-pill pill-added">clickable</span>
+              <span class="diff-change-pill pill-added">bounds [936,1596][1044,1704]</span>
+            </div>
+          </div>
+          <div class="diff-timestamp">10:31 AM</div>
+        </div>
+      </div>
+
+      <div class="diff-item selected">
+        <div class="diff-row">
+          <div class="diff-stripe stripe-added"></div>
+          <div class="diff-icon" style="color:#3FB950">+</div>
+          <div class="diff-content">
+            <div class="diff-node-name">BottomSheetDialog</div>
+            <div class="diff-node-path">Window / DecorView / FrameLayout</div>
+            <div class="diff-changes">
+              <span class="diff-change-pill pill-added">3 child nodes</span>
+              <span class="diff-change-pill pill-added">visible</span>
+              <span class="diff-change-pill pill-added">elevation: 8dp</span>
+            </div>
+          </div>
+          <div class="diff-timestamp">10:31 AM</div>
+        </div>
+      </div>
+
+      <!-- Removed items -->
+      <div style="padding:10px 14px 2px;font-size:10px;color:#F85149;font-weight:600;text-transform:uppercase;letter-spacing:.8px">Removed (2)</div>
+
+      <div class="diff-item">
+        <div class="diff-row">
+          <div class="diff-stripe stripe-removed"></div>
+          <div class="diff-icon" style="color:#F85149">−</div>
+          <div class="diff-content">
+            <div class="diff-node-name">ProgressBar</div>
+            <div class="diff-node-path">FrameLayout / LinearLayout / loading_indicator</div>
+            <div class="diff-changes">
+              <span class="diff-change-pill pill-removed">was visible</span>
+              <span class="diff-change-pill pill-removed">loading_indicator</span>
+            </div>
+          </div>
+          <div class="diff-timestamp">10:31 AM</div>
+        </div>
+      </div>
+
+      <div class="diff-item">
+        <div class="diff-row">
+          <div class="diff-stripe stripe-removed"></div>
+          <div class="diff-icon" style="color:#F85149">−</div>
+          <div class="diff-content">
+            <div class="diff-node-name">TextView</div>
+            <div class="diff-node-path">FrameLayout / LinearLayout / empty_state_text</div>
+            <div class="diff-changes">
+              <span class="diff-change-pill pill-removed">text: "No items"</span>
+              <span class="diff-change-pill pill-removed">empty_state</span>
+            </div>
+          </div>
+          <div class="diff-timestamp">10:24 AM</div>
+        </div>
+      </div>
+
+      <!-- Changed items -->
+      <div style="padding:10px 14px 2px;font-size:10px;color:#E3B341;font-weight:600;text-transform:uppercase;letter-spacing:.8px">Changed (6)</div>
+
+      <div class="diff-item">
+        <div class="diff-row">
+          <div class="diff-stripe stripe-changed"></div>
+          <div class="diff-icon" style="color:#E3B341">~</div>
+          <div class="diff-content">
+            <div class="diff-node-name">RecyclerView</div>
+            <div class="diff-node-path">FrameLayout / LinearLayout / recycler_main</div>
+            <div class="diff-changes">
+              <span class="diff-change-pill pill-changed">children: 0 → 5</span>
+              <span class="diff-change-pill pill-changed">scrollable: false → true</span>
+            </div>
+          </div>
+          <div class="diff-timestamp">10:31 AM</div>
+        </div>
+      </div>
+
+      <div class="diff-item">
+        <div class="diff-row">
+          <div class="diff-stripe stripe-changed"></div>
+          <div class="diff-icon" style="color:#E3B341">~</div>
+          <div class="diff-content">
+            <div class="diff-node-name">Toolbar</div>
+            <div class="diff-node-path">FrameLayout / LinearLayout / toolbar</div>
+            <div class="diff-changes">
+              <span class="diff-change-pill pill-changed">title: "Loading…" → "My App"</span>
+              <span class="diff-change-pill pill-changed">subtitle added</span>
+            </div>
+          </div>
+          <div class="diff-timestamp">10:31 AM</div>
+        </div>
+      </div>
+
+      <div class="diff-item">
+        <div class="diff-row">
+          <div class="diff-stripe stripe-changed"></div>
+          <div class="diff-icon" style="color:#E3B341">~</div>
+          <div class="diff-content">
+            <div class="diff-node-name">ImageButton</div>
+            <div class="diff-node-path">Toolbar / menu_search</div>
+            <div class="diff-changes">
+              <span class="diff-change-pill pill-changed">enabled: false → true</span>
+            </div>
+          </div>
+          <div class="diff-timestamp">10:31 AM</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Detail panel -->
+    <div class="detail-panel">
+      <div class="detail-header">
+        <div style="width:10px;height:10px;border-radius:50%;background:#3FB950;flex-shrink:0"></div>
+        <span class="detail-title">BottomSheetDialog — Added</span>
+      </div>
+      <div class="detail-body">
+        <div class="detail-section">Before → After</div>
+
+        <div class="field-diff-row">
+          <span class="fd-key">visibility</span>
+          <div class="fd-vals">
+            <span class="fd-old">GONE</span>
+            <span class="fd-new">VISIBLE</span>
+          </div>
+        </div>
+        <div class="field-diff-row">
+          <span class="fd-key">children</span>
+          <div class="fd-vals">
+            <span class="fd-old">0</span>
+            <span class="fd-new">3</span>
+          </div>
+        </div>
+        <div class="field-diff-row">
+          <span class="fd-key">elevation</span>
+          <div class="fd-vals">
+            <span class="fd-old">0dp</span>
+            <span class="fd-new">8dp</span>
+          </div>
+        </div>
+        <div class="field-diff-row">
+          <span class="fd-key">class</span>
+          <div class="fd-vals">
+            <span class="fd-same">BottomSheetDialog</span>
+          </div>
+        </div>
+        <div class="field-diff-row">
+          <span class="fd-key">resource-id</span>
+          <div class="fd-vals">
+            <span class="fd-same">bottom_sheet_root</span>
+          </div>
+        </div>
+        <div class="field-diff-row">
+          <span class="fd-key">bounds</span>
+          <div class="fd-vals">
+            <span class="fd-old">[0,0][0,0]</span>
+            <span class="fd-new">[0,1200][1080,2400]</span>
+          </div>
+        </div>
+        <div class="field-diff-row">
+          <span class="fd-key">clickable</span>
+          <div class="fd-vals">
+            <span class="fd-old">false</span>
+            <span class="fd-new">true</span>
+          </div>
+        </div>
+
+        <div style="height:1px;background:#21262D;margin:8px 14px"></div>
+        <div class="detail-section">New child nodes</div>
+        <div style="padding:6px 14px;font-size:11px;color:#8B949E;line-height:1.8">
+          <div style="color:#3FB950">+ ImageView (close_btn)</div>
+          <div style="color:#3FB950">+ TextView ("Choose an option")</div>
+          <div style="color:#3FB950">+ RecyclerView (options_list)</div>
+        </div>
+
+        <div style="height:1px;background:#21262D;margin:8px 14px"></div>
+        <div style="margin:10px 14px;background:#122116;border:1px solid #3FB950;border-radius:8px;padding:10px">
+          <div style="font-size:11px;font-weight:600;color:#3FB950;margin-bottom:4px">Selector for this node</div>
+          <div style="font-family:monospace;font-size:11px;color:#A6E3A1;background:#0D1117;padding:6px 8px;border-radius:4px">d(resourceId="bottom_sheet_root")</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

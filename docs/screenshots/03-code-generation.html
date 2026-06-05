@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1366">
+<title>UIScope — Code Generation</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{width:1366px;height:768px;overflow:hidden;font-family:'Segoe UI',system-ui,sans-serif;background:#0D1117;color:#E6EDF3;font-size:13px}
+  .topbar{height:48px;background:#161B22;border-bottom:1px solid #30363D;display:flex;align-items:center;padding:0 10px;gap:6px;flex-shrink:0}
+  .topbar-back{width:28px;height:28px;border-radius:6px;background:transparent;border:1px solid #30363D;color:#8B949E;display:flex;align-items:center;justify-content:center;font-size:14px}
+  .topbar-sep{width:1px;height:24px;background:#30363D;margin:0 4px}
+  .mode-tabs{display:flex;gap:2px;background:#0D1117;border-radius:6px;padding:2px}
+  .mode-tab{padding:4px 10px;border-radius:4px;font-size:12px;cursor:pointer;color:#8B949E}
+  .mode-tab.active{background:#21262D;color:#58A6FF;font-weight:600}
+  .device-badge{background:#21262D;border:1px solid #30363D;border-radius:20px;padding:3px 10px;font-size:11px;color:#E6EDF3;display:flex;align-items:center;gap:5px}
+  .device-dot{width:7px;height:7px;border-radius:50%;background:#3FB950}
+  .spacer{flex:1}
+  .tb-btn{width:30px;height:30px;border-radius:6px;background:transparent;border:1px solid #30363D;color:#8B949E;display:flex;align-items:center;justify-content:center;font-size:14px}
+  .tb-btn.accent{background:#1A3549;border-color:#58A6FF;color:#58A6FF}
+  .tb-btn-label{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:6px;border:1px solid #30363D;color:#8B949E;font-size:12px}
+  .main{display:flex;height:calc(768px - 48px)}
+  /* tree panel narrow */
+  .tree-panel{width:240px;background:#161B22;border-right:1px solid #30363D;display:flex;flex-direction:column;flex-shrink:0}
+  .panel-header{height:38px;background:#0D1117;border-bottom:1px solid #30363D;display:flex;align-items:center;padding:0 12px;gap:8px}
+  .panel-title{font-size:12px;font-weight:600;color:#E6EDF3;letter-spacing:.3px}
+  .tree-scroll{flex:1;overflow-y:auto;padding:4px 0}
+  .tree-node{display:flex;align-items:center;padding:3px 0;cursor:pointer;position:relative}
+  .tree-node:hover{background:#21262D}
+  .tree-node.selected{background:#1A3549}
+  .tree-node.selected::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:#58A6FF}
+  .tree-caret{width:14px;flex-shrink:0;text-align:center;color:#8B949E;font-size:10px}
+  .tree-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-right:5px}
+  .tree-name{font-size:12px;color:#E6EDF3;white-space:nowrap}
+  .tree-sub{font-size:10px;color:#8B949E;margin-left:4px;white-space:nowrap}
+  /* center: code gen panel takes over */
+  .center-panel{flex:1;display:flex;flex-direction:column;background:#0D1117;overflow:hidden}
+  /* canvas small */
+  .canvas-area{height:280px;background:#0D1117;display:flex;align-items:center;justify-content:center;position:relative;border-bottom:1px solid #30363D;flex-shrink:0}
+  .phone-mini{width:130px;height:260px;background:#1C1C1E;border-radius:18px;border:1.5px solid #30363D;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.7)}
+  .phone-status{height:20px;background:#1C1C1E;display:flex;align-items:center;justify-content:space-between;padding:0 10px;font-size:8px;color:#8B949E}
+  .list-item{height:52px;border-bottom:1px solid #E0E0E0;display:flex;align-items:center;padding:0 10px;gap:8px;background:white}
+  .list-item.sel{background:#E3F2FD;border-left:2px solid #1565C0}
+  .item-avatar{width:28px;height:28px;border-radius:50%;flex-shrink:0}
+  .item-text{flex:1}
+  .item-title{font-size:9px;color:#212121;font-weight:500}
+  .item-sub{font-size:7px;color:#757575;margin-top:1px}
+  .highlight-box{position:absolute;border:2px solid #58A6FF;background:rgba(88,166,255,.1);pointer-events:none}
+  /* full code gen panel */
+  .codegen-panel{flex:1;background:#1E1E2E;display:flex;flex-direction:column;overflow:hidden}
+  .codegen-header{height:44px;background:#161B22;border-bottom:1px solid #30363D;display:flex;align-items:center;padding:0 12px;gap:8px;flex-shrink:0}
+  .codegen-title{font-size:12px;font-weight:600;color:#E6EDF3}
+  .lang-tabs{display:flex;gap:2px;background:#0D1117;border-radius:6px;padding:2px;margin-left:8px}
+  .lang-tab{padding:3px 10px;border-radius:4px;font-size:11px;cursor:pointer;color:#8B949E}
+  .lang-tab.active{background:#21262D;color:#58A6FF;font-weight:600}
+  .fragile-area{background:#2A1E00;border-bottom:1px solid #856404;padding:10px 16px;flex-shrink:0}
+  .fragile-header{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+  .fragile-badge-lg{background:#FFF3CD;color:#856404;font-size:12px;font-weight:700;padding:3px 10px;border-radius:5px}
+  .fragile-title{font-size:12px;font-weight:600;color:#E3B341}
+  .fragile-desc{font-size:11px;color:#8B949E;line-height:1.6}
+  .fragile-reasons{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+  .fragile-reason{background:#21262D;border:1px solid #856404;border-radius:4px;padding:2px 8px;font-size:10px;color:#E3B341}
+  .code-body{flex:1;overflow-y:auto;padding:0}
+  .code-tabs{display:flex;background:#1E1E2E;border-bottom:1px solid #30363D;padding:0 12px}
+  .code-tab{padding:8px 16px;font-size:11px;color:#8B949E;cursor:pointer;border-bottom:2px solid transparent}
+  .code-tab.active{color:#58A6FF;border-bottom-color:#58A6FF}
+  .code-pre{padding:14px 16px;font-size:12px;line-height:1.7;font-family:'Cascadia Code','Consolas',monospace;color:#CDD6F4;overflow-y:auto;flex:1}
+  .c-kw{color:#CBA6F7}.c-fn{color:#89B4FA}.c-str{color:#A6E3A1}.c-cm{color:#6C7086;font-style:italic}.c-num{color:#FAB387}.c-cls{color:#F9E2AF}
+  .line-num{color:#45475A;margin-right:16px;user-select:none;display:inline-block;width:24px;text-align:right}
+  .code-toolbar{height:36px;background:#181825;border-top:1px solid #30363D;display:flex;align-items:center;padding:0 12px;gap:8px;flex-shrink:0}
+  .ctb-btn{padding:3px 10px;border-radius:5px;font-size:11px;cursor:pointer;border:1px solid #30363D;color:#8B949E;background:transparent;display:flex;align-items:center;gap:4px}
+  .ctb-btn.primary{background:#1A3549;border-color:#58A6FF;color:#58A6FF}
+  /* props panel */
+  .props-panel{width:280px;background:#161B22;border-left:1px solid #30363D;display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
+  .props-header{height:38px;background:#0D1117;border-bottom:1px solid #30363D;display:flex;align-items:center;padding:0 12px;gap:8px}
+  .conf-badge{background:#2A1E00;border:1px solid #E3B341;border-radius:10px;padding:1px 8px;font-size:10px;color:#E3B341;margin-left:auto}
+  .props-scroll{flex:1;overflow-y:auto;padding:8px 0}
+  .prop-section{padding:4px 12px 2px;font-size:10px;color:#8B949E;font-weight:600;text-transform:uppercase;letter-spacing:.8px}
+  .prop-row{display:flex;align-items:center;padding:5px 12px;gap:8px}
+  .prop-row:hover{background:#21262D}
+  .prop-key{font-size:11px;color:#8B949E;width:86px;flex-shrink:0}
+  .prop-val{font-size:11px;color:#E6EDF3;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:'Cascadia Code','Consolas',monospace}
+  .prop-val.green{color:#3FB950}.prop-val.blue{color:#58A6FF}.prop-val.orange{color:#F0883E}.prop-val.muted{color:#8B949E}.prop-val.yellow{color:#E3B341}
+  .divider-line{height:1px;background:#21262D;margin:6px 12px}
+  .score-bar-wrap{margin:8px 12px;background:#0D1117;border-radius:6px;overflow:hidden;height:6px}
+  .score-bar{height:6px;border-radius:6px}
+  .stability-score{margin:8px 12px;display:flex;flex-direction:column;gap:6px}
+  .stability-item{display:flex;align-items:center;gap:8px;font-size:11px}
+  .stability-label{color:#8B949E;width:80px;flex-shrink:0}
+  .stability-track{flex:1;height:4px;background:#21262D;border-radius:4px;overflow:hidden}
+  .stability-fill{height:4px;border-radius:4px}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="topbar-back">←</div>
+  <div class="topbar-sep"></div>
+  <div class="mode-tabs">
+    <div class="mode-tab active">Android</div>
+    <div class="mode-tab">Windows</div>
+  </div>
+  <div class="topbar-sep"></div>
+  <div class="device-badge"><div class="device-dot"></div>Pixel 7 · Android 14</div>
+  <div class="spacer"></div>
+  <div class="tb-btn">↺</div>
+  <div class="tb-btn">⌕</div>
+  <div class="tb-btn accent">&lt;/&gt;</div>
+  <div class="tb-btn">⬇</div>
+  <div class="tb-btn-label">Diff</div>
+  <div class="tb-btn-label">Watch</div>
+</div>
+
+<div class="main">
+  <!-- TREE (narrow) -->
+  <div class="tree-panel">
+    <div class="panel-header">
+      <span class="panel-title">Element Tree</span>
+    </div>
+    <div class="tree-scroll">
+      <div class="tree-node" style="padding-left:8px">
+        <div class="tree-caret">▼</div>
+        <div class="tree-dot" style="background:#58A6FF"></div>
+        <div class="tree-name">FrameLayout</div>
+      </div>
+      <div class="tree-node" style="padding-left:20px">
+        <div class="tree-caret">▼</div>
+        <div class="tree-dot" style="background:#58A6FF"></div>
+        <div class="tree-name">LinearLayout</div>
+      </div>
+      <div class="tree-node" style="padding-left:32px">
+        <div class="tree-caret">▼</div>
+        <div class="tree-dot" style="background:#3FB950"></div>
+        <div class="tree-name">Toolbar</div>
+        <div class="tree-sub">toolbar</div>
+      </div>
+      <div class="tree-node selected" style="padding-left:32px">
+        <div class="tree-caret">▼</div>
+        <div class="tree-dot" style="background:#F0883E"></div>
+        <div class="tree-name">RecyclerView</div>
+        <div class="tree-sub">recycler_main</div>
+      </div>
+      <div class="tree-node" style="padding-left:44px">
+        <div class="tree-caret">▶</div>
+        <div class="tree-dot" style="background:#58A6FF"></div>
+        <div class="tree-name">ViewHolder [0]</div>
+      </div>
+      <div class="tree-node" style="padding-left:44px;background:#1A3549">
+        <div class="tree-caret">▶</div>
+        <div class="tree-dot" style="background:#58A6FF"></div>
+        <div class="tree-name" style="color:#58A6FF">ViewHolder [1]</div>
+      </div>
+      <div class="tree-node" style="padding-left:44px">
+        <div class="tree-caret">▶</div>
+        <div class="tree-dot" style="background:#58A6FF"></div>
+        <div class="tree-name">ViewHolder [2]</div>
+      </div>
+      <div class="tree-node" style="padding-left:44px">
+        <div class="tree-caret">▶</div>
+        <div class="tree-dot" style="background:#58A6FF"></div>
+        <div class="tree-name">ViewHolder [3]</div>
+      </div>
+      <div class="tree-node" style="padding-left:32px">
+        <div class="tree-caret"> </div>
+        <div class="tree-dot" style="background:#D2A8FF"></div>
+        <div class="tree-name">FloatingActionButton</div>
+      </div>
+      <div class="tree-node" style="padding-left:32px">
+        <div class="tree-caret"> </div>
+        <div class="tree-dot" style="background:#E6EDF3"></div>
+        <div class="tree-name">BottomNavigationView</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CENTER: code gen main -->
+  <div class="center-panel">
+    <!-- Small canvas preview -->
+    <div class="canvas-area">
+      <svg style="position:absolute;inset:0;width:100%;height:100%;opacity:.04" xmlns="http://www.w3.org/2000/svg">
+        <defs><pattern id="g" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M 20 0 L 0 0 0 20" fill="none" stroke="#E6EDF3" stroke-width="0.5"/></pattern></defs>
+        <rect width="100%" height="100%" fill="url(#g)"/>
+      </svg>
+      <div class="phone-mini">
+        <div class="phone-status"><span>9:41</span><span>100%</span></div>
+        <div style="height:240px;background:#FAFAFA;display:flex;flex-direction:column;">
+          <div style="height:40px;background:#1565C0;display:flex;align-items:center;padding:0 10px"><span style="color:white;font-size:10px">My App</span></div>
+          <div class="list-item"><div class="item-avatar" style="background:#4CAF50"></div><div class="item-text"><div class="item-title">Alice</div><div class="item-sub">alice@ex.com</div></div></div>
+          <div class="list-item sel"><div class="item-avatar" style="background:#2196F3"></div><div class="item-text"><div class="item-title">Bob</div><div class="item-sub">bob@ex.com</div></div></div>
+          <div class="list-item"><div class="item-avatar" style="background:#9C27B0"></div><div class="item-text"><div class="item-title">Carol</div><div class="item-sub">carol@ex.com</div></div></div>
+          <div class="list-item"><div class="item-avatar" style="background:#FF5722"></div><div class="item-text"><div class="item-title">David</div><div class="item-sub">david@ex.com</div></div></div>
+        </div>
+        <div class="highlight-box" style="left:2px;top:73px;width:126px;height:52px"></div>
+      </div>
+      <div style="position:absolute;top:12px;right:12px;background:#161B22;border:1px solid #30363D;border-radius:5px;padding:4px 8px;font-size:10px;color:#8B949E">Selected: ViewHolder [1]</div>
+    </div>
+
+    <!-- CODE GEN PANEL (expanded) -->
+    <div class="codegen-panel">
+      <div class="codegen-header">
+        <span class="codegen-title">Code Generation</span>
+        <div class="lang-tabs">
+          <div class="lang-tab active">Python</div>
+          <div class="lang-tab">Java</div>
+          <div class="lang-tab">Kotlin</div>
+          <div class="lang-tab">JS</div>
+        </div>
+        <div class="spacer"></div>
+        <span style="font-size:11px;color:#8B949E">Framework:</span>
+        <div style="background:#21262D;border:1px solid #30363D;border-radius:5px;padding:3px 10px;font-size:11px;color:#E6EDF3;display:flex;align-items:center;gap:4px">uiautomator2 ▾</div>
+      </div>
+
+      <!-- Fragile warning -->
+      <div class="fragile-area">
+        <div class="fragile-header">
+          <span class="fragile-badge-lg">⚠ Fragile Selector</span>
+          <span class="fragile-title">Index-based selection may break</span>
+        </div>
+        <div class="fragile-desc">This selector relies on <strong style="color:#E3B341">position (index=1)</strong> in the list. If items are reordered, added, or removed, the selector will target the wrong element. Consider a more stable alternative.</div>
+        <div class="fragile-reasons">
+          <span class="fragile-reason">⚡ Uses index position</span>
+          <span class="fragile-reason">⚡ No unique ID available</span>
+          <span class="fragile-reason">⚡ Dynamic list content</span>
+        </div>
+      </div>
+
+      <div class="code-tabs">
+        <div class="code-tab active">Current (fragile)</div>
+        <div class="code-tab">💡 Suggested fix</div>
+        <div class="code-tab">Full test script</div>
+      </div>
+
+      <div style="flex:1;overflow-y:auto">
+        <div class="code-pre"><span class="line-num">1</span><span class="c-cm"># ⚠ Fragile: index-based selector breaks on list reorder</span>
+<span class="line-num">2</span><span class="c-kw">import</span> uiautomator2 <span class="c-kw">as</span> u2
+<span class="line-num">3</span>
+<span class="line-num">4</span>d = u2.<span class="c-fn">connect</span>()  <span class="c-cm"># connect to device</span>
+<span class="line-num">5</span>
+<span class="line-num">6</span><span class="c-cm"># Navigate to screen</span>
+<span class="line-num">7</span>d.<span class="c-fn">app_start</span>(<span class="c-str">"com.example.myapp"</span>)
+<span class="line-num">8</span>
+<span class="line-num">9</span><span class="c-cm"># Select the RecyclerView item (FRAGILE: index=1)</span>
+<span class="line-num">10</span>recycler = d(<span class="c-str">resourceId</span>=<span class="c-str">"com.example.myapp:id/recycler_main"</span>)
+<span class="line-num">11</span>item = recycler.<span class="c-fn">child</span>(
+<span class="line-num">12</span>    className=<span class="c-str">"android.view.ViewGroup"</span>,
+<span class="line-num">13</span>    index=<span class="c-num">1</span>  <span class="c-cm"># ⚠ fragile — breaks if list changes</span>
+<span class="line-num">14</span>)
+<span class="line-num">15</span>item.<span class="c-fn">click</span>()</div>
+      </div>
+
+      <div class="code-toolbar">
+        <div class="ctb-btn primary">⎘ Copy code</div>
+        <div class="ctb-btn">⬇ Download .py</div>
+        <div class="ctb-btn">▶ Run on device</div>
+        <div class="spacer"></div>
+        <span style="font-size:11px;color:#8B949E">Stability score:</span>
+        <span style="font-size:11px;color:#E3B341;font-weight:600">2 / 10</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROPERTIES PANEL -->
+  <div class="props-panel">
+    <div class="props-header">
+      <span class="panel-title">Properties</span>
+      <span class="conf-badge">⚠ Low stability</span>
+    </div>
+    <div class="props-scroll">
+      <div class="prop-section">Selector Quality</div>
+      <div class="stability-score">
+        <div class="stability-item">
+          <span class="stability-label">resource-id</span>
+          <div class="stability-track"><div class="stability-fill" style="width:0%;background:#F85149"></div></div>
+          <span style="font-size:10px;color:#F85149">None</span>
+        </div>
+        <div class="stability-item">
+          <span class="stability-label">content-desc</span>
+          <div class="stability-track"><div class="stability-fill" style="width:90%;background:#3FB950"></div></div>
+          <span style="font-size:10px;color:#3FB950">Good</span>
+        </div>
+        <div class="stability-item">
+          <span class="stability-label">text</span>
+          <div class="stability-track"><div class="stability-fill" style="width:0%;background:#F85149"></div></div>
+          <span style="font-size:10px;color:#F85149">None</span>
+        </div>
+        <div class="stability-item">
+          <span class="stability-label">index</span>
+          <div class="stability-track"><div class="stability-fill" style="width:15%;background:#F85149"></div></div>
+          <span style="font-size:10px;color:#F85149">Fragile</span>
+        </div>
+      </div>
+
+      <div class="divider-line"></div>
+      <div class="prop-section">Identity</div>
+      <div class="prop-row"><span class="prop-key">class</span><span class="prop-val blue">ViewGroup</span></div>
+      <div class="prop-row"><span class="prop-key">resource-id</span><span class="prop-val muted">(none)</span></div>
+      <div class="prop-row"><span class="prop-key">content-desc</span><span class="prop-val">Bob Smith</span></div>
+      <div class="prop-row"><span class="prop-key">index</span><span class="prop-val yellow">1</span></div>
+
+      <div class="divider-line"></div>
+      <div class="prop-section">Geometry</div>
+      <div class="prop-row"><span class="prop-key">bounds</span><span class="prop-val">[0,140][1080,212]</span></div>
+      <div class="prop-row"><span class="prop-key">width × height</span><span class="prop-val orange">1080 × 72 px</span></div>
+
+      <div class="divider-line"></div>
+      <div style="margin:8px;background:#1A2E1A;border:1px solid #3FB950;border-radius:8px;padding:10px">
+        <div style="font-size:11px;font-weight:600;color:#3FB950;margin-bottom:4px">💡 Better selector</div>
+        <div style="font-family:monospace;font-size:11px;color:#A6E3A1;background:#0D1117;padding:6px 8px;border-radius:4px;margin-bottom:4px">d(description="Bob Smith").click()</div>
+        <div style="font-size:10px;color:#8B949E">Uses content-desc — stable across reorders</div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

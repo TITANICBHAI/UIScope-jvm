@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1366">
+<title>UIScope — Breadcrumb &amp; XPath</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{width:1366px;height:768px;overflow:hidden;font-family:'Segoe UI',system-ui,sans-serif;background:#0D1117;color:#E6EDF3;font-size:13px}
+  .topbar{height:48px;background:#161B22;border-bottom:1px solid #30363D;display:flex;align-items:center;padding:0 10px;gap:6px;flex-shrink:0}
+  .topbar-back{width:28px;height:28px;border-radius:6px;background:transparent;border:1px solid #30363D;color:#8B949E;display:flex;align-items:center;justify-content:center;font-size:14px}
+  .topbar-sep{width:1px;height:24px;background:#30363D;margin:0 4px}
+  .mode-tabs{display:flex;gap:2px;background:#0D1117;border-radius:6px;padding:2px}
+  .mode-tab{padding:4px 10px;border-radius:4px;font-size:12px;color:#8B949E}
+  .mode-tab.active{background:#21262D;color:#58A6FF;font-weight:600}
+  .device-badge{background:#21262D;border:1px solid #30363D;border-radius:20px;padding:3px 10px;font-size:11px;color:#E6EDF3;display:flex;align-items:center;gap:5px}
+  .device-dot{width:7px;height:7px;border-radius:50%;background:#3FB950}
+  .spacer{flex:1}
+  .tb-btn{width:30px;height:30px;border-radius:6px;background:transparent;border:1px solid #30363D;color:#8B949E;display:flex;align-items:center;justify-content:center;font-size:14px}
+  .tb-btn-label{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:6px;border:1px solid #30363D;color:#8B949E;font-size:12px}
+  .main{display:flex;height:calc(768px - 48px)}
+  .tree-panel{width:240px;background:#161B22;border-right:1px solid #30363D;display:flex;flex-direction:column;flex-shrink:0}
+  .panel-header{height:38px;background:#0D1117;border-bottom:1px solid #30363D;display:flex;align-items:center;padding:0 12px;gap:8px}
+  .panel-title{font-size:12px;font-weight:600;color:#E6EDF3;letter-spacing:.3px}
+  .tree-scroll{flex:1;overflow-y:auto;padding:4px 0}
+  .tree-node{display:flex;align-items:center;padding:3px 0;cursor:pointer;position:relative}
+  .tree-node:hover{background:#21262D}
+  .tree-node.selected{background:#1A3549}
+  .tree-node.selected::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:#58A6FF}
+  .tree-caret{width:14px;flex-shrink:0;text-align:center;color:#8B949E;font-size:10px}
+  .tree-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-right:5px}
+  .tree-name{font-size:12px;color:#E6EDF3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tree-sub{font-size:10px;color:#8B949E;margin-left:4px;white-space:nowrap}
+  /* center */
+  .center-panel{flex:1;display:flex;flex-direction:column;background:#0D1117;overflow:hidden}
+  .canvas-area{flex:1;background:#0D1117;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+  .phone-frame{width:220px;height:480px;background:#1C1C1E;border-radius:24px;border:2px solid #30363D;overflow:hidden;position:relative;box-shadow:0 16px 48px rgba(0,0,0,.7)}
+  .phone-status{height:24px;background:#1C1C1E;display:flex;align-items:center;justify-content:space-between;padding:0 12px;font-size:9px;color:#8B949E}
+  .app-content{height:456px;background:#FAFAFA;display:flex;flex-direction:column}
+  .app-topbar-m{height:48px;background:#1565C0;display:flex;align-items:center;padding:0 12px;gap:8px}
+  .app-topbar-m span{color:white;font-size:12px}
+  .list-item{height:62px;border-bottom:1px solid #E0E0E0;display:flex;align-items:center;padding:0 12px;gap:10px;background:white;flex-shrink:0}
+  .list-item.sel{background:#E3F2FD}
+  .avatar{width:36px;height:36px;border-radius:50%;flex-shrink:0}
+  .item-t{font-size:11px;color:#212121;font-weight:500}
+  .item-s{font-size:9px;color:#757575;margin-top:2px}
+  .highlight-box{position:absolute;border:2px solid #58A6FF;background:rgba(88,166,255,.15);pointer-events:none}
+  /* Breadcrumb bar — large focus area */
+  .breadcrumb-section{background:#161B22;border-top:1px solid #30363D;flex-shrink:0}
+  .breadcrumb-bar{height:42px;display:flex;align-items:center;padding:0 14px;gap:5px;border-bottom:1px solid #30363D;position:relative}
+  .bc-node{display:flex;align-items:center;gap:4px;padding:4px 8px;border-radius:6px;cursor:pointer;transition:background .12s}
+  .bc-node:hover{background:#21262D}
+  .bc-node.active{background:#1A3549}
+  .bc-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+  .bc-text{font-size:12px;color:#E6EDF3;white-space:nowrap}
+  .bc-text.active{color:#58A6FF;font-weight:600}
+  .bc-chevron{font-size:11px;color:#30363D;margin:0 1px}
+  /* tooltip on last node */
+  .bc-tooltip{position:absolute;bottom:calc(100% + 6px);left:620px;background:#161B22;border:1px solid #58A6FF;border-radius:8px;padding:10px 14px;box-shadow:0 8px 32px rgba(0,0,0,.6);z-index:10;min-width:240px}
+  .bc-tooltip-title{font-size:11px;font-weight:600;color:#E6EDF3;margin-bottom:4px}
+  .bc-tooltip-row{display:flex;gap:8px;margin-bottom:3px}
+  .bc-tooltip-key{font-size:10px;color:#8B949E;width:72px;flex-shrink:0}
+  .bc-tooltip-val{font-size:10px;color:#E6EDF3;font-family:monospace}
+  /* XPath area */
+  .xpath-section{background:#0D1117;padding:12px 16px 14px;border-bottom:1px solid #30363D}
+  .xpath-label{font-size:10px;color:#8B949E;font-weight:600;text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+  .xpath-formats{display:flex;gap:6px;margin-left:auto}
+  .xpath-fmt-btn{padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;cursor:pointer;border:1px solid #30363D;color:#8B949E}
+  .xpath-fmt-btn.active{background:#1A3549;border-color:#58A6FF;color:#58A6FF}
+  .xpath-input{width:100%;background:#21262D;border:1px solid #30363D;border-radius:6px;padding:8px 12px;font-size:11px;color:#CDD6F4;font-family:'Cascadia Code','Consolas',monospace;display:flex;align-items:center;gap:8px}
+  .xpath-hl-1{color:#89B4FA}
+  .xpath-hl-2{color:#A6E3A1}
+  .xpath-hl-3{color:#F9E2AF}
+  .xpath-hl-4{color:#CBA6F7}
+  .xpath-actions{display:flex;gap:8px;margin-top:8px}
+  .xpath-action-btn{padding:5px 14px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid #30363D;color:#8B949E;background:transparent;display:flex;align-items:center;gap:5px}
+  .xpath-action-btn.primary{background:#1A3549;border-color:#58A6FF;color:#58A6FF}
+  .xpath-action-btn.success{background:#122116;border-color:#3FB950;color:#3FB950}
+  /* quick select panel */
+  .quick-panel{height:160px;background:#161B22;border-top:1px solid #30363D;overflow:hidden;display:flex;flex-direction:column}
+  .quick-header{height:36px;background:#0D1117;border-bottom:1px solid #30363D;display:flex;align-items:center;padding:0 14px;gap:8px}
+  .quick-title{font-size:11px;font-weight:600;color:#E6EDF3}
+  .quick-body{padding:8px 14px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;overflow:hidden}
+  .quick-item{background:#0D1117;border:1px solid #30363D;border-radius:6px;padding:7px 10px;cursor:pointer}
+  .quick-item:hover{border-color:#58A6FF}
+  .quick-item-label{font-size:10px;color:#8B949E;margin-bottom:3px}
+  .quick-item-val{font-size:11px;color:#E6EDF3;font-family:monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .quick-item-copy{font-size:10px;color:#58A6FF;margin-top:3px;cursor:pointer}
+  /* props panel */
+  .props-panel{width:260px;background:#161B22;border-left:1px solid #30363D;display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
+  .props-header{height:38px;background:#0D1117;border-bottom:1px solid #30363D;display:flex;align-items:center;padding:0 12px;gap:8px}
+  .props-scroll{flex:1;overflow-y:auto;padding:8px 0}
+  .prop-section{padding:4px 12px 2px;font-size:10px;color:#8B949E;font-weight:600;text-transform:uppercase;letter-spacing:.8px}
+  .prop-row{display:flex;align-items:center;padding:5px 12px;gap:8px}
+  .prop-key{font-size:11px;color:#8B949E;width:84px;flex-shrink:0}
+  .prop-val{font-size:11px;color:#E6EDF3;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:monospace}
+  .prop-val.blue{color:#58A6FF}.prop-val.green{color:#3FB950}.prop-val.orange{color:#F0883E}.prop-val.muted{color:#8B949E}
+  .divider-line{height:1px;background:#21262D;margin:6px 12px}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="topbar-back">←</div>
+  <div class="topbar-sep"></div>
+  <div class="mode-tabs">
+    <div class="mode-tab active">Android</div>
+    <div class="mode-tab">Windows</div>
+  </div>
+  <div class="topbar-sep"></div>
+  <div class="device-badge"><div class="device-dot"></div>Pixel 7 · Android 14</div>
+  <div class="spacer"></div>
+  <div class="tb-btn">↺</div>
+  <div class="tb-btn">⌕</div>
+  <div class="tb-btn">&lt;/&gt;</div>
+  <div class="tb-btn">⬇</div>
+  <div class="tb-btn-label">Diff</div>
+  <div class="tb-btn-label">Watch</div>
+</div>
+
+<div class="main">
+  <!-- TREE (narrow) -->
+  <div class="tree-panel">
+    <div class="panel-header">
+      <span class="panel-title">Element Tree</span>
+    </div>
+    <div class="tree-scroll">
+      <div class="tree-node" style="padding-left:8px">
+        <div class="tree-caret">▼</div>
+        <div class="tree-dot" style="background:#58A6FF"></div>
+        <div class="tree-name">FrameLayout</div>
+        <div class="tree-sub">content</div>
+      </div>
+      <div class="tree-node" style="padding-left:20px">
+        <div class="tree-caret">▼</div>
+        <div class="tree-dot" style="background:#58A6FF"></div>
+        <div class="tree-name">LinearLayout</div>
+      </div>
+      <div class="tree-node" style="padding-left:32px">
+        <div class="tree-caret">▼</div>
+        <div class="tree-dot" style="background:#3FB950"></div>
+        <div class="tree-name">Toolbar</div>
+        <div class="tree-sub">toolbar</div>
+      </div>
+      <div class="tree-node" style="padding-left:44px">
+        <div class="tree-caret"> </div>
+        <div class="tree-dot" style="background:#E6EDF3"></div>
+        <div class="tree-name">"My App"</div>
+      </div>
+      <div class="tree-node" style="padding-left:32px">
+        <div class="tree-caret">▼</div>
+        <div class="tree-dot" style="background:#F0883E"></div>
+        <div class="tree-name">RecyclerView</div>
+        <div class="tree-sub">recycler_main</div>
+      </div>
+      <div class="tree-node" style="padding-left:44px">
+        <div class="tree-caret">▶</div>
+        <div class="tree-dot" style="background:#58A6FF"></div>
+        <div class="tree-name">ViewHolder [0]</div>
+      </div>
+      <div class="tree-node selected" style="padding-left:44px">
+        <div class="tree-caret">▼</div>
+        <div class="tree-dot" style="background:#58A6FF"></div>
+        <div class="tree-name">ViewHolder [1]</div>
+      </div>
+      <div class="tree-node" style="padding-left:56px">
+        <div class="tree-caret"> </div>
+        <div class="tree-dot" style="background:#3FB950"></div>
+        <div class="tree-name">ImageView</div>
+        <div class="tree-sub">item_avatar</div>
+      </div>
+      <div class="tree-node" style="padding-left:56px">
+        <div class="tree-caret">▼</div>
+        <div class="tree-dot" style="background:#58A6FF"></div>
+        <div class="tree-name">LinearLayout</div>
+        <div class="tree-sub">item_text_block</div>
+      </div>
+      <div class="tree-node" style="padding-left:68px">
+        <div class="tree-caret"> </div>
+        <div class="tree-dot" style="background:#E6EDF3"></div>
+        <div class="tree-name">"Bob Smith"</div>
+      </div>
+      <div class="tree-node" style="padding-left:68px">
+        <div class="tree-caret"> </div>
+        <div class="tree-dot" style="background:#E6EDF3"></div>
+        <div class="tree-name">"bob@example.com"</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CENTER -->
+  <div class="center-panel">
+    <div class="canvas-area">
+      <svg style="position:absolute;inset:0;width:100%;height:100%;opacity:.04" xmlns="http://www.w3.org/2000/svg">
+        <defs><pattern id="g" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M 20 0 L 0 0 0 20" fill="none" stroke="#E6EDF3" stroke-width="0.5"/></pattern></defs>
+        <rect width="100%" height="100%" fill="url(#g)"/>
+      </svg>
+      <div class="phone-frame">
+        <div class="phone-status"><span>9:41</span><span>100%</span></div>
+        <div class="app-content">
+          <div class="app-topbar-m">
+            <span style="font-size:16px">☰</span>
+            <span>My App</span>
+          </div>
+          <div class="list-item"><div class="avatar" style="background:#4CAF50"></div><div><div class="item-t">Alice Johnson</div><div class="item-s">alice@example.com</div></div></div>
+          <div class="list-item sel" style="border-left:3px solid #1565C0"><div class="avatar" style="background:#2196F3"></div><div><div class="item-t">Bob Smith</div><div class="item-s">bob@example.com · Online</div></div></div>
+          <div class="list-item"><div class="avatar" style="background:#9C27B0"></div><div><div class="item-t">Carol White</div><div class="item-s">carol@example.com</div></div></div>
+          <div class="list-item"><div class="avatar" style="background:#FF5722"></div><div><div class="item-t">David Brown</div><div class="item-s">david@example.com</div></div></div>
+        </div>
+        <div class="highlight-box" style="left:3px;top:110px;width:214px;height:62px"></div>
+      </div>
+    </div>
+
+    <!-- BREADCRUMB — featured -->
+    <div class="breadcrumb-section">
+      <div class="breadcrumb-bar">
+        <div class="bc-node">
+          <div class="bc-dot" style="background:#58A6FF"></div>
+          <span class="bc-text">FrameLayout</span>
+        </div>
+        <span class="bc-chevron">›</span>
+        <div class="bc-node">
+          <div class="bc-dot" style="background:#58A6FF"></div>
+          <span class="bc-text">LinearLayout</span>
+        </div>
+        <span class="bc-chevron">›</span>
+        <div class="bc-node">
+          <div class="bc-dot" style="background:#F0883E"></div>
+          <span class="bc-text">RecyclerView</span>
+        </div>
+        <span class="bc-chevron">›</span>
+        <div class="bc-node active">
+          <div class="bc-dot" style="background:#58A6FF"></div>
+          <span class="bc-text active">ViewHolder[1]</span>
+        </div>
+        <!-- tooltip on active node -->
+        <div class="bc-tooltip">
+          <div class="bc-tooltip-title">ViewHolder [1] — ViewGroup</div>
+          <div class="bc-tooltip-row"><span class="bc-tooltip-key">resource-id</span><span class="bc-tooltip-val" style="color:#8B949E">(none)</span></div>
+          <div class="bc-tooltip-row"><span class="bc-tooltip-key">content-desc</span><span class="bc-tooltip-val" style="color:#58A6FF">Bob Smith</span></div>
+          <div class="bc-tooltip-row"><span class="bc-tooltip-key">bounds</span><span class="bc-tooltip-val">[0,140][1080,212]</span></div>
+          <div class="bc-tooltip-row"><span class="bc-tooltip-key">depth</span><span class="bc-tooltip-val">3</span></div>
+        </div>
+      </div>
+
+      <!-- XPath section -->
+      <div class="xpath-section">
+        <div class="xpath-label">
+          XPath
+          <div class="xpath-formats">
+            <div class="xpath-fmt-btn active">Standard</div>
+            <div class="xpath-fmt-btn">Absolute</div>
+            <div class="xpath-fmt-btn">CSS-like</div>
+          </div>
+        </div>
+        <div class="xpath-input">
+          <span style="color:#45475A;margin-right:4px;user-select:none;font-size:10px">XPath</span>
+          <span class="xpath-hl-1">//android.widget.FrameLayout</span><span style="color:#8B949E">/</span><span class="xpath-hl-2">android.widget.LinearLayout</span><span style="color:#8B949E">/</span><span class="xpath-hl-3">android.widget.RecyclerView</span><span style="color:#8B949E">/</span><span class="xpath-hl-4">android.view.ViewGroup[@content-desc="Bob Smith"]</span>
+        </div>
+        <div class="xpath-actions">
+          <div class="xpath-action-btn primary">⎘ Copy XPath</div>
+          <div class="xpath-action-btn success">✓ Verify on device</div>
+          <div class="xpath-action-btn">⬇ Export selectors</div>
+          <div class="spacer" style="flex:1"></div>
+          <div style="font-size:11px;color:#3FB950;display:flex;align-items:center;gap:5px">✓ Stable selector · matches 1 node</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick selectors -->
+    <div class="quick-panel">
+      <div class="quick-header">
+        <span class="quick-title">Quick Selectors</span>
+        <span style="font-size:10px;color:#8B949E;margin-left:4px">— all valid selectors for this node</span>
+      </div>
+      <div class="quick-body">
+        <div class="quick-item" style="border-color:#3FB950;background:#122116">
+          <div class="quick-item-label">By content-desc ✓ Best</div>
+          <div class="quick-item-val" style="color:#3FB950">description="Bob Smith"</div>
+          <div class="quick-item-copy">⎘ Copy</div>
+        </div>
+        <div class="quick-item">
+          <div class="quick-item-label">By class + index ⚠ Fragile</div>
+          <div class="quick-item-val" style="color:#E3B341">ViewGroup[index=1]</div>
+          <div class="quick-item-copy">⎘ Copy</div>
+        </div>
+        <div class="quick-item">
+          <div class="quick-item-label">Full XPath</div>
+          <div class="quick-item-val" style="color:#58A6FF">//…/ViewGroup[@content…</div>
+          <div class="quick-item-copy">⎘ Copy</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROPS -->
+  <div class="props-panel">
+    <div class="props-header">
+      <span class="panel-title">Properties</span>
+    </div>
+    <div class="props-scroll">
+      <div class="prop-section">Identity</div>
+      <div class="prop-row"><span class="prop-key">class</span><span class="prop-val blue">ViewGroup</span></div>
+      <div class="prop-row"><span class="prop-key">resource-id</span><span class="prop-val muted">(none)</span></div>
+      <div class="prop-row"><span class="prop-key">content-desc</span><span class="prop-val">Bob Smith</span></div>
+      <div class="prop-row"><span class="prop-key">index</span><span class="prop-val orange">1</span></div>
+      <div class="divider-line"></div>
+      <div class="prop-section">Geometry</div>
+      <div class="prop-row"><span class="prop-key">bounds</span><span class="prop-val">[0,140][1080,212]</span></div>
+      <div class="prop-row"><span class="prop-key">depth</span><span class="prop-val orange">3</span></div>
+      <div class="divider-line"></div>
+      <div class="prop-section">State</div>
+      <div class="prop-row"><span class="prop-key">clickable</span><span class="prop-val green">true</span></div>
+      <div class="prop-row"><span class="prop-key">enabled</span><span class="prop-val green">true</span></div>
+      <div class="prop-row"><span class="prop-key">visible</span><span class="prop-val green">true</span></div>
+      <div class="divider-line"></div>
+      <div class="prop-section">XPath</div>
+      <div style="padding:6px 12px">
+        <div style="background:#21262D;border-radius:5px;padding:6px 8px;font-size:10px;color:#CDD6F4;font-family:monospace;line-height:1.6;word-break:break-all">//android.widget.FrameLayout/android.widget.LinearLayout/android.widget.RecyclerView/android.view.ViewGroup[@content-desc="Bob Smith"]</div>
+      </div>
+      <div style="margin:6px 12px;padding:6px 10px;background:#122116;border:1px solid #3FB950;border-radius:6px">
+        <div style="font-size:10px;color:#3FB950;font-weight:600">✓ Verified · 1 match</div>
+        <div style="font-size:10px;color:#8B949E;margin-top:2px">Tested against live device</div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

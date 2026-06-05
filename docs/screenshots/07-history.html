@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1366">
+<title>UIScope — History</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{width:1366px;height:768px;overflow:hidden;font-family:'Segoe UI',system-ui,sans-serif;background:#0D1117;color:#E6EDF3;font-size:13px}
+  .topbar{height:48px;background:#161B22;border-bottom:1px solid #30363D;display:flex;align-items:center;padding:0 12px;gap:8px}
+  .back-btn{width:28px;height:28px;border-radius:6px;border:1px solid #30363D;color:#8B949E;display:flex;align-items:center;justify-content:center;font-size:14px}
+  .page-title{font-size:14px;font-weight:600;color:#E6EDF3}
+  .spacer{flex:1}
+  .tb-btn{padding:5px 12px;border-radius:6px;border:1px solid #30363D;color:#8B949E;font-size:12px;display:flex;align-items:center;gap:5px;cursor:pointer}
+  .tb-btn.danger{background:#1A0A0A;border-color:#F85149;color:#F85149}
+  .body{height:calc(768px - 48px);display:flex}
+  /* left: session list */
+  .session-list{width:340px;background:#161B22;border-right:1px solid #30363D;display:flex;flex-direction:column;flex-shrink:0}
+  .list-header{height:44px;background:#0D1117;border-bottom:1px solid #30363D;display:flex;align-items:center;padding:0 12px;gap:8px}
+  .list-title{font-size:12px;font-weight:600;color:#E6EDF3}
+  .count-badge{background:#21262D;border-radius:10px;padding:1px 7px;font-size:10px;color:#8B949E}
+  .search-bar{height:36px;background:#21262D;border-bottom:1px solid #30363D;display:flex;align-items:center;padding:0 12px;gap:8px;color:#8B949E;font-size:12px}
+  .sessions-scroll{flex:1;overflow-y:auto}
+  /* Date group header */
+  .date-group{padding:8px 12px 4px;font-size:10px;color:#8B949E;font-weight:600;text-transform:uppercase;letter-spacing:.8px}
+  .session-item{padding:10px 14px;border-bottom:1px solid #21262D;cursor:pointer;display:flex;flex-direction:column;gap:4px;position:relative}
+  .session-item:hover{background:#21262D}
+  .session-item.active{background:#1A3549;border-left:3px solid #58A6FF}
+  .session-item.active::before{display:none}
+  .session-name{font-size:12px;font-weight:600;color:#E6EDF3;display:flex;align-items:center;gap:6px}
+  .session-device{font-size:10px;color:#8B949E}
+  .session-meta{display:flex;gap:8px;align-items:center}
+  .s-badge{background:#21262D;border-radius:4px;padding:1px 6px;font-size:10px;color:#8B949E}
+  .s-badge.android{color:#3FB950;background:#122116}
+  .s-badge.windows{color:#D2A8FF;background:#1A2040}
+  .session-time{font-size:10px;color:#8B949E;margin-left:auto}
+  /* right: session detail */
+  .session-detail{flex:1;display:flex;flex-direction:column;overflow:hidden}
+  .detail-header{height:54px;background:#161B22;border-bottom:1px solid #30363D;display:flex;align-items:center;padding:0 16px;gap:12px}
+  .detail-title{font-size:14px;font-weight:600;color:#E6EDF3}
+  .detail-sub{font-size:12px;color:#8B949E}
+  .detail-actions{margin-left:auto;display:flex;gap:8px}
+  .action-btn{padding:5px 14px;border-radius:6px;border:1px solid #30363D;color:#8B949E;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:5px}
+  .action-btn.primary{background:#1A3549;border-color:#58A6FF;color:#58A6FF}
+  /* stats bar */
+  .stats-bar{height:64px;background:#0D1117;border-bottom:1px solid #30363D;display:flex;align-items:center;padding:0 16px;gap:24px;flex-shrink:0}
+  .stat{display:flex;flex-direction:column;gap:2px}
+  .stat-label{font-size:10px;color:#8B949E;text-transform:uppercase;letter-spacing:.6px}
+  .stat-value{font-size:20px;font-weight:600;color:#E6EDF3;line-height:1}
+  .stat-value.blue{color:#58A6FF}
+  .stat-value.green{color:#3FB950}
+  .stat-value.orange{color:#F0883E}
+  /* tabs */
+  .tabs{height:38px;background:#161B22;border-bottom:1px solid #30363D;display:flex;align-items:flex-end;padding:0 16px}
+  .tab{padding:8px 14px;font-size:12px;color:#8B949E;cursor:pointer;border-bottom:2px solid transparent}
+  .tab.active{color:#58A6FF;border-bottom-color:#58A6FF}
+  /* node list tab */
+  .node-list{flex:1;overflow-y:auto}
+  .node-row{display:flex;align-items:center;padding:8px 16px;border-bottom:1px solid #21262D;gap:10px;cursor:pointer}
+  .node-row:hover{background:#21262D}
+  .node-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+  .node-cls{font-size:12px;color:#E6EDF3;width:180px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .node-rid{font-size:11px;color:#58A6FF;flex:1;font-family:monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .node-bounds{font-size:10px;color:#8B949E;width:140px;flex-shrink:0;font-family:monospace}
+  .node-text{font-size:11px;color:#8B949E;width:120px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  /* json preview side */
+  .json-panel{width:380px;background:#1E1E2E;border-left:1px solid #30363D;display:flex;flex-direction:column;flex-shrink:0}
+  .json-header{height:36px;background:#161B22;border-bottom:1px solid #30363D;display:flex;align-items:center;padding:0 12px;gap:8px}
+  .json-title{font-size:11px;font-weight:600;color:#E6EDF3}
+  .json-body{flex:1;overflow-y:auto;padding:12px 14px;font-family:'Cascadia Code','Consolas',monospace;font-size:11px;line-height:1.7}
+  .j-k{color:#89B4FA}.j-s{color:#A6E3A1}.j-n{color:#FAB387}.j-b{color:#CBA6F7}.j-p{color:#8B949E}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="back-btn">←</div>
+  <span class="page-title">Session History</span>
+  <div class="spacer"></div>
+  <div class="tb-btn">⬇ Export all</div>
+  <div class="tb-btn danger">🗑 Clear history</div>
+</div>
+
+<div class="body">
+  <!-- Session list -->
+  <div class="session-list">
+    <div class="list-header">
+      <span class="list-title">Sessions</span>
+      <span class="count-badge">12 sessions</span>
+    </div>
+    <div class="search-bar">🔍 <span>Search sessions…</span></div>
+    <div class="sessions-scroll">
+      <div class="date-group">Today</div>
+
+      <div class="session-item active">
+        <div class="session-name">Session B — After navigation <span style="font-size:9px;background:#122116;color:#3FB950;border-radius:3px;padding:1px 5px">latest</span></div>
+        <div class="session-device">Pixel 7 · Android 14 · FA80U0305260</div>
+        <div class="session-meta">
+          <span class="s-badge android">Android</span>
+          <span class="s-badge">51 nodes</span>
+          <span class="s-badge">4 screenshots</span>
+          <span class="session-time">10:31 AM</span>
+        </div>
+      </div>
+
+      <div class="session-item">
+        <div class="session-name">Session A — Before login flow</div>
+        <div class="session-device">Pixel 7 · Android 14 · FA80U0305260</div>
+        <div class="session-meta">
+          <span class="s-badge android">Android</span>
+          <span class="s-badge">47 nodes</span>
+          <span class="session-time">10:24 AM</span>
+        </div>
+      </div>
+
+      <div class="session-item">
+        <div class="session-name">Calculator inspection</div>
+        <div class="session-device">Windows 11 · Calculator</div>
+        <div class="session-meta">
+          <span class="s-badge windows">Windows</span>
+          <span class="s-badge">23 nodes</span>
+          <span class="session-time">9:48 AM</span>
+        </div>
+      </div>
+
+      <div class="date-group">Yesterday</div>
+
+      <div class="session-item">
+        <div class="session-name">Login screen QA</div>
+        <div class="session-device">Pixel 6 · Android 13</div>
+        <div class="session-meta">
+          <span class="s-badge android">Android</span>
+          <span class="s-badge">38 nodes</span>
+          <span class="session-time">4:12 PM</span>
+        </div>
+      </div>
+
+      <div class="session-item">
+        <div class="session-name">Home screen verification</div>
+        <div class="session-device">Samsung Galaxy S23</div>
+        <div class="session-meta">
+          <span class="s-badge android">Android</span>
+          <span class="s-badge">62 nodes</span>
+          <span class="session-time">2:30 PM</span>
+        </div>
+      </div>
+
+      <div class="session-item">
+        <div class="session-name">Onboarding flow capture</div>
+        <div class="session-device">Pixel 7 · Android 14</div>
+        <div class="session-meta">
+          <span class="s-badge android">Android</span>
+          <span class="s-badge">29 nodes</span>
+          <span class="session-time">11:05 AM</span>
+        </div>
+      </div>
+
+      <div class="date-group">2 days ago</div>
+
+      <div class="session-item">
+        <div class="session-name">Settings screen</div>
+        <div class="session-device">Windows 10 · VS Code</div>
+        <div class="session-meta">
+          <span class="s-badge windows">Windows</span>
+          <span class="s-badge">84 nodes</span>
+          <span class="session-time">3:55 PM</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Session detail -->
+  <div class="session-detail">
+    <div class="detail-header">
+      <div>
+        <div class="detail-title">Session B — After navigation</div>
+        <div class="detail-sub">Today, 10:31 AM · Pixel 7 · Android 14</div>
+      </div>
+      <div class="detail-actions">
+        <div class="action-btn">⬇ Export JSON</div>
+        <div class="action-btn">↗ Open in inspector</div>
+        <div class="action-btn primary">Compare ↔</div>
+      </div>
+    </div>
+
+    <div class="stats-bar">
+      <div class="stat"><span class="stat-label">Total nodes</span><span class="stat-value blue">51</span></div>
+      <div class="stat"><span class="stat-label">Max depth</span><span class="stat-value">7</span></div>
+      <div class="stat"><span class="stat-label">Clickable</span><span class="stat-value green">14</span></div>
+      <div class="stat"><span class="stat-label">Text nodes</span><span class="stat-value orange">8</span></div>
+      <div class="stat"><span class="stat-label">Capture time</span><span class="stat-value" style="font-size:14px;padding-top:4px">10:31:08 AM</span></div>
+      <div class="stat"><span class="stat-label">Scan duration</span><span class="stat-value" style="font-size:14px;padding-top:4px">118ms</span></div>
+    </div>
+
+    <div class="tabs">
+      <div class="tab active">Node list</div>
+      <div class="tab">Screenshots (4)</div>
+      <div class="tab">Watch events</div>
+      <div class="tab">Raw XML</div>
+    </div>
+
+    <!-- Node list + JSON split -->
+    <div style="display:flex;flex:1;overflow:hidden">
+      <div class="node-list">
+        <!-- header row -->
+        <div style="display:flex;padding:5px 16px;background:#0D1117;border-bottom:1px solid #30363D;font-size:10px;color:#8B949E;text-transform:uppercase;letter-spacing:.6px;gap:10px">
+          <span style="width:8px;flex-shrink:0"></span>
+          <span style="width:180px;flex-shrink:0">Class</span>
+          <span style="flex:1">Resource ID</span>
+          <span style="width:140px;flex-shrink:0">Bounds</span>
+          <span style="width:120px;flex-shrink:0">Text / Desc</span>
+        </div>
+        <div class="node-row">
+          <div class="node-dot" style="background:#58A6FF"></div>
+          <span class="node-cls">FrameLayout</span><span class="node-rid">android:id/content</span>
+          <span class="node-bounds">[0,0][1080,2400]</span><span class="node-text"></span>
+        </div>
+        <div class="node-row">
+          <div class="node-dot" style="background:#58A6FF"></div>
+          <span class="node-cls">LinearLayout</span><span class="node-rid"></span>
+          <span class="node-bounds">[0,0][1080,2400]</span><span class="node-text"></span>
+        </div>
+        <div class="node-row">
+          <div class="node-dot" style="background:#3FB950"></div>
+          <span class="node-cls">Toolbar</span><span class="node-rid">toolbar</span>
+          <span class="node-bounds">[0,0][1080,160]</span><span class="node-text">My App</span>
+        </div>
+        <div class="node-row">
+          <div class="node-dot" style="background:#E6EDF3"></div>
+          <span class="node-cls">TextView</span><span class="node-rid">toolbar_title</span>
+          <span class="node-bounds">[56,48][400,112]</span><span class="node-text">"My App"</span>
+        </div>
+        <div class="node-row" style="background:#1A3549">
+          <div class="node-dot" style="background:#F0883E"></div>
+          <span class="node-cls">RecyclerView</span><span class="node-rid" style="color:#58A6FF">recycler_main</span>
+          <span class="node-bounds">[0,160][1080,1890]</span><span class="node-text"></span>
+        </div>
+        <div class="node-row">
+          <div class="node-dot" style="background:#58A6FF"></div>
+          <span class="node-cls">ViewGroup</span><span class="node-rid"></span>
+          <span class="node-bounds">[0,160][1080,232]</span><span class="node-text">Alice Johnson</span>
+        </div>
+        <div class="node-row">
+          <div class="node-dot" style="background:#58A6FF"></div>
+          <span class="node-cls">ViewGroup</span><span class="node-rid"></span>
+          <span class="node-bounds">[0,232][1080,304]</span><span class="node-text">Bob Smith</span>
+        </div>
+        <div class="node-row">
+          <div class="node-dot" style="background:#D2A8FF"></div>
+          <span class="node-cls">FloatingActionButton</span><span class="node-rid">fab_compose</span>
+          <span class="node-bounds">[936,1596][1044,1704]</span><span class="node-text">Compose</span>
+        </div>
+        <div class="node-row">
+          <div class="node-dot" style="background:#3FB950"></div>
+          <span class="node-cls">BottomNavigationView</span><span class="node-rid">bottom_nav</span>
+          <span class="node-bounds">[0,2152][1080,2400]</span><span class="node-text"></span>
+        </div>
+      </div>
+
+      <!-- JSON preview -->
+      <div class="json-panel">
+        <div class="json-header">
+          <span class="json-title">JSON Preview</span>
+          <div class="spacer" style="flex:1"></div>
+          <div style="font-size:10px;color:#58A6FF;cursor:pointer;border:1px solid #30363D;border-radius:4px;padding:2px 7px">⎘ Copy</div>
+        </div>
+        <div class="json-body">
+<span class="j-p">{</span><br>
+&nbsp;&nbsp;<span class="j-k">"session_id"</span><span class="j-p">:</span> <span class="j-s">"sess_20240115_1031"</span><span class="j-p">,</span><br>
+&nbsp;&nbsp;<span class="j-k">"timestamp"</span><span class="j-p">:</span> <span class="j-s">"2024-01-15T10:31:08Z"</span><span class="j-p">,</span><br>
+&nbsp;&nbsp;<span class="j-k">"device"</span><span class="j-p">: {</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="j-k">"name"</span><span class="j-p">:</span> <span class="j-s">"Pixel 7"</span><span class="j-p">,</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="j-k">"android_version"</span><span class="j-p">:</span> <span class="j-s">"14"</span><span class="j-p">,</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="j-k">"serial"</span><span class="j-p">:</span> <span class="j-s">"FA80U0305260"</span><br>
+&nbsp;&nbsp;<span class="j-p">},</span><br>
+&nbsp;&nbsp;<span class="j-k">"node_count"</span><span class="j-p">:</span> <span class="j-n">51</span><span class="j-p">,</span><br>
+&nbsp;&nbsp;<span class="j-k">"scan_ms"</span><span class="j-p">:</span> <span class="j-n">118</span><span class="j-p">,</span><br>
+&nbsp;&nbsp;<span class="j-k">"root"</span><span class="j-p">: {</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="j-k">"class"</span><span class="j-p">:</span> <span class="j-s">"android.widget.FrameLayout"</span><span class="j-p">,</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="j-k">"resource_id"</span><span class="j-p">:</span> <span class="j-s">"android:id/content"</span><span class="j-p">,</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="j-k">"bounds"</span><span class="j-p">:</span> <span class="j-s">"[0,0][1080,2400]"</span><span class="j-p">,</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="j-k">"children"</span><span class="j-p">: [</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="j-p">{</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="j-k">"class"</span><span class="j-p">:</span> <span class="j-s">"LinearLayout"</span><span class="j-p">,</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="j-k">"children"</span><span class="j-p">: [...]</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="j-p">}</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="j-p">]</span><br>
+&nbsp;&nbsp;<span class="j-p">}</span><br>
+<span class="j-p">}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
