@@ -21,6 +21,12 @@ description: Known gotchas for building the UIScope Kotlin Compose Multiplatform
 
 7. Gradle may show `UP-TO-DATE` for modules even after source edits — check compiled class files in `build/classes/kotlin/main/` to confirm new files actually compiled.
 
+10. **Triple-quoted strings with unescaped `$` or unclosed `"""`** — Any regex in `"""..."""` containing a literal `$` (e.g., end-of-line anchor `$` in a lookahead like `|$|`) causes a Kotlin interpolation parse error. Worse, if the raw-string pattern itself contains no `"""` to close it, the string silently spans to the next `"""` in the file, causing all intervening code to be mis-parsed as string content — producing cryptic errors hundreds of lines later. Fix: use regular double-quoted strings with `\\` escaping for regex patterns that contain `$` or consecutive `"` characters.
+
+11. **`return` inside expression-body functions (`= try { ... }`)** — `return X` inside `= try { ... }` is forbidden. Fix (a): replace `?: return default` with `?: default` directly. Fix (b): for early-guard returns, convert to block body: `fun f(): T { if (guard) return early; return try { ... } catch { fallback } }`.
+
+12. **Gradle incremental compile cache staleness** — If the Kotlin compiler keeps reporting errors at OLD column numbers after an edit, the incremental cache is stale. Fix: delete `build/kotlin`, `build/classes`, `build/tmp` for that module, then restart.
+
 8. **"Failed to launch JVM" on Windows EXE/MSI** — jpackage builds a stripped JRE by default, which omits modules required by JNA, jnativehook, and Compose Desktop. Fix: add `includeAllModules = true` inside the `nativeDistributions { }` block in `uiscope/app/build.gradle.kts`. This bundles the full JRE and eliminates the error. Already applied — do not remove it.
 
 9. **VNC setup on Replit** — No manual VNC installation is needed. Set `outputType = "vnc"` in the workflow definition in `.replit` and Replit provides the virtual display automatically. The workflow `Run UIScope (VNC)` runs `scripts/run-uiscope.sh`, which auto-detects Java from the Nix store, sets `JAVA_HOME`, and launches via `gradle :app:run --no-daemon`. `replit.nix` must include `pkgs.jdk21`, `pkgs.gradle`, and the X11/GL libs (`pkgs.xorg.libX11`, `pkgs.libGL`, etc.) — all already present.
