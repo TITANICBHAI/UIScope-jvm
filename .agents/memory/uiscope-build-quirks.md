@@ -20,3 +20,7 @@ description: Known gotchas for building the UIScope Kotlin Compose Multiplatform
 6. VNC workflow (`Run UIScope (VNC)`) is the only way to run the app in this environment; screenshot tool cannot capture VNC output.
 
 7. Gradle may show `UP-TO-DATE` for modules even after source edits — check compiled class files in `build/classes/kotlin/main/` to confirm new files actually compiled.
+
+8. **"Failed to launch JVM" on Windows EXE/MSI** — jpackage builds a stripped JRE by default, which omits modules required by JNA, jnativehook, and Compose Desktop. Fix: add `includeAllModules = true` inside the `nativeDistributions { }` block in `uiscope/app/build.gradle.kts`. This bundles the full JRE and eliminates the error. Already applied — do not remove it.
+
+9. **VNC setup on Replit** — No manual VNC installation is needed. Set `outputType = "vnc"` in the workflow definition in `.replit` and Replit provides the virtual display automatically. The workflow `Run UIScope (VNC)` runs `scripts/run-uiscope.sh`, which auto-detects Java from the Nix store, sets `JAVA_HOME`, and launches via `gradle :app:run --no-daemon`. `replit.nix` must include `pkgs.jdk21`, `pkgs.gradle`, and the X11/GL libs (`pkgs.xorg.libX11`, `pkgs.libGL`, etc.) — all already present.

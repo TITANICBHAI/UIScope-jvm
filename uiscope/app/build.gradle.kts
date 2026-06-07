@@ -30,6 +30,11 @@ compose.desktop {
         )
 
         nativeDistributions {
+            // Bundle the full JRE so the installer never hits "Failed to launch JVM".
+            // Without this, jpackage creates a stripped runtime image that may be
+            // missing modules required by JNA, jnativehook, or Compose Desktop itself.
+            includeAllModules = true
+
             targetFormats(
                 TargetFormat.Exe,       // Windows — NSIS self-extracting installer
                 TargetFormat.Msi,       // Windows — MSI (also used as MSIX source)
