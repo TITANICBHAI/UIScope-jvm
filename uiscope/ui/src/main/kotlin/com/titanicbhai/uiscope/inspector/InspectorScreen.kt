@@ -80,7 +80,8 @@ fun InspectorScreen(
     onHistory: () -> Unit = {},
     onSettings: () -> Unit = {},
     onDiff: () -> Unit = {},
-    onWatch: () -> Unit = {}
+    onWatch: () -> Unit = {},
+    onWatchNode: ((ElementNode) -> Unit)? = null
 ) {
     val colorScheme = MaterialTheme.colorScheme
     val scope = rememberCoroutineScope()
@@ -506,7 +507,8 @@ fun InspectorScreen(
                                     selectedNode = selectedNode,
                                     onNodeSelected = { selectedNode = it },
                                     searchQuery = searchQuery,
-                                    bookmarkedNodeIds = bookmarkedNodeIds
+                                    bookmarkedNodeIds = bookmarkedNodeIds,
+                                    onWatchNode = onWatchNode
                                 )
                             }
 

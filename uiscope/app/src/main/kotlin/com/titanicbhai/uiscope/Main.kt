@@ -145,6 +145,8 @@ fun main() = application {
     var secondMode by remember { mutableStateOf(InspectionMode.PC) }
     var secondScreen by remember { mutableStateOf(AppScreen.LAUNCHER) }
     val secondAdbManager = remember { AdbManager() }
+    var watchPrefilledNode by remember { mutableStateOf<com.titanicbhai.uiscope.model.ElementNode?>(null) }
+    var secondWatchPrefilledNode by remember { mutableStateOf<com.titanicbhai.uiscope.model.ElementNode?>(null) }
 
     LaunchedEffect(Unit) {
         val lastMode = settings.get(SettingsRepository.LAST_MODE)
@@ -299,6 +301,12 @@ fun main() = application {
                             screen = AppScreen.DIFF
                         },
                         onWatch = {
+                            watchPrefilledNode = null
+                            previousScreen = AppScreen.INSPECTOR
+                            screen = AppScreen.WATCH
+                        },
+                        onWatchNode = { node ->
+                            watchPrefilledNode = node
                             previousScreen = AppScreen.INSPECTOR
                             screen = AppScreen.WATCH
                         }
@@ -321,7 +329,11 @@ fun main() = application {
                     )
                     AppScreen.WATCH -> WatchScreen(
                         adbManager = adbManager,
-                        onBack = { screen = previousScreen }
+                        onBack = {
+                            watchPrefilledNode = null
+                            screen = previousScreen
+                        },
+                        prefilledNode = watchPrefilledNode
                     )
                 }
 
@@ -408,7 +420,14 @@ fun main() = application {
                         onHistory = { secondScreen = AppScreen.HISTORY },
                         onSettings = { secondScreen = AppScreen.SETTINGS },
                         onDiff = { secondScreen = AppScreen.DIFF },
-                        onWatch = { secondScreen = AppScreen.WATCH }
+                        onWatch = {
+                            secondWatchPrefilledNode = null
+                            secondScreen = AppScreen.WATCH
+                        },
+                        onWatchNode = { node ->
+                            secondWatchPrefilledNode = node
+                            secondScreen = AppScreen.WATCH
+                        }
                     )
                     AppScreen.HISTORY -> HistoryScreen(
                         onBack = { secondScreen = AppScreen.LAUNCHER }
@@ -421,7 +440,11 @@ fun main() = application {
                     )
                     AppScreen.WATCH -> WatchScreen(
                         adbManager = secondAdbManager,
-                        onBack = { secondScreen = AppScreen.INSPECTOR }
+                        onBack = {
+                            secondWatchPrefilledNode = null
+                            secondScreen = AppScreen.INSPECTOR
+                        },
+                        prefilledNode = secondWatchPrefilledNode
                     )
                 }
             }

@@ -19,18 +19,25 @@ import com.titanicbhai.uiscope.android.UiAutomatorParser
 import com.titanicbhai.uiscope.model.ElementNode
 import com.titanicbhai.uiscope.model.WatchConditionType
 import com.titanicbhai.uiscope.model.WatchRule
+import com.titanicbhai.uiscope.repository.WatchRuleRepository
 import com.titanicbhai.uiscope.theme.*
 import kotlinx.coroutines.*
 import java.text.SimpleDateFormat
 import java.util.*
 
 @Composable
-fun WatchScreen(adbManager: AdbManager, onBack: () -> Unit) {
+fun WatchScreen(
+    adbManager: AdbManager,
+    onBack: () -> Unit,
+    prefilledNode: ElementNode? = null
+) {
     val colorScheme = MaterialTheme.colorScheme
     val scope = rememberCoroutineScope()
+    val watchRepo = remember { WatchRuleRepository() }
 
     var rules by remember { mutableStateOf<List<WatchRule>>(emptyList()) }
     var showAddDialog by remember { mutableStateOf(false) }
+    var dialogPrefilledNode by remember { mutableStateOf<ElementNode?>(null) }
     var monitorLog by remember { mutableStateOf<List<String>>(emptyList()) }
     var devices by remember { mutableStateOf<List<AdbDevice>>(emptyList()) }
     var selectedDevice by remember { mutableStateOf<AdbDevice?>(null) }
@@ -48,13 +55,10 @@ fun WatchScreen(adbManager: AdbManager, onBack: () -> Unit) {
     }
 
     fun matchesRule(node: ElementNode, rule: WatchRule): Boolean {
-        val resId     = rule.targetResourceId
-        val className = rule.targetClassName
-        val text      = rule.targetText
-        if (resId != null && node.resourceId != resId) return false
-        if (className != null && !node.className.contains(className, ignoreCase = true)) return false
-        if (rule.conditionType == WatchConditionType.TEXT_MATCHES && text != null) {
-            return node.text?.contains(text, ignoreCase = true) == true
+        if (rule.targetResourceId != null && node.resourceId != rule.targetResourceId) return false
+        if (rule.targetClassName != null && !node.className.contains(rule.targetClassName, ignoreCase = true)) return false
+        if (rule.conditionType == WatchConditionType.TEXT_MATCHES && rule.targetText != null) {
+            return node.text?.contains(rule.targetText, ignoreCase = true) == true
         }
         return true
     }
@@ -64,6 +68,12 @@ fun WatchScreen(adbManager: AdbManager, onBack: () -> Unit) {
         activeJobs.remove(rule.id)
         rules = rules.map { if (it.id == rule.id) it.copy(isActive = false) else it }
         monitorLog = monitorLog + "${ts()} ⏹ Stopped: ${rule.label}"
+    }
+
+    fun deleteRule(rule: WatchRule) {
+        if (rule.isActive) stopRule(rule)
+        rules = rules.filter { it.id != rule.id }
+        scope.launch(Dispatchers.IO) { runCatching { watchRepo.delete(rule.id) } }
     }
 
     fun startRule(rule: WatchRule) {
@@ -131,6 +141,12 @@ fun WatchScreen(adbManager: AdbManager, onBack: () -> Unit) {
     }
 
     LaunchedEffect(Unit) {
+        // Load persisted rules from DB
+        val saved = withContext(Dispatchers.IO) {
+            runCatching { watchRepo.getAll() }.getOrDefault(emptyList())
+        }
+        rules = saved
+
         isScanning = true
         devices = withContext(Dispatchers.IO) {
             runCatching { adbManager.listDevices() }.getOrDefault(emptyList())
@@ -139,8 +155,15 @@ fun WatchScreen(adbManager: AdbManager, onBack: () -> Unit) {
         isScanning = false
     }
 
+    // Open dialog pre-filled when navigated from Inspector "Watch This Element"
+    LaunchedEffect(prefilledNode) {
+        if (prefilledNode != null) {
+            dialogPrefilledNode = prefilledNode
+            showAddDialog = true
+        }
+    }
+
     Column(modifier = Modifier.fillMaxSize().background(colorScheme.background)) {
-        // ── Top bar ─────────────────────────────────────────────────────────
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -163,6 +186,13 @@ fun WatchScreen(adbManager: AdbManager, onBack: () -> Unit) {
                     style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
                     color = colorScheme.onSurface
                 )
+                if (rules.isNotEmpty()) {
+                    Text(
+                        "${rules.size} rule${if (rules.size == 1) "" else "s"}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                    )
+                }
             }
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -182,7 +212,7 @@ fun WatchScreen(adbManager: AdbManager, onBack: () -> Unit) {
                     )
                 }
                 Button(
-                    onClick = { showAddDialog = true },
+                    onClick = { dialogPrefilledNode = null; showAddDialog = true },
                     modifier = Modifier.height(34.dp),
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
                 ) {
@@ -192,7 +222,6 @@ fun WatchScreen(adbManager: AdbManager, onBack: () -> Unit) {
         }
         HorizontalDivider(color = colorScheme.outline.copy(alpha = 0.4f))
 
-        // ── Body ─────────────────────────────────────────────────────────────
         if (rules.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Column(
@@ -207,11 +236,14 @@ fun WatchScreen(adbManager: AdbManager, onBack: () -> Unit) {
                     )
                     Text(
                         "Add a rule to monitor for a specific element appearing,\n" +
-                        "disappearing, or matching a text value on a connected device.",
+                        "disappearing, or matching a text value on a connected device.\n" +
+                        "Rules are saved and restored between sessions.",
                         style = MaterialTheme.typography.bodySmall,
                         color = colorScheme.onSurfaceVariant.copy(alpha = 0.65f)
                     )
-                    Button(onClick = { showAddDialog = true }) { Text("+ Add First Rule") }
+                    Button(onClick = { dialogPrefilledNode = null; showAddDialog = true }) {
+                        Text("+ Add First Rule")
+                    }
                 }
             }
         } else {
@@ -227,15 +259,11 @@ fun WatchScreen(adbManager: AdbManager, onBack: () -> Unit) {
                             onToggleActive = { toggled ->
                                 if (toggled.isActive) stopRule(toggled) else startRule(toggled)
                             },
-                            onDelete = { deleted ->
-                                if (deleted.isActive) stopRule(deleted)
-                                rules = rules.filter { it.id != deleted.id }
-                            }
+                            onDelete = { deleteRule(it) }
                         )
                     }
                 }
 
-                // ── Monitor log ───────────────────────────────────────────────
                 HorizontalDivider(color = colorScheme.outline.copy(alpha = 0.3f))
                 Column(
                     modifier = Modifier
@@ -297,16 +325,18 @@ fun WatchScreen(adbManager: AdbManager, onBack: () -> Unit) {
 
     if (showAddDialog) {
         AddWatchRuleDialog(
-            onDismiss = { showAddDialog = false },
+            onDismiss = { showAddDialog = false; dialogPrefilledNode = null },
+            prefilledNode = dialogPrefilledNode,
             onAdd = { newRule ->
                 rules = rules + newRule
                 showAddDialog = false
+                dialogPrefilledNode = null
+                scope.launch(Dispatchers.IO) { runCatching { watchRepo.insert(newRule) } }
+                monitorLog = monitorLog + "${ts()} ✚ Rule saved: ${newRule.label}"
             }
         )
     }
 }
-
-// ── Device picker ─────────────────────────────────────────────────────────────
 
 @Composable
 private fun WatchDevicePicker(
@@ -343,8 +373,6 @@ private fun WatchDevicePicker(
         }
     }
 }
-
-// ── Rule card ─────────────────────────────────────────────────────────────────
 
 @Composable
 private fun WatchRuleCard(
@@ -420,16 +448,32 @@ private fun WatchRuleCard(
     }
 }
 
-// ── Add rule dialog ───────────────────────────────────────────────────────────
-
 @Composable
-private fun AddWatchRuleDialog(onDismiss: () -> Unit, onAdd: (WatchRule) -> Unit) {
+private fun AddWatchRuleDialog(
+    onDismiss: () -> Unit,
+    onAdd: (WatchRule) -> Unit,
+    prefilledNode: ElementNode? = null
+) {
     val colorScheme = MaterialTheme.colorScheme
-    var label by remember { mutableStateOf("") }
+    var label by remember(prefilledNode) {
+        mutableStateOf(
+            prefilledNode?.let {
+                val name = it.name.takeIf { n -> n.isNotBlank() }
+                    ?: it.className.substringAfterLast('.')
+                "Watch $name"
+            } ?: ""
+        )
+    }
     var conditionType by remember { mutableStateOf(WatchConditionType.ELEMENT_APPEARS) }
-    var targetResId by remember { mutableStateOf("") }
-    var targetText by remember { mutableStateOf("") }
-    var targetClass by remember { mutableStateOf("") }
+    var targetResId by remember(prefilledNode) {
+        mutableStateOf(prefilledNode?.resourceId ?: "")
+    }
+    var targetText by remember(prefilledNode) {
+        mutableStateOf(prefilledNode?.text ?: "")
+    }
+    var targetClass by remember(prefilledNode) {
+        mutableStateOf(prefilledNode?.className ?: "")
+    }
     var pollIntervalMs by remember { mutableStateOf(2000L) }
     var expandedCondition by remember { mutableStateOf(false) }
     var expandedInterval by remember { mutableStateOf(false) }
@@ -438,10 +482,20 @@ private fun AddWatchRuleDialog(onDismiss: () -> Unit, onAdd: (WatchRule) -> Unit
         onDismissRequest = onDismiss,
         containerColor = colorScheme.surface,
         title = {
-            Text(
-                "Add Watch Rule",
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
-            )
+            Column {
+                Text(
+                    "Add Watch Rule",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
+                )
+                if (prefilledNode != null) {
+                    Text(
+                        "Pre-filled from inspector selection",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = AccentGreen,
+                        fontSize = 10.sp
+                    )
+                }
+            }
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -517,22 +571,20 @@ private fun AddWatchRuleDialog(onDismiss: () -> Unit, onAdd: (WatchRule) -> Unit
             Button(
                 onClick = {
                     if (label.isBlank()) return@Button
-                    onAdd(
-                        WatchRule(
-                            id = UUID.randomUUID().toString(),
-                            label = label.trim(),
-                            conditionType = conditionType,
-                            targetText = targetText.takeIf { it.isNotBlank() },
-                            targetResourceId = targetResId.takeIf { it.isNotBlank() },
-                            targetClassName = targetClass.takeIf { it.isNotBlank() },
-                            pollIntervalMs = pollIntervalMs,
-                            isActive = false,
-                            createdAt = System.currentTimeMillis()
-                        )
-                    )
+                    onAdd(WatchRule(
+                        id = UUID.randomUUID().toString(),
+                        label = label.trim(),
+                        conditionType = conditionType,
+                        targetText = targetText.takeIf { it.isNotBlank() },
+                        targetResourceId = targetResId.takeIf { it.isNotBlank() },
+                        targetClassName = targetClass.takeIf { it.isNotBlank() },
+                        pollIntervalMs = pollIntervalMs,
+                        isActive = false,
+                        createdAt = System.currentTimeMillis()
+                    ))
                 },
                 enabled = label.isNotBlank()
-            ) { Text("Add") }
+            ) { Text("Save Rule") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
     )

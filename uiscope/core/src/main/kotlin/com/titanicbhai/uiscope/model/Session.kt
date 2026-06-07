@@ -1,6 +1,6 @@
 package com.titanicbhai.uiscope.model
 
-enum class InspectionMode { PC, ANDROID }
+enum class InspectionMode { PC, ANDROID, IOS }
 
 data class Session(
     val id: String,

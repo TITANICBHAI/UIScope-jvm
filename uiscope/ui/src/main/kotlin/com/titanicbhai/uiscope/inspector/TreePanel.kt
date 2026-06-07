@@ -1,5 +1,7 @@
 package com.titanicbhai.uiscope.inspector
 
+import androidx.compose.foundation.ContextMenuArea
+import androidx.compose.foundation.ContextMenuItem
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -17,6 +19,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.titanicbhai.uiscope.export.RuleAnalyzer
 import com.titanicbhai.uiscope.model.ElementNode
+import java.awt.Toolkit
+import java.awt.datatransfer.StringSelection
 
 private data class FlatNode(
     val node: ElementNode,
@@ -60,13 +64,20 @@ private fun flattenAll(nodes: List<ElementNode>): List<ElementNode> {
     return result
 }
 
+private fun copyToClipboard(text: String) {
+    runCatching {
+        Toolkit.getDefaultToolkit().systemClipboard.setContents(StringSelection(text), null)
+    }
+}
+
 @Composable
 fun TreePanel(
     rootNodes: List<ElementNode>,
     selectedNode: ElementNode?,
     onNodeSelected: (ElementNode) -> Unit,
     searchQuery: String = "",
-    bookmarkedNodeIds: Set<String> = emptySet()
+    bookmarkedNodeIds: Set<String> = emptySet(),
+    onWatchNode: ((ElementNode) -> Unit)? = null
 ) {
     val colorScheme = MaterialTheme.colorScheme
     val total = remember(rootNodes) { countAll(rootNodes) }
@@ -151,6 +162,7 @@ fun TreePanel(
                             node = node,
                             isSelected = node.id == selectedNode?.id,
                             isBookmarked = node.id in bookmarkedNodeIds,
+                            onWatchNode = onWatchNode,
                             onClick = { onNodeSelected(node) }
                         )
                     }
@@ -163,6 +175,7 @@ fun TreePanel(
                         flatNode = flatNode,
                         isSelected = flatNode.node.id == selectedNode?.id,
                         isBookmarked = flatNode.node.id in bookmarkedNodeIds,
+                        onWatchNode = onWatchNode,
                         onToggleCollapse = {
                             collapsedIds = if (flatNode.node.id in collapsedIds)
                                 collapsedIds - flatNode.node.id
@@ -182,6 +195,7 @@ private fun SearchResultRow(
     node: ElementNode,
     isSelected: Boolean,
     isBookmarked: Boolean,
+    onWatchNode: ((ElementNode) -> Unit)?,
     onClick: () -> Unit
 ) {
     val colorScheme = MaterialTheme.colorScheme
@@ -194,45 +208,51 @@ private fun SearchResultRow(
     val sub = node.resourceId?.let { "@${it.substringAfterLast('/')}" } ?: shortClass
     val (fill, border) = nodeColors(node)
 
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(if (isSelected) colorScheme.primaryContainer else colorScheme.surface)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // Type color dot
-        Box(
+    ContextMenuArea(items = {
+        buildList {
+            if (onWatchNode != null) add(ContextMenuItem("👁  Watch This Element") { onWatchNode(node) })
+            node.resourceId?.takeIf { it.isNotBlank() }?.let {
+                add(ContextMenuItem("📋  Copy Resource ID") { copyToClipboard(it) })
+            }
+            node.text?.takeIf { it.isNotBlank() }?.let {
+                add(ContextMenuItem("📋  Copy Text") { copyToClipboard(it) })
+            }
+            node.className.takeIf { it.isNotBlank() }?.let {
+                add(ContextMenuItem("📋  Copy Class Name") { copyToClipboard(it) })
+            }
+        }
+    }) {
+        Row(
             modifier = Modifier
-                .size(7.dp)
-                .background(border, CircleShape)
-        )
-        Spacer(Modifier.width(7.dp))
-
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                label,
-                style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace, fontSize = 11.sp),
-                color = if (isSelected) colorScheme.onPrimaryContainer else colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Text(
-                "depth ${node.depth}  ·  $sub",
-                style = MaterialTheme.typography.labelSmall.copy(fontFamily = FontFamily.Monospace, fontSize = 10.sp),
-                color = if (isSelected) colorScheme.onPrimaryContainer.copy(alpha = 0.65f)
-                else colorScheme.primary.copy(alpha = 0.65f),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+                .fillMaxWidth()
+                .background(if (isSelected) colorScheme.primaryContainer else colorScheme.surface)
+                .clickable(onClick = onClick)
+                .padding(horizontal = 12.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(modifier = Modifier.size(7.dp).background(border, CircleShape))
+            Spacer(Modifier.width(7.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    label,
+                    style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace, fontSize = 11.sp),
+                    color = if (isSelected) colorScheme.onPrimaryContainer else colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    "depth ${node.depth}  ·  $sub",
+                    style = MaterialTheme.typography.labelSmall.copy(fontFamily = FontFamily.Monospace, fontSize = 10.sp),
+                    color = if (isSelected) colorScheme.onPrimaryContainer.copy(alpha = 0.65f)
+                    else colorScheme.primary.copy(alpha = 0.65f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            if (isBookmarked) Text("📌", fontSize = 11.sp, modifier = Modifier.padding(start = 4.dp))
         }
-
-        if (isBookmarked) {
-            Text("📌", fontSize = 11.sp, modifier = Modifier.padding(start = 4.dp))
-        }
+        HorizontalDivider(color = colorScheme.outline.copy(alpha = 0.12f))
     }
-    HorizontalDivider(color = colorScheme.outline.copy(alpha = 0.12f))
 }
 
 @Composable
@@ -240,6 +260,7 @@ private fun TreeNodeRow(
     flatNode: FlatNode,
     isSelected: Boolean,
     isBookmarked: Boolean,
+    onWatchNode: ((ElementNode) -> Unit)?,
     onToggleCollapse: () -> Unit,
     onClick: () -> Unit
 ) {
@@ -248,76 +269,89 @@ private fun TreeNodeRow(
     val indentDp = (node.depth * 12).dp
     val (_, border) = nodeColors(node)
 
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(when {
-                isSelected -> colorScheme.primaryContainer
-                else -> colorScheme.surface
-            })
-            .clickable(onClick = onClick)
-            .padding(start = 8.dp + indentDp, end = 8.dp, top = 4.dp, bottom = 4.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // Type color dot
-        Box(
-            modifier = Modifier
-                .size(6.dp)
-                .background(border, CircleShape)
-        )
-        Spacer(Modifier.width(6.dp))
-
-        if (flatNode.hasChildren) {
-            Text(
-                text = if (flatNode.isCollapsed) "▶" else "▼",
-                fontSize = 8.sp,
-                color = if (isSelected) colorScheme.onPrimaryContainer else colorScheme.onSurfaceVariant,
-                modifier = Modifier
-                    .clickable(onClick = onToggleCollapse)
-                    .padding(end = 4.dp, start = 2.dp)
-                    .size(14.dp)
-                    .wrapContentSize(Alignment.Center)
-            )
-        } else {
-            Spacer(Modifier.width(18.dp))
+    ContextMenuArea(items = {
+        buildList {
+            if (onWatchNode != null) add(ContextMenuItem("👁  Watch This Element") { onWatchNode(node) })
+            node.resourceId?.takeIf { it.isNotBlank() }?.let {
+                add(ContextMenuItem("📋  Copy Resource ID") { copyToClipboard(it) })
+            }
+            node.text?.takeIf { it.isNotBlank() }?.let {
+                add(ContextMenuItem("📋  Copy Text") { copyToClipboard(it) })
+            }
+            node.className.takeIf { it.isNotBlank() }?.let {
+                add(ContextMenuItem("📋  Copy Class Name") { copyToClipboard(it) })
+            }
+            node.contentDescription?.takeIf { it.isNotBlank() }?.let {
+                add(ContextMenuItem("📋  Copy Content Desc") { copyToClipboard(it) })
+            }
         }
+    }) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    when {
+                        isSelected -> colorScheme.primaryContainer
+                        else -> colorScheme.surface
+                    }
+                )
+                .clickable(onClick = onClick)
+                .padding(start = 8.dp + indentDp, end = 8.dp, top = 4.dp, bottom = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(modifier = Modifier.size(6.dp).background(border, CircleShape))
+            Spacer(Modifier.width(6.dp))
 
-        Column(modifier = Modifier.weight(1f)) {
-            val shortClass = node.className.substringAfterLast('.')
-            val nodeText = node.text
-            val nodeContentDesc = node.contentDescription
-            val nodeResourceId = node.resourceId
-            val displayName = when {
-                !nodeText.isNullOrBlank() -> "\"${nodeText.take(40)}\""
-                !nodeContentDesc.isNullOrBlank() -> "[${nodeContentDesc.take(40)}]"
-                else -> shortClass
-            }
-            Text(
-                text = displayName,
-                style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace, fontSize = 11.sp),
-                color = if (isSelected) colorScheme.onPrimaryContainer else colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            val subLabel = when {
-                nodeResourceId?.isNotBlank() == true -> "@${nodeResourceId.substringAfterLast('/')}"
-                nodeText.isNullOrBlank() && nodeContentDesc.isNullOrBlank() -> null
-                else -> shortClass
-            }
-            subLabel?.let {
+            if (flatNode.hasChildren) {
                 Text(
-                    text = it,
-                    style = MaterialTheme.typography.labelSmall.copy(fontFamily = FontFamily.Monospace, fontSize = 10.sp),
-                    color = if (isSelected) colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                    else colorScheme.primary.copy(alpha = 0.7f),
+                    text = if (flatNode.isCollapsed) "▶" else "▼",
+                    fontSize = 8.sp,
+                    color = if (isSelected) colorScheme.onPrimaryContainer else colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .clickable(onClick = onToggleCollapse)
+                        .padding(end = 4.dp, start = 2.dp)
+                        .size(14.dp)
+                        .wrapContentSize(Alignment.Center)
+                )
+            } else {
+                Spacer(Modifier.width(18.dp))
+            }
+
+            Column(modifier = Modifier.weight(1f)) {
+                val shortClass = node.className.substringAfterLast('.')
+                val nodeText = node.text
+                val nodeContentDesc = node.contentDescription
+                val nodeResourceId = node.resourceId
+                val displayName = when {
+                    !nodeText.isNullOrBlank() -> "\"${nodeText.take(40)}\""
+                    !nodeContentDesc.isNullOrBlank() -> "[${nodeContentDesc.take(40)}]"
+                    else -> shortClass
+                }
+                Text(
+                    text = displayName,
+                    style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace, fontSize = 11.sp),
+                    color = if (isSelected) colorScheme.onPrimaryContainer else colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
+                val subLabel = when {
+                    nodeResourceId?.isNotBlank() == true -> "@${nodeResourceId.substringAfterLast('/')}"
+                    nodeText.isNullOrBlank() && nodeContentDesc.isNullOrBlank() -> null
+                    else -> shortClass
+                }
+                subLabel?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.labelSmall.copy(fontFamily = FontFamily.Monospace, fontSize = 10.sp),
+                        color = if (isSelected) colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                        else colorScheme.primary.copy(alpha = 0.7f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
-        }
 
-        if (isBookmarked) {
-            Text("📌", fontSize = 10.sp, modifier = Modifier.padding(end = 4.dp))
+            if (isBookmarked) Text("📌", fontSize = 10.sp, modifier = Modifier.padding(end = 4.dp))
         }
     }
 }
