@@ -56,9 +56,11 @@ fun WatchScreen(
 
     fun matchesRule(node: ElementNode, rule: WatchRule): Boolean {
         if (rule.targetResourceId != null && node.resourceId != rule.targetResourceId) return false
-        if (rule.targetClassName != null && !node.className.contains(rule.targetClassName, ignoreCase = true)) return false
-        if (rule.conditionType == WatchConditionType.TEXT_MATCHES && rule.targetText != null) {
-            return node.text?.contains(rule.targetText, ignoreCase = true) == true
+        val targetClassName = rule.targetClassName
+        if (targetClassName != null && !node.className.contains(targetClassName, ignoreCase = true)) return false
+        val targetText = rule.targetText
+        if (rule.conditionType == WatchConditionType.TEXT_MATCHES && targetText != null) {
+            return node.text?.contains(targetText, ignoreCase = true) == true
         }
         return true
     }

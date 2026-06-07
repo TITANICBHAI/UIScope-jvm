@@ -73,9 +73,9 @@ class IosManager {
         if (!isXcrunAvailable()) return emptyList()
         return try {
             val json = runCmd("xcrun", "simctl", "list", "devices", "--json")
-            val devicesSection = Regex(""""devices"\s*:\s*\{([\s\S]*)\}""").find(json)?.groupValues?.get(1) ?: return emptyList()
-            val runtimePattern = Regex(""""(com\.apple\.CoreSimulator\.SimRuntime\.[^"]+)"\s*:\s*\[([\s\S]*?)\](?=\s*,\s*"|$|\s*\})")
-            val devicePattern = Regex("""\{([^}]+)\}""")
+            val devicesSection = Regex("\"devices\"\\s*:\\s*\\{([\\s\\S]*)\\}").find(json)?.groupValues?.get(1) ?: return emptyList()
+            val runtimePattern = Regex("\"(com\\.apple\\.CoreSimulator\\.SimRuntime\\.[^\"]+)\"\\s*:\\s*\\[([\\s\\S]*?)\\](?=\\s*,\\s*\"|\\s*\\}|$)")
+            val devicePattern = Regex("\\{([^}]+)\\}")
             val udidRx = Regex(""""udid"\s*:\s*"([^"]+)"""")
             val nameRx = Regex(""""name"\s*:\s*"([^"]+)"""")
             val stateRx = Regex(""""state"\s*:\s*"([^"]+)"""")

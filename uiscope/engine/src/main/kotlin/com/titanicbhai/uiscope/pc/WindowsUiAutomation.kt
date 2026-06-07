@@ -83,24 +83,26 @@ class WindowsUiAutomation : PcInspector {
 
     override fun getWindowHandleAt(screenX: Int, screenY: Int): Long = try {
         val point = WinDef.POINT().also { it.x = screenX; it.y = screenY }
-        val hwnd = ExtUser32.INSTANCE?.WindowFromPoint(point) ?: return 0L
-        Pointer.nativeValue(hwnd.pointer)
+        val hwnd = ExtUser32.INSTANCE?.WindowFromPoint(point)
+        if (hwnd == null) 0L else Pointer.nativeValue(hwnd.pointer)
     } catch (_: Exception) { 0L }
 
-    override fun getWindowInfo(handle: Long): PcWindowInfo? = try {
+    override fun getWindowInfo(handle: Long): PcWindowInfo? {
         if (handle == 0L) return null
-        val hwnd = WinDef.HWND(Pointer(handle))
-        val titleBuf = CharArray(512)
-        User32.INSTANCE.GetWindowText(hwnd, titleBuf, titleBuf.size)
-        val title = String(titleBuf).trimEnd('\u0000')
-        val rect = WinDef.RECT()
-        User32.INSTANCE.GetWindowRect(hwnd, rect)
-        PcWindowInfo(
-            handle = handle,
-            title = title.ifBlank { "Unknown Window" },
-            bounds = Bounds(rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top)
-        )
-    } catch (_: Exception) { null }
+        return try {
+            val hwnd = WinDef.HWND(Pointer(handle))
+            val titleBuf = CharArray(512)
+            User32.INSTANCE.GetWindowText(hwnd, titleBuf, titleBuf.size)
+            val title = String(titleBuf).trimEnd('\u0000')
+            val rect = WinDef.RECT()
+            User32.INSTANCE.GetWindowRect(hwnd, rect)
+            PcWindowInfo(
+                handle = handle,
+                title = title.ifBlank { "Unknown Window" },
+                bounds = Bounds(rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top)
+            )
+        } catch (_: Exception) { null }
+    }
 
     override fun startEventSubscription(onEvent: () -> Unit) { eventListener = onEvent }
     override fun stopEventSubscription() { eventListener = null }
@@ -162,8 +164,8 @@ try {
         proc.waitFor()
         scriptFile.delete()
         val trimmed = output.trim()
-        if (trimmed.isBlank() || !trimmed.startsWith("[")) return emptyList()
-        parseFlatUiaJson(trimmed)
+        if (trimmed.isBlank() || !trimmed.startsWith("[")) emptyList()
+        else parseFlatUiaJson(trimmed)
     } catch (_: Exception) { emptyList() }
 
     private fun parseFlatUiaJson(json: String): List<ElementNode> {
