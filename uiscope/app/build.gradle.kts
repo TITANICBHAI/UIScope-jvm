@@ -44,6 +44,7 @@ compose.desktop {
                 TargetFormat.AppImage   // Linux — universal portable bundle
             )
 
+            // App display name shown in installer, Add/Remove Programs, taskbar, etc.
             packageName    = "UIScope"
             packageVersion = appVersion
             description    = "See what your UI is made of. " +
@@ -53,20 +54,25 @@ compose.desktop {
             licenseFile.set(rootProject.file("LICENSE"))
 
             // ── Windows ───────────────────────────────────────────────────────
+            // Icon source: src/main/resources/store/tile-71x71.png (1024×1024)
+            // Converted to multi-size ICO (16/24/32/48/64/128/256 px).
+            // MSIX tile assets (Square71x71Logo, Square150x150Logo, Square300x300Logo)
+            // live in src/main/resources/store/ — reference them in the MSIX manifest
+            // when wrapping the MSI with the Windows App Packaging Tool.
             windows {
-                // Drop icon.ico into src/main/resources/ (see DISTRIBUTION.md)
                 iconFile.set(project.file("src/main/resources/icon.ico"))
 
                 // Stable GUID — NEVER change this after first release or upgrades break
                 upgradeUuid   = "C7B5A9D2-3F1E-4A8B-9C6D-0E2F7B4A5C3D"
 
-                menuGroup     = "UIScope"
+                menuGroup      = "UIScope"
                 perUserInstall = true   // install to %LOCALAPPDATA%; no admin needed
-                dirChooser    = true    // let user pick install directory in MSI
-                shortcut      = true    // create Start-menu shortcut
+                dirChooser     = true   // let user pick install directory in MSI
+                shortcut       = true   // create Start-menu shortcut
             }
 
             // ── macOS ────────────────────────────────────────────────────────
+            // Icon source: same tile-71x71.png converted to ICNS via ImageMagick.
             macOS {
                 iconFile.set(project.file("src/main/resources/icon.icns"))
                 bundleID      = "com.titanicbhai.uiscope"
