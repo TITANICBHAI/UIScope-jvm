@@ -4,7 +4,6 @@ compose = "1.6.11"
 sqldelight = "2.0.2"
 coroutines = "1.8.1"
 jna = "5.14.0"
-jnativehook = "2.2.2"
 detekt = "1.23.8"
 snakeyaml = "2.2"
 
@@ -18,7 +17,6 @@ coroutines-swing = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-swing", 
 coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
 jna = { module = "net.java.dev.jna:jna", version.ref = "jna" }
 jna-platform = { module = "net.java.dev.jna:jna-platform", version.ref = "jna" }
-jnativehook = { module = "com.github.kwhat:jnativehook", version.ref = "jnativehook" }
 snakeyaml = { module = "org.yaml:snakeyaml", version.ref = "snakeyaml" }
 
 [plugins]
