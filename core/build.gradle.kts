@@ -21,4 +21,8 @@ dependencies {
     implementation(libs.sqldelight.driver.sqlite)
     implementation(libs.sqldelight.coroutines)
     implementation(libs.coroutines.core)
+
+    testImplementation(libs.kotlin.test)
+    testImplementation(libs.coroutines.test)
+    testImplementation(libs.snakeyaml) // validates generated Maestro YAML (P1-5)
 }

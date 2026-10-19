@@ -8,7 +8,7 @@ A Kotlin Compose Multiplatform Desktop app for live inspection of UI element tre
 
 ### Requirements
 
-- JDK 17+ (JDK 19 recommended; download from [adoptium.net](https://adoptium.net))
+- JDK 21 (download from [adoptium.net](https://adoptium.net)); every module sets `jvmToolchain(21)`
 - Internet access for first build (Gradle downloads ~400 MB of dependencies once)
 - ADB (optional, for Android mode — UIScope can download it for you)
 

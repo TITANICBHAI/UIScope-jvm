@@ -7,6 +7,11 @@ pluginManagement {
     }
 }
 
+plugins {
+    // Lets Gradle download JDK 21 automatically on a clean machine (see jvmToolchain(21) in every module).
+    id("org.gradle.toolchains.foojay-resolver-convention") version "0.9.0"
+}
+
 dependencyResolutionManagement {
     repositories {
         mavenCentral()

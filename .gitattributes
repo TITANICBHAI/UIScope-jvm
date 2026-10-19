@@ -1,0 +1,19 @@
+# Line endings (P0-1): LF for sources and shell scripts, CRLF for Windows scripts.
+*               text=auto
+*.kt            text eol=lf
+*.kts           text eol=lf
+*.sh            text eol=lf
+gradlew         text eol=lf
+*.yml           text eol=lf
+*.yaml          text eol=lf
+*.ps1           text eol=crlf
+*.bat           text eol=crlf
+
+# Test fixtures are byte-exact captures/samples (CRLF, BOM, trailing text matter): never normalise them.
+core/src/test/resources/fixtures/** -text
+
+# Binary assets
+*.png  binary
+*.ico  binary
+*.icns binary
+*.jar  binary

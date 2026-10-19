@@ -1,0 +1,23 @@
+# detekt configuration — intentionally minimal (plan §0 rule 5, P0-1).
+# buildUponDefaultConfig is false in build.gradle.kts, so ONLY the rules below run.
+build:
+  maxIssues: 0
+  excludeCorrectable: false
+
+empty-blocks:
+  active: true
+  EmptyCatchBlock:
+    active: true
+    # No name is exempt: `catch (_: Exception) {}` and `catch (ignored: Exception) {}` are both rejected.
+    allowedExceptionNameRegex: '^$'
+
+exceptions:
+  active: true
+  SwallowedException:
+    active: true
+    ignoredExceptionTypes:
+      - 'InterruptedException'
+      - 'MalformedURLException'
+      - 'NumberFormatException'
+      - 'ParseException'
+    allowedExceptionNameRegex: '^$'

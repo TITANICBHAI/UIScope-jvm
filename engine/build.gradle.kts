@@ -13,4 +13,7 @@ dependencies {
     implementation(libs.jna)
     implementation(libs.jna.platform)
     implementation(libs.jnativehook)
+
+    testImplementation(libs.kotlin.test)
+    testImplementation(libs.coroutines.test)
 }

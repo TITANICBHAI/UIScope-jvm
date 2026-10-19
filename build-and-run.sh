@@ -6,7 +6,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 if ! command -v java &>/dev/null; then
-  echo "ERROR: Java not found. Install JDK 17+ from https://adoptium.net" >&2
+  echo "ERROR: Java not found. Install JDK 21 from https://adoptium.net" >&2
   exit 1
 fi
 
