@@ -8,8 +8,8 @@
 
 ## What is planned for 1.0 (not implemented yet)
 
-Inspect the UI tree of an Android phone over `adb`, and of Windows application windows, with a screenshot overlay, a selector
-workbench and code generation. The full plan is in `plan.md`; progress is tracked in [docs/PROGRESS.md](docs/PROGRESS.md).
+Inspect the UI tree of an Android phone over `adb`, and of Windows application windows (Windows only), with a screenshot overlay, a
+selector workbench and code generation. The full plan is in `plan.md`; progress is tracked in [docs/PROGRESS.md](docs/PROGRESS.md).
 
 ## What exists today
 
@@ -24,7 +24,7 @@ workbench and code generation. The full plan is in `plan.md`; progress is tracke
 ## Requirements
 
 - **JDK 21** ([Adoptium](https://adoptium.net)). Gradle can download one automatically if none is installed.
-- Windows 10/11 for the Windows-inspection feature when it lands; Android inspection will work from Windows, macOS and Linux.
+- Windows 10/11 is the 1.0 target. macOS and Linux builds (Android inspection only) are planned for 1.1; the code compiles there but is not tested or packaged for them.
 
 ## Build and run
 
