@@ -24,7 +24,7 @@ selector workbench and code generation. The full plan is in `plan.md`; progress 
 ## Requirements
 
 - **JDK 21** ([Adoptium](https://adoptium.net)). Gradle can download one automatically if none is installed.
-- Windows 10/11 is the 1.0 target. macOS and Linux builds (Android inspection only) are planned for 1.1; the code compiles there but is not tested or packaged for them.
+- Windows 10/11 is the 1.0 target. macOS and Linux builds (Android inspection only) are planned for 1.1; they are not tested or packaged for those systems yet.
 
 ## Build and run
 

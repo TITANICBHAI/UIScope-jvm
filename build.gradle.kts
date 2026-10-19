@@ -28,7 +28,6 @@ subprojects {
             allRules = false
             config.setFrom(rootProject.file("config/detekt/detekt.yml"))
             source.setFrom("src/main/kotlin", "src/test/kotlin", "src/testFixtures/kotlin")
-            basePath = rootProject.projectDir.absolutePath
         }
         // detekt 1.23.x must analyse with the Kotlin version it was built for (documented workaround for Kotlin 2.x projects).
         configurations.matching { it.name == "detekt" }.all {
