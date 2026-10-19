@@ -17,6 +17,7 @@ dependencies {
     implementation(libs.coroutines.core)
     implementation(libs.coroutines.swing)
 
+    testImplementation(testFixtures(project(":core")))
     testImplementation(libs.kotlin.test)
     testImplementation(libs.coroutines.test)
     testImplementation(compose.desktop.uiTestJUnit4)

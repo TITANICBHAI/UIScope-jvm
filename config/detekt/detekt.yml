@@ -20,4 +20,6 @@ exceptions:
       - 'MalformedURLException'
       - 'NumberFormatException'
       - 'ParseException'
+      # Control-flow signal of kotlinx.coroutines.withTimeout, not an error: handled by returning a coded failure.
+      - 'TimeoutCancellationException'
     allowedExceptionNameRegex: '^$'
