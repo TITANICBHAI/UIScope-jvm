@@ -10,13 +10,12 @@ kotlin {
     jvmToolchain(21)
 }
 
-// ─── Resolve version from env (injected by CI) or fall back to file/default ───
-val appVersion: String = System.getenv("APP_VERSION")
-    ?.takeIf { it.matches(Regex("""\d+\.\d+\.\d+""")) }
-    ?: run {
-        val vFile = rootProject.file("version.txt")
-        if (vFile.exists()) vFile.readText().trim() else "1.0.0"
+// ─── Version: version.txt is the single source of truth (same file BuildInfo is generated from) ───
+val appVersion: String = rootProject.file("version.txt").readText().trim().also {
+    require(Regex("""\d+\.\d+\.\d+""").matches(it)) {
+        "version.txt must contain MAJOR.MINOR.PATCH (for example 1.0.0), but contains '$it'"
     }
+}
 
 compose.desktop {
     application {
@@ -31,8 +30,7 @@ compose.desktop {
 
         nativeDistributions {
             // Bundle the full JRE so the installer never hits "Failed to launch JVM".
-            // Without this, jpackage creates a stripped runtime image that may be
-            // missing modules required by JNA, jnativehook, or Compose Desktop itself.
+            // Replaced by an explicit module list in P8-1.
             includeAllModules = true
 
             targetFormats(
@@ -47,9 +45,8 @@ compose.desktop {
             // App display name shown in installer, Add/Remove Programs, taskbar, etc.
             packageName    = "UIScope"
             packageVersion = appVersion
-            description    = "See what your UI is made of. " +
-                             "Live inspector for Android device UI trees and Windows/macOS/Linux app accessibility trees."
-            vendor         = "TITANICBHAI"
+            description    = "UIScope: Desktop & Android UI Inspector"
+            vendor         = "TBTechs"
             copyright      = "© 2026 TITANICBHAI. MIT License."
             licenseFile.set(rootProject.file("LICENSE"))
 

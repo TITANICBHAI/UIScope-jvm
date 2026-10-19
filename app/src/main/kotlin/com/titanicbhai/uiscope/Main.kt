@@ -13,11 +13,14 @@ import androidx.compose.ui.window.application
  * Temporary shell (plan P0-2). The old UI is quarantined in legacy/ and the new UI is built in Phase 4.
  * The real application shell replaces this in P4-2.
  */
-fun main() = application {
-    Window(onCloseRequest = ::exitApplication, title = "UIScope") {
-        MaterialTheme {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("UIScope — rebuild in progress")
+fun main() {
+    val appInfo = AppInfoLoader.load()
+    application {
+        Window(onCloseRequest = ::exitApplication, title = appInfo.name) {
+            MaterialTheme {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("${appInfo.name} ${appInfo.version} — rebuild in progress")
+                }
             }
         }
     }
