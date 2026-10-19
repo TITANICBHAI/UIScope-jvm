@@ -1,77 +1,52 @@
 # UIScope
 
-> *See what your UI is made of.*
+**UIScope: Desktop & Android UI Inspector** — by TBTechs (developer: TITANICBHAI).
 
-A Kotlin Compose Multiplatform Desktop app for live inspection of UI element trees — both native PC apps and Android devices via ADB — in one clean, fast, offline tool.
+> **Status: under rebuild toward 1.0.** The previous implementation was set aside (it is kept, unused, in `legacy/`). The application
+> window is currently a placeholder that says "rebuild in progress": **you cannot inspect anything with it yet.** This README
+> describes what is true of the code today.
 
-## Quick Start
+## What is planned for 1.0 (not implemented yet)
 
-### Requirements
+Inspect the UI tree of an Android phone over `adb`, and of Windows application windows, with a screenshot overlay, a selector
+workbench and code generation. The full plan is in `plan.md`; progress is tracked in [docs/PROGRESS.md](docs/PROGRESS.md).
 
-- JDK 21 (download from [adoptium.net](https://adoptium.net)); every module sets `jvmToolchain(21)`
-- Internet access for first build (Gradle downloads ~400 MB of dependencies once)
-- ADB (optional, for Android mode — UIScope can download it for you)
+## What exists today
 
-### Build & Run
+- Multi-module Gradle build (`core`, `engine`, `ui`, `app`) on Kotlin 2.0 / Compose Multiplatform Desktop.
+- `core`: the capture data model (element tree, stable structural ids, element lookup index, viewport math), error and result types,
+  app identity/version information.
+- `engine`: a process runner (kills the whole process tree on timeout/cancel), a long-lived process wrapper, the single HTTP gateway,
+  data-folder locations and rotating logs.
+- Test harness: fakes for processes and HTTP, golden-file and fixture helpers, synthetic Android dump samples.
+- `scripts/capture-fixtures.sh|.ps1`: records raw `adb` dumps from your phone for parser tests.
+
+## Requirements
+
+- **JDK 21** ([Adoptium](https://adoptium.net)). Gradle can download one automatically if none is installed.
+- Windows 10/11 for the Windows-inspection feature when it lands; Android inspection will work from Windows, macOS and Linux.
+
+## Build and run
 
 ```bash
-cd uiscope
-
-# Run in development (downloads deps on first run, ~2–5 min)
-./gradlew :app:run
-
-# Package a native installer
-./gradlew :app:packageDmg        # macOS
-./gradlew :app:packageMsi        # Windows
-./gradlew :app:packageDeb        # Debian/Ubuntu
-./gradlew :app:packageAppImage   # Linux AppImage
+./gradlew check        # compile, run all tests, run detekt
+./gradlew :app:run     # opens the placeholder window
 ```
 
-### Windows (no bash)
+On Windows use `gradlew.bat` instead of `./gradlew`.
 
-```bat
-gradlew.bat :app:run
-```
+## Layout
 
-## Project Structure
-
-```
-uiscope/
-├── core/          — Data models (ElementNode, Session, Bookmark, …)
-│                    SQLDelight schema (sessions, bookmarks, app_settings)
-│                    Repositories (SessionRepository, BookmarkRepository, SettingsRepository)
-├── engine/        — ADB device detection and connection (AdbManager)
-├── ui/            — Compose Desktop screens
-│   ├── launcher/  — Mode picker (LauncherScreen)
-│   ├── inspector/ — 3-panel inspector shell (InspectorScreen, TreePanel, VisualCanvas, PropertiesPanel)
-│   ├── onboarding/— First-run onboarding checklist (OnboardingScreen)
-│   └── theme/     — Material 3 dark/light theme (UiScopeTheme)
-└── app/           — Entry point (Main.kt), Compose Desktop packaging config
-```
-
-## Tech Stack
-
-| Layer         | Technology                                     |
-|---------------|------------------------------------------------|
-| UI            | Kotlin Compose Multiplatform Desktop 1.6.x     |
-| Persistence   | SQLDelight 2.x + SQLite (JdbcSqliteDriver)     |
-| Android engine| ADB via ProcessBuilder                         |
-| Build         | Gradle 8.x + Compose Desktop packaging plugin  |
-| Language      | Kotlin 2.0                                     |
-
-## Phase Roadmap
-
-| Phase | What's built                                           | Status     |
-|-------|--------------------------------------------------------|------------|
-| 1     | Skeleton: project structure, models, DB, UI shell, ADB detect | ✅ Done |
-| 2     | Android mode live: UIAutomator tree, screencap, code gen | Planned  |
-| 3     | PC mode live: Windows/macOS/Linux UI Automation engine | Planned    |
-| 4     | Polish & ship: diff mode, watch mode, CI packaging     | Planned    |
-
-## Data Storage
-
-All data is stored locally in `~/.uiscope/uiscope.db` (SQLite). Nothing leaves the machine.
+| Path | Purpose |
+|---|---|
+| `core/` | Pure Kotlin: model, errors, identity. No UI, no process or network code. |
+| `engine/` | Talks to the outside world: processes, HTTP, files, logs. |
+| `ui/` | Compose components (empty until Phase 4). |
+| `app/` | Entry point, packaging, `app.properties` (identity and links). |
+| `legacy/` | Old code, read-only reference, not built. |
+| `scripts/` | Developer scripts. |
+| `docs/` | Progress, manual QA checklist, proposals. |
 
 ## License
 
-MIT — fully open source.
+MIT — see [LICENSE](LICENSE).
