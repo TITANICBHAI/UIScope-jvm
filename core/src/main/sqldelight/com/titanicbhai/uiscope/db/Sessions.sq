@@ -1,0 +1,31 @@
+CREATE TABLE IF NOT EXISTS sessions (
+    id TEXT PRIMARY KEY NOT NULL,
+    timestamp INTEGER NOT NULL,
+    mode TEXT NOT NULL,
+    app_name TEXT,
+    package_name TEXT,
+    device_name TEXT,
+    screenshot_path TEXT,
+    tree_json TEXT NOT NULL
+);
+
+insertSession:
+INSERT OR REPLACE INTO sessions (id, timestamp, mode, app_name, package_name, device_name, screenshot_path, tree_json)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+
+selectAllSessions:
+SELECT * FROM sessions ORDER BY timestamp DESC;
+
+selectSessionById:
+SELECT * FROM sessions WHERE id = ?;
+
+deleteSession:
+DELETE FROM sessions WHERE id = ?;
+
+deleteOldSessions:
+DELETE FROM sessions WHERE id NOT IN (
+    SELECT id FROM sessions ORDER BY timestamp DESC LIMIT ?
+);
+
+countSessions:
+SELECT COUNT(*) FROM sessions;

@@ -1,0 +1,16 @@
+CREATE TABLE IF NOT EXISTS app_settings (
+    key TEXT PRIMARY KEY NOT NULL,
+    value TEXT NOT NULL
+);
+
+upsertSetting:
+INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?);
+
+selectSetting:
+SELECT value FROM app_settings WHERE key = ?;
+
+selectAllSettings:
+SELECT * FROM app_settings;
+
+deleteSetting:
+DELETE FROM app_settings WHERE key = ?;

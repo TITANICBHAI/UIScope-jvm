@@ -1,0 +1,25 @@
+CREATE TABLE IF NOT EXISTS bookmarks (
+    id TEXT PRIMARY KEY NOT NULL,
+    label TEXT NOT NULL,
+    element_id TEXT NOT NULL,
+    class_name TEXT NOT NULL,
+    resource_id TEXT,
+    session_id TEXT,
+    created_at INTEGER NOT NULL
+);
+
+insertBookmark:
+INSERT OR REPLACE INTO bookmarks (id, label, element_id, class_name, resource_id, session_id, created_at)
+VALUES (?, ?, ?, ?, ?, ?, ?);
+
+selectAllBookmarks:
+SELECT * FROM bookmarks ORDER BY created_at DESC;
+
+selectBookmarkById:
+SELECT * FROM bookmarks WHERE id = ?;
+
+deleteBookmark:
+DELETE FROM bookmarks WHERE id = ?;
+
+countBookmarks:
+SELECT COUNT(*) FROM bookmarks;
