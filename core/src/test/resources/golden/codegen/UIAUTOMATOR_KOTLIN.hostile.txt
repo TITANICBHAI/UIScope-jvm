@@ -1,0 +1,179 @@
+### apostrophe
+// UI Automator: https://developer.android.com/training/testing/ui-automator
+import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.uiautomator.By
+import androidx.test.uiautomator.UiDevice
+
+val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+device.executeShellCommand("monkey -p com.example -c android.intent.category.LAUNCHER 1")
+device.findObject(By.text("Don't allow")).click()
+
+### double-quote
+// UI Automator: https://developer.android.com/training/testing/ui-automator
+import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.uiautomator.By
+import androidx.test.uiautomator.UiDevice
+
+val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+device.executeShellCommand("monkey -p com.example -c android.intent.category.LAUNCHER 1")
+device.findObject(By.text("Say \"hi\"")).click()
+
+### both-quotes
+// UI Automator: https://developer.android.com/training/testing/ui-automator
+import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.uiautomator.By
+import androidx.test.uiautomator.UiDevice
+
+val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+device.executeShellCommand("monkey -p com.example -c android.intent.category.LAUNCHER 1")
+device.findObject(By.text("He said \"it's\" ok")).click()
+
+### backslash
+// UI Automator: https://developer.android.com/training/testing/ui-automator
+import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.uiautomator.By
+import androidx.test.uiautomator.UiDevice
+
+val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+device.executeShellCommand("monkey -p com.example -c android.intent.category.LAUNCHER 1")
+device.findObject(By.text("back\\slash")).click()
+
+### newline
+// UI Automator: https://developer.android.com/training/testing/ui-automator
+import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.uiautomator.By
+import androidx.test.uiautomator.UiDevice
+
+val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+device.executeShellCommand("monkey -p com.example -c android.intent.category.LAUNCHER 1")
+device.findObject(By.text("line one\nline two")).click()
+
+### markup
+// UI Automator: https://developer.android.com/training/testing/ui-automator
+import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.uiautomator.By
+import androidx.test.uiautomator.UiDevice
+
+val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+device.executeShellCommand("monkey -p com.example -c android.intent.category.LAUNCHER 1")
+device.findObject(By.text("<a & b>")).click()
+
+### cjk
+// UI Automator: https://developer.android.com/training/testing/ui-automator
+import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.uiautomator.By
+import androidx.test.uiautomator.UiDevice
+
+val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+device.executeShellCommand("monkey -p com.example -c android.intent.category.LAUNCHER 1")
+device.findObject(By.text("日本語")).click()
+
+### dollar
+// UI Automator: https://developer.android.com/training/testing/ui-automator
+import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.uiautomator.By
+import androidx.test.uiautomator.UiDevice
+
+val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+device.executeShellCommand("monkey -p com.example -c android.intent.category.LAUNCHER 1")
+device.findObject(By.text("\$dollar and \${braces}")).click()
+
+### backtick
+// UI Automator: https://developer.android.com/training/testing/ui-automator
+import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.uiautomator.By
+import androidx.test.uiautomator.UiDevice
+
+val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+device.executeShellCommand("monkey -p com.example -c android.intent.category.LAUNCHER 1")
+device.findObject(By.text("`tick`")).click()
+
+### percent
+// UI Automator: https://developer.android.com/training/testing/ui-automator
+import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.uiautomator.By
+import androidx.test.uiautomator.UiDevice
+
+val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+device.executeShellCommand("monkey -p com.example -c android.intent.category.LAUNCHER 1")
+device.findObject(By.text("100%")).click()
+
+### empty
+// UI Automator: https://developer.android.com/training/testing/ui-automator
+import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.uiautomator.By
+import androidx.test.uiautomator.UiDevice
+
+val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+device.executeShellCommand("monkey -p com.example -c android.intent.category.LAUNCHER 1")
+device.findObject(By.text("")).click()
+
+### tab-cr
+// UI Automator: https://developer.android.com/training/testing/ui-automator
+import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.uiautomator.By
+import androidx.test.uiautomator.UiDevice
+
+val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+device.executeShellCommand("monkey -p com.example -c android.intent.category.LAUNCHER 1")
+device.findObject(By.text("a\tb\rc")).click()
+
+### emoji
+// UI Automator: https://developer.android.com/training/testing/ui-automator
+import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.uiautomator.By
+import androidx.test.uiautomator.UiDevice
+
+val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+device.executeShellCommand("monkey -p com.example -c android.intent.category.LAUNCHER 1")
+device.findObject(By.text("😀 ok")).click()
+
+### regex-meta
+// UI Automator: https://developer.android.com/training/testing/ui-automator
+import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.uiautomator.By
+import androidx.test.uiautomator.UiDevice
+
+val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+device.executeShellCommand("monkey -p com.example -c android.intent.category.LAUNCHER 1")
+device.findObject(By.text("a.b*c(d)[e]{f}|g^h\$")).click()
+
+### smart-quotes
+// UI Automator: https://developer.android.com/training/testing/ui-automator
+import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.uiautomator.By
+import androidx.test.uiautomator.UiDevice
+
+val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+device.executeShellCommand("monkey -p com.example -c android.intent.category.LAUNCHER 1")
+device.findObject(By.text("it’s ‘x’")).click()
+
+### backslash-u
+// UI Automator: https://developer.android.com/training/testing/ui-automator
+import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.uiautomator.By
+import androidx.test.uiautomator.UiDevice
+
+val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+device.executeShellCommand("monkey -p com.example -c android.intent.category.LAUNCHER 1")
+device.findObject(By.text("\\u0041 \\n")).click()
+
+### control-chars
+// UI Automator: https://developer.android.com/training/testing/ui-automator
+import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.uiautomator.By
+import androidx.test.uiautomator.UiDevice
+
+val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+device.executeShellCommand("monkey -p com.example -c android.intent.category.LAUNCHER 1")
+device.findObject(By.text("a\u0001b\u007fc\u001fd")).click()
+
+### lone-surrogate
+// UI Automator: https://developer.android.com/training/testing/ui-automator
+import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.uiautomator.By
+import androidx.test.uiautomator.UiDevice
+
+val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+device.executeShellCommand("monkey -p com.example -c android.intent.category.LAUNCHER 1")
+device.findObject(By.text("x\ud800y")).click()

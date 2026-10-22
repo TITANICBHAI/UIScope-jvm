@@ -14,8 +14,8 @@ class HarnessTest {
     fun `golden files match regardless of line endings and report the first difference`() {
         withTempDir { dir ->
             Files.writeString(dir.resolve("sample.txt"), "line one\r\nline two\r\n")
-            GoldenFiles.assertMatches("sample.txt", "line one\nline two\n", dir)
-            val failure = assertFailsWith<AssertionError> { GoldenFiles.assertMatches("sample.txt", "line one\nline TWO\n", dir) }
+            GoldenFiles.assertMatches("sample.txt", "line one\nline two\n", dir, update = false)
+            val failure = assertFailsWith<AssertionError> { GoldenFiles.assertMatches("sample.txt", "line one\nline TWO\n", dir, update = false) }
             assertTrue(failure.message!!.contains("line 2"), failure.message)
             assertTrue(failure.message!!.contains("line TWO"), failure.message)
         }
@@ -24,7 +24,7 @@ class HarnessTest {
     @Test
     fun `a missing golden file fails with instructions instead of passing silently`() {
         withTempDir { dir ->
-            val failure = assertFailsWith<AssertionError> { GoldenFiles.assertMatches("absent.txt", "anything", dir) }
+            val failure = assertFailsWith<AssertionError> { GoldenFiles.assertMatches("absent.txt", "anything", dir, update = false) }
             assertTrue(failure.message!!.contains("UPDATE_GOLDEN=1"), failure.message)
         }
     }

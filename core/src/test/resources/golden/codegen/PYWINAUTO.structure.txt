@@ -1,0 +1,60 @@
+### automation id
+# pywinauto (UIA backend): https://pywinauto.readthedocs.io/en/latest/getting_started.html
+from pywinauto import Application
+
+app = Application(backend="uia").connect(process=4242)  # the process id changes on every run; connect(path='calc.exe') is stable
+window = app.window(title='Calculator')
+window.child_window(auto_id='num1Button').click_input()
+
+### control type and name
+# pywinauto (UIA backend): https://pywinauto.readthedocs.io/en/latest/getting_started.html
+from pywinauto import Application
+
+app = Application(backend="uia").connect(process=4242)  # the process id changes on every run; connect(path='calc.exe') is stable
+window = app.window(title='Calculator')
+window.child_window(control_type='Button', title='Save').click_input()
+
+### class and name
+# pywinauto (UIA backend): https://pywinauto.readthedocs.io/en/latest/getting_started.html
+from pywinauto import Application
+
+app = Application(backend="uia").connect(process=4242)  # the process id changes on every run; connect(path='calc.exe') is stable
+window = app.window(title='Calculator')
+window.child_window(class_name='Button', title='Save').click_input()
+
+### index
+# pywinauto (UIA backend): https://pywinauto.readthedocs.io/en/latest/getting_started.html
+# Selector quality: Needs index. Attribute shared by 4 elements; index 1 breaks if the list changes.
+from pywinauto import Application
+
+app = Application(backend="uia").connect(process=4242)  # the process id changes on every run; connect(path='calc.exe') is stable
+window = app.window(title='Calculator')
+window.child_window(auto_id='row', found_index=1).click_input()
+
+### anchor
+# pywinauto (UIA backend): https://pywinauto.readthedocs.io/en/latest/getting_started.html
+# Selector quality: Fragile. Path from a unique anchor element.
+from pywinauto import Application
+
+app = Application(backend="uia").connect(process=4242)  # the process id changes on every run; connect(path='calc.exe') is stable
+window = app.window(title='Calculator')
+window.child_window(auto_id='pane').children()[1].children()[0].click_input()
+
+### path
+# pywinauto (UIA backend): https://pywinauto.readthedocs.io/en/latest/getting_started.html
+# Selector quality: Fragile. Position in the tree only.
+from pywinauto import Application
+
+app = Application(backend="uia").connect(process=4242)  # the process id changes on every run; connect(path='calc.exe') is stable
+window = app.window(title='Calculator')
+window.children()[2].children()[1].click_input()
+
+### coordinates
+# pywinauto (UIA backend): https://pywinauto.readthedocs.io/en/latest/getting_started.html
+# Selector quality: Fragile. Screen coordinates: last resort.
+from pywinauto import Application
+from pywinauto import mouse
+
+app = Application(backend="uia").connect(process=4242)  # the process id changes on every run; connect(path='calc.exe') is stable
+window = app.window(title='Calculator')
+mouse.click(coords=(640, 480))  # absolute screen pixels; DPI-aware apps report physical pixels

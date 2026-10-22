@@ -1,0 +1,143 @@
+### apostrophe
+# pywinauto (UIA backend): https://pywinauto.readthedocs.io/en/latest/getting_started.html
+from pywinauto import Application
+
+app = Application(backend="uia").connect(process=4242)  # the process id changes on every run; connect(path='calc.exe') is stable
+window = app.window(title='Calculator')
+window.child_window(title='Don\'t allow').click_input()
+
+### double-quote
+# pywinauto (UIA backend): https://pywinauto.readthedocs.io/en/latest/getting_started.html
+from pywinauto import Application
+
+app = Application(backend="uia").connect(process=4242)  # the process id changes on every run; connect(path='calc.exe') is stable
+window = app.window(title='Calculator')
+window.child_window(title='Say "hi"').click_input()
+
+### both-quotes
+# pywinauto (UIA backend): https://pywinauto.readthedocs.io/en/latest/getting_started.html
+from pywinauto import Application
+
+app = Application(backend="uia").connect(process=4242)  # the process id changes on every run; connect(path='calc.exe') is stable
+window = app.window(title='Calculator')
+window.child_window(title='He said "it\'s" ok').click_input()
+
+### backslash
+# pywinauto (UIA backend): https://pywinauto.readthedocs.io/en/latest/getting_started.html
+from pywinauto import Application
+
+app = Application(backend="uia").connect(process=4242)  # the process id changes on every run; connect(path='calc.exe') is stable
+window = app.window(title='Calculator')
+window.child_window(title='back\\slash').click_input()
+
+### newline
+# pywinauto (UIA backend): https://pywinauto.readthedocs.io/en/latest/getting_started.html
+from pywinauto import Application
+
+app = Application(backend="uia").connect(process=4242)  # the process id changes on every run; connect(path='calc.exe') is stable
+window = app.window(title='Calculator')
+window.child_window(title='line one\nline two').click_input()
+
+### markup
+# pywinauto (UIA backend): https://pywinauto.readthedocs.io/en/latest/getting_started.html
+from pywinauto import Application
+
+app = Application(backend="uia").connect(process=4242)  # the process id changes on every run; connect(path='calc.exe') is stable
+window = app.window(title='Calculator')
+window.child_window(title='<a & b>').click_input()
+
+### cjk
+# pywinauto (UIA backend): https://pywinauto.readthedocs.io/en/latest/getting_started.html
+from pywinauto import Application
+
+app = Application(backend="uia").connect(process=4242)  # the process id changes on every run; connect(path='calc.exe') is stable
+window = app.window(title='Calculator')
+window.child_window(title='日本語').click_input()
+
+### dollar
+# pywinauto (UIA backend): https://pywinauto.readthedocs.io/en/latest/getting_started.html
+from pywinauto import Application
+
+app = Application(backend="uia").connect(process=4242)  # the process id changes on every run; connect(path='calc.exe') is stable
+window = app.window(title='Calculator')
+window.child_window(title='$dollar and ${braces}').click_input()
+
+### backtick
+# pywinauto (UIA backend): https://pywinauto.readthedocs.io/en/latest/getting_started.html
+from pywinauto import Application
+
+app = Application(backend="uia").connect(process=4242)  # the process id changes on every run; connect(path='calc.exe') is stable
+window = app.window(title='Calculator')
+window.child_window(title='`tick`').click_input()
+
+### percent
+# pywinauto (UIA backend): https://pywinauto.readthedocs.io/en/latest/getting_started.html
+from pywinauto import Application
+
+app = Application(backend="uia").connect(process=4242)  # the process id changes on every run; connect(path='calc.exe') is stable
+window = app.window(title='Calculator')
+window.child_window(title='100%').click_input()
+
+### empty
+# pywinauto (UIA backend): https://pywinauto.readthedocs.io/en/latest/getting_started.html
+from pywinauto import Application
+
+app = Application(backend="uia").connect(process=4242)  # the process id changes on every run; connect(path='calc.exe') is stable
+window = app.window(title='Calculator')
+window.child_window(title='').click_input()
+
+### tab-cr
+# pywinauto (UIA backend): https://pywinauto.readthedocs.io/en/latest/getting_started.html
+from pywinauto import Application
+
+app = Application(backend="uia").connect(process=4242)  # the process id changes on every run; connect(path='calc.exe') is stable
+window = app.window(title='Calculator')
+window.child_window(title='a\tb\rc').click_input()
+
+### emoji
+# pywinauto (UIA backend): https://pywinauto.readthedocs.io/en/latest/getting_started.html
+from pywinauto import Application
+
+app = Application(backend="uia").connect(process=4242)  # the process id changes on every run; connect(path='calc.exe') is stable
+window = app.window(title='Calculator')
+window.child_window(title='😀 ok').click_input()
+
+### regex-meta
+# pywinauto (UIA backend): https://pywinauto.readthedocs.io/en/latest/getting_started.html
+from pywinauto import Application
+
+app = Application(backend="uia").connect(process=4242)  # the process id changes on every run; connect(path='calc.exe') is stable
+window = app.window(title='Calculator')
+window.child_window(title='a.b*c(d)[e]{f}|g^h$').click_input()
+
+### smart-quotes
+# pywinauto (UIA backend): https://pywinauto.readthedocs.io/en/latest/getting_started.html
+from pywinauto import Application
+
+app = Application(backend="uia").connect(process=4242)  # the process id changes on every run; connect(path='calc.exe') is stable
+window = app.window(title='Calculator')
+window.child_window(title='it’s ‘x’').click_input()
+
+### backslash-u
+# pywinauto (UIA backend): https://pywinauto.readthedocs.io/en/latest/getting_started.html
+from pywinauto import Application
+
+app = Application(backend="uia").connect(process=4242)  # the process id changes on every run; connect(path='calc.exe') is stable
+window = app.window(title='Calculator')
+window.child_window(title='\\u0041 \\n').click_input()
+
+### control-chars
+# pywinauto (UIA backend): https://pywinauto.readthedocs.io/en/latest/getting_started.html
+from pywinauto import Application
+
+app = Application(backend="uia").connect(process=4242)  # the process id changes on every run; connect(path='calc.exe') is stable
+window = app.window(title='Calculator')
+window.child_window(title='a\x01b\x7fc\x1fd').click_input()
+
+### lone-surrogate
+# pywinauto (UIA backend): https://pywinauto.readthedocs.io/en/latest/getting_started.html
+from pywinauto import Application
+
+app = Application(backend="uia").connect(process=4242)  # the process id changes on every run; connect(path='calc.exe') is stable
+window = app.window(title='Calculator')
+window.child_window(title='x\ud800y').click_input()

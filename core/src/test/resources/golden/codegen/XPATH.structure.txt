@@ -1,0 +1,26 @@
+### reliable id
+//*[@resource-id='app:id/login_button']
+
+### content description
+//*[@content-desc='Close']
+
+### id and text
+//*[@resource-id='app:id/title' and @text='Orders']
+
+### class and text
+//*[@class='android.widget.Button' and @text='OK']
+
+### index
+(//*[@resource-id='app:id/row'])[4]
+
+### anchor
+//*[@resource-id='app:id/root']/*[3]/*[1]
+
+### path
+/hierarchy/*[1]/*[4]/*[2]
+
+### coordinates
+NOT AVAILABLE: XPath cannot express screen coordinates.
+
+### dynamic text
+//*[@text='12:45']

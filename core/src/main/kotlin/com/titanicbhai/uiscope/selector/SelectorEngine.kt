@@ -5,11 +5,11 @@ import com.titanicbhai.uiscope.model.ElementNode
 import com.titanicbhai.uiscope.model.Target
 
 /** How trustworthy a selector is (Appendix C). There is exactly one notion of fragility: [FRAGILE]. */
-enum class Tier(val rank: Int) {
-    RELIABLE(0),
-    GOOD(1),
-    NEEDS_INDEX(2),
-    FRAGILE(3),
+enum class Tier(val rank: Int, val label: String) {
+    RELIABLE(0, "Reliable"),
+    GOOD(1, "Good"),
+    NEEDS_INDEX(2, "Needs index"),
+    FRAGILE(3, "Fragile"),
 }
 
 /** Specific, never generic, warnings shown as chips next to a selector. */

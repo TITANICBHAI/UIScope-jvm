@@ -1,0 +1,87 @@
+### automation id
+// FlaUI: https://github.com/FlaUI/FlaUI/wiki
+using FlaUI.Core;
+using FlaUI.Core.Definitions;
+using FlaUI.UIA3;
+
+using var app = Application.Attach(4242);  // the process id changes on every run; Attach("<exe name>") is stable
+using var automation = new UIA3Automation();
+var window = app.GetMainWindow(automation);
+var element = window.FindFirstDescendant(cf => cf.ByAutomationId("num1Button"));
+element.Click();
+
+### control type and name
+// FlaUI: https://github.com/FlaUI/FlaUI/wiki
+using FlaUI.Core;
+using FlaUI.Core.Definitions;
+using FlaUI.UIA3;
+
+using var app = Application.Attach(4242);  // the process id changes on every run; Attach("<exe name>") is stable
+using var automation = new UIA3Automation();
+var window = app.GetMainWindow(automation);
+var element = window.FindFirstDescendant(cf => cf.ByControlType(ControlType.Button).And(cf.ByName("Save")));
+element.Click();
+
+### class and name
+// FlaUI: https://github.com/FlaUI/FlaUI/wiki
+using FlaUI.Core;
+using FlaUI.Core.Definitions;
+using FlaUI.UIA3;
+
+using var app = Application.Attach(4242);  // the process id changes on every run; Attach("<exe name>") is stable
+using var automation = new UIA3Automation();
+var window = app.GetMainWindow(automation);
+var element = window.FindFirstDescendant(cf => cf.ByClassName("Button").And(cf.ByName("Save")));
+element.Click();
+
+### index
+// FlaUI: https://github.com/FlaUI/FlaUI/wiki
+// Selector quality: Needs index. Attribute shared by 4 elements; index 1 breaks if the list changes.
+using FlaUI.Core;
+using FlaUI.Core.Definitions;
+using FlaUI.UIA3;
+
+using var app = Application.Attach(4242);  // the process id changes on every run; Attach("<exe name>") is stable
+using var automation = new UIA3Automation();
+var window = app.GetMainWindow(automation);
+var element = window.FindAllDescendants(cf => cf.ByAutomationId("row"))[1];
+element.Click();
+
+### anchor
+// FlaUI: https://github.com/FlaUI/FlaUI/wiki
+// Selector quality: Fragile. Path from a unique anchor element.
+using FlaUI.Core;
+using FlaUI.Core.Definitions;
+using FlaUI.UIA3;
+
+using var app = Application.Attach(4242);  // the process id changes on every run; Attach("<exe name>") is stable
+using var automation = new UIA3Automation();
+var window = app.GetMainWindow(automation);
+var element = window.FindFirstDescendant(cf => cf.ByAutomationId("pane")).FindAllChildren()[1].FindAllChildren()[0];
+element.Click();
+
+### path
+// FlaUI: https://github.com/FlaUI/FlaUI/wiki
+// Selector quality: Fragile. Position in the tree only.
+using FlaUI.Core;
+using FlaUI.Core.Definitions;
+using FlaUI.UIA3;
+
+using var app = Application.Attach(4242);  // the process id changes on every run; Attach("<exe name>") is stable
+using var automation = new UIA3Automation();
+var window = app.GetMainWindow(automation);
+var element = window.FindAllChildren()[2].FindAllChildren()[1];
+element.Click();
+
+### coordinates
+// FlaUI: https://github.com/FlaUI/FlaUI/wiki
+// Selector quality: Fragile. Screen coordinates: last resort.
+using FlaUI.Core;
+using FlaUI.Core.Definitions;
+using FlaUI.Core.Input;
+using FlaUI.UIA3;
+
+using var app = Application.Attach(4242);  // the process id changes on every run; Attach("<exe name>") is stable
+using var automation = new UIA3Automation();
+var window = app.GetMainWindow(automation);
+Mouse.Click(new System.Drawing.Point(640, 480));  // absolute screen pixels

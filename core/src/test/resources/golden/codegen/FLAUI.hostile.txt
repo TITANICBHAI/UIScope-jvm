@@ -1,0 +1,215 @@
+### apostrophe
+// FlaUI: https://github.com/FlaUI/FlaUI/wiki
+using FlaUI.Core;
+using FlaUI.Core.Definitions;
+using FlaUI.UIA3;
+
+using var app = Application.Attach(4242);  // the process id changes on every run; Attach("<exe name>") is stable
+using var automation = new UIA3Automation();
+var window = app.GetMainWindow(automation);
+var element = window.FindFirstDescendant(cf => cf.ByName("Don't allow"));
+element.Click();
+
+### double-quote
+// FlaUI: https://github.com/FlaUI/FlaUI/wiki
+using FlaUI.Core;
+using FlaUI.Core.Definitions;
+using FlaUI.UIA3;
+
+using var app = Application.Attach(4242);  // the process id changes on every run; Attach("<exe name>") is stable
+using var automation = new UIA3Automation();
+var window = app.GetMainWindow(automation);
+var element = window.FindFirstDescendant(cf => cf.ByName("Say \"hi\""));
+element.Click();
+
+### both-quotes
+// FlaUI: https://github.com/FlaUI/FlaUI/wiki
+using FlaUI.Core;
+using FlaUI.Core.Definitions;
+using FlaUI.UIA3;
+
+using var app = Application.Attach(4242);  // the process id changes on every run; Attach("<exe name>") is stable
+using var automation = new UIA3Automation();
+var window = app.GetMainWindow(automation);
+var element = window.FindFirstDescendant(cf => cf.ByName("He said \"it's\" ok"));
+element.Click();
+
+### backslash
+// FlaUI: https://github.com/FlaUI/FlaUI/wiki
+using FlaUI.Core;
+using FlaUI.Core.Definitions;
+using FlaUI.UIA3;
+
+using var app = Application.Attach(4242);  // the process id changes on every run; Attach("<exe name>") is stable
+using var automation = new UIA3Automation();
+var window = app.GetMainWindow(automation);
+var element = window.FindFirstDescendant(cf => cf.ByName("back\\slash"));
+element.Click();
+
+### newline
+// FlaUI: https://github.com/FlaUI/FlaUI/wiki
+using FlaUI.Core;
+using FlaUI.Core.Definitions;
+using FlaUI.UIA3;
+
+using var app = Application.Attach(4242);  // the process id changes on every run; Attach("<exe name>") is stable
+using var automation = new UIA3Automation();
+var window = app.GetMainWindow(automation);
+var element = window.FindFirstDescendant(cf => cf.ByName("line one\nline two"));
+element.Click();
+
+### markup
+// FlaUI: https://github.com/FlaUI/FlaUI/wiki
+using FlaUI.Core;
+using FlaUI.Core.Definitions;
+using FlaUI.UIA3;
+
+using var app = Application.Attach(4242);  // the process id changes on every run; Attach("<exe name>") is stable
+using var automation = new UIA3Automation();
+var window = app.GetMainWindow(automation);
+var element = window.FindFirstDescendant(cf => cf.ByName("<a & b>"));
+element.Click();
+
+### cjk
+// FlaUI: https://github.com/FlaUI/FlaUI/wiki
+using FlaUI.Core;
+using FlaUI.Core.Definitions;
+using FlaUI.UIA3;
+
+using var app = Application.Attach(4242);  // the process id changes on every run; Attach("<exe name>") is stable
+using var automation = new UIA3Automation();
+var window = app.GetMainWindow(automation);
+var element = window.FindFirstDescendant(cf => cf.ByName("日本語"));
+element.Click();
+
+### dollar
+// FlaUI: https://github.com/FlaUI/FlaUI/wiki
+using FlaUI.Core;
+using FlaUI.Core.Definitions;
+using FlaUI.UIA3;
+
+using var app = Application.Attach(4242);  // the process id changes on every run; Attach("<exe name>") is stable
+using var automation = new UIA3Automation();
+var window = app.GetMainWindow(automation);
+var element = window.FindFirstDescendant(cf => cf.ByName("$dollar and ${braces}"));
+element.Click();
+
+### backtick
+// FlaUI: https://github.com/FlaUI/FlaUI/wiki
+using FlaUI.Core;
+using FlaUI.Core.Definitions;
+using FlaUI.UIA3;
+
+using var app = Application.Attach(4242);  // the process id changes on every run; Attach("<exe name>") is stable
+using var automation = new UIA3Automation();
+var window = app.GetMainWindow(automation);
+var element = window.FindFirstDescendant(cf => cf.ByName("`tick`"));
+element.Click();
+
+### percent
+// FlaUI: https://github.com/FlaUI/FlaUI/wiki
+using FlaUI.Core;
+using FlaUI.Core.Definitions;
+using FlaUI.UIA3;
+
+using var app = Application.Attach(4242);  // the process id changes on every run; Attach("<exe name>") is stable
+using var automation = new UIA3Automation();
+var window = app.GetMainWindow(automation);
+var element = window.FindFirstDescendant(cf => cf.ByName("100%"));
+element.Click();
+
+### empty
+// FlaUI: https://github.com/FlaUI/FlaUI/wiki
+using FlaUI.Core;
+using FlaUI.Core.Definitions;
+using FlaUI.UIA3;
+
+using var app = Application.Attach(4242);  // the process id changes on every run; Attach("<exe name>") is stable
+using var automation = new UIA3Automation();
+var window = app.GetMainWindow(automation);
+var element = window.FindFirstDescendant(cf => cf.ByName(""));
+element.Click();
+
+### tab-cr
+// FlaUI: https://github.com/FlaUI/FlaUI/wiki
+using FlaUI.Core;
+using FlaUI.Core.Definitions;
+using FlaUI.UIA3;
+
+using var app = Application.Attach(4242);  // the process id changes on every run; Attach("<exe name>") is stable
+using var automation = new UIA3Automation();
+var window = app.GetMainWindow(automation);
+var element = window.FindFirstDescendant(cf => cf.ByName("a\tb\rc"));
+element.Click();
+
+### emoji
+// FlaUI: https://github.com/FlaUI/FlaUI/wiki
+using FlaUI.Core;
+using FlaUI.Core.Definitions;
+using FlaUI.UIA3;
+
+using var app = Application.Attach(4242);  // the process id changes on every run; Attach("<exe name>") is stable
+using var automation = new UIA3Automation();
+var window = app.GetMainWindow(automation);
+var element = window.FindFirstDescendant(cf => cf.ByName("😀 ok"));
+element.Click();
+
+### regex-meta
+// FlaUI: https://github.com/FlaUI/FlaUI/wiki
+using FlaUI.Core;
+using FlaUI.Core.Definitions;
+using FlaUI.UIA3;
+
+using var app = Application.Attach(4242);  // the process id changes on every run; Attach("<exe name>") is stable
+using var automation = new UIA3Automation();
+var window = app.GetMainWindow(automation);
+var element = window.FindFirstDescendant(cf => cf.ByName("a.b*c(d)[e]{f}|g^h$"));
+element.Click();
+
+### smart-quotes
+// FlaUI: https://github.com/FlaUI/FlaUI/wiki
+using FlaUI.Core;
+using FlaUI.Core.Definitions;
+using FlaUI.UIA3;
+
+using var app = Application.Attach(4242);  // the process id changes on every run; Attach("<exe name>") is stable
+using var automation = new UIA3Automation();
+var window = app.GetMainWindow(automation);
+var element = window.FindFirstDescendant(cf => cf.ByName("it’s ‘x’"));
+element.Click();
+
+### backslash-u
+// FlaUI: https://github.com/FlaUI/FlaUI/wiki
+using FlaUI.Core;
+using FlaUI.Core.Definitions;
+using FlaUI.UIA3;
+
+using var app = Application.Attach(4242);  // the process id changes on every run; Attach("<exe name>") is stable
+using var automation = new UIA3Automation();
+var window = app.GetMainWindow(automation);
+var element = window.FindFirstDescendant(cf => cf.ByName("\\u0041 \\n"));
+element.Click();
+
+### control-chars
+// FlaUI: https://github.com/FlaUI/FlaUI/wiki
+using FlaUI.Core;
+using FlaUI.Core.Definitions;
+using FlaUI.UIA3;
+
+using var app = Application.Attach(4242);  // the process id changes on every run; Attach("<exe name>") is stable
+using var automation = new UIA3Automation();
+var window = app.GetMainWindow(automation);
+var element = window.FindFirstDescendant(cf => cf.ByName("a\u0001b\u007fc\u001fd"));
+element.Click();
+
+### lone-surrogate
+// FlaUI: https://github.com/FlaUI/FlaUI/wiki
+using FlaUI.Core;
+using FlaUI.Core.Definitions;
+using FlaUI.UIA3;
+
+using var app = Application.Attach(4242);  // the process id changes on every run; Attach("<exe name>") is stable
+using var automation = new UIA3Automation();
+var window = app.GetMainWindow(automation);
+var element = window.FindFirstDescendant(cf => cf.ByName("x\ud800y"));
+element.Click();

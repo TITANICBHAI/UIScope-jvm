@@ -1,0 +1,143 @@
+### apostrophe
+# uiautomator2: https://github.com/openatx/uiautomator2
+import uiautomator2 as u2
+
+d = u2.connect()  # several devices attached? u2.connect("<serial>") or set ANDROID_SERIAL
+d.app_start('com.example')
+d(text='Don\'t allow').click()
+
+### double-quote
+# uiautomator2: https://github.com/openatx/uiautomator2
+import uiautomator2 as u2
+
+d = u2.connect()  # several devices attached? u2.connect("<serial>") or set ANDROID_SERIAL
+d.app_start('com.example')
+d(text='Say "hi"').click()
+
+### both-quotes
+# uiautomator2: https://github.com/openatx/uiautomator2
+import uiautomator2 as u2
+
+d = u2.connect()  # several devices attached? u2.connect("<serial>") or set ANDROID_SERIAL
+d.app_start('com.example')
+d(text='He said "it\'s" ok').click()
+
+### backslash
+# uiautomator2: https://github.com/openatx/uiautomator2
+import uiautomator2 as u2
+
+d = u2.connect()  # several devices attached? u2.connect("<serial>") or set ANDROID_SERIAL
+d.app_start('com.example')
+d(text='back\\slash').click()
+
+### newline
+# uiautomator2: https://github.com/openatx/uiautomator2
+import uiautomator2 as u2
+
+d = u2.connect()  # several devices attached? u2.connect("<serial>") or set ANDROID_SERIAL
+d.app_start('com.example')
+d(text='line one\nline two').click()
+
+### markup
+# uiautomator2: https://github.com/openatx/uiautomator2
+import uiautomator2 as u2
+
+d = u2.connect()  # several devices attached? u2.connect("<serial>") or set ANDROID_SERIAL
+d.app_start('com.example')
+d(text='<a & b>').click()
+
+### cjk
+# uiautomator2: https://github.com/openatx/uiautomator2
+import uiautomator2 as u2
+
+d = u2.connect()  # several devices attached? u2.connect("<serial>") or set ANDROID_SERIAL
+d.app_start('com.example')
+d(text='日本語').click()
+
+### dollar
+# uiautomator2: https://github.com/openatx/uiautomator2
+import uiautomator2 as u2
+
+d = u2.connect()  # several devices attached? u2.connect("<serial>") or set ANDROID_SERIAL
+d.app_start('com.example')
+d(text='$dollar and ${braces}').click()
+
+### backtick
+# uiautomator2: https://github.com/openatx/uiautomator2
+import uiautomator2 as u2
+
+d = u2.connect()  # several devices attached? u2.connect("<serial>") or set ANDROID_SERIAL
+d.app_start('com.example')
+d(text='`tick`').click()
+
+### percent
+# uiautomator2: https://github.com/openatx/uiautomator2
+import uiautomator2 as u2
+
+d = u2.connect()  # several devices attached? u2.connect("<serial>") or set ANDROID_SERIAL
+d.app_start('com.example')
+d(text='100%').click()
+
+### empty
+# uiautomator2: https://github.com/openatx/uiautomator2
+import uiautomator2 as u2
+
+d = u2.connect()  # several devices attached? u2.connect("<serial>") or set ANDROID_SERIAL
+d.app_start('com.example')
+d(text='').click()
+
+### tab-cr
+# uiautomator2: https://github.com/openatx/uiautomator2
+import uiautomator2 as u2
+
+d = u2.connect()  # several devices attached? u2.connect("<serial>") or set ANDROID_SERIAL
+d.app_start('com.example')
+d(text='a\tb\rc').click()
+
+### emoji
+# uiautomator2: https://github.com/openatx/uiautomator2
+import uiautomator2 as u2
+
+d = u2.connect()  # several devices attached? u2.connect("<serial>") or set ANDROID_SERIAL
+d.app_start('com.example')
+d(text='😀 ok').click()
+
+### regex-meta
+# uiautomator2: https://github.com/openatx/uiautomator2
+import uiautomator2 as u2
+
+d = u2.connect()  # several devices attached? u2.connect("<serial>") or set ANDROID_SERIAL
+d.app_start('com.example')
+d(text='a.b*c(d)[e]{f}|g^h$').click()
+
+### smart-quotes
+# uiautomator2: https://github.com/openatx/uiautomator2
+import uiautomator2 as u2
+
+d = u2.connect()  # several devices attached? u2.connect("<serial>") or set ANDROID_SERIAL
+d.app_start('com.example')
+d(text='it’s ‘x’').click()
+
+### backslash-u
+# uiautomator2: https://github.com/openatx/uiautomator2
+import uiautomator2 as u2
+
+d = u2.connect()  # several devices attached? u2.connect("<serial>") or set ANDROID_SERIAL
+d.app_start('com.example')
+d(text='\\u0041 \\n').click()
+
+### control-chars
+# uiautomator2: https://github.com/openatx/uiautomator2
+import uiautomator2 as u2
+
+d = u2.connect()  # several devices attached? u2.connect("<serial>") or set ANDROID_SERIAL
+d.app_start('com.example')
+d(text='a\x01b\x7fc\x1fd').click()
+
+### lone-surrogate
+# uiautomator2: https://github.com/openatx/uiautomator2
+import uiautomator2 as u2
+
+d = u2.connect()  # several devices attached? u2.connect("<serial>") or set ANDROID_SERIAL
+d.app_start('com.example')
+d(text='x\ud800y').click()

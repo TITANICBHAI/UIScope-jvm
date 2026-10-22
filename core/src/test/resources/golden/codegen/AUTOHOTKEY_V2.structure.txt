@@ -1,0 +1,65 @@
+### automation id
+; AutoHotkey v2 with UIA-v2 (copy UIA.ahk into a Lib folder): https://github.com/Descolada/UIA-v2/wiki
+#Requires AutoHotkey v2.0
+#include <UIA>
+
+window := UIA.ElementFromHandle("ahk_pid 4242")  ; the process id changes on every run; "ahk_exe <name>" is stable
+element := window.FindElement({AutomationId: "num1Button"})
+element.Click()
+
+### control type and name
+; AutoHotkey v2 with UIA-v2 (copy UIA.ahk into a Lib folder): https://github.com/Descolada/UIA-v2/wiki
+#Requires AutoHotkey v2.0
+#include <UIA>
+
+window := UIA.ElementFromHandle("ahk_pid 4242")  ; the process id changes on every run; "ahk_exe <name>" is stable
+element := window.FindElement({Type: "Button", Name: "Save"})
+element.Click()
+
+### class and name
+; AutoHotkey v2 with UIA-v2 (copy UIA.ahk into a Lib folder): https://github.com/Descolada/UIA-v2/wiki
+#Requires AutoHotkey v2.0
+#include <UIA>
+
+window := UIA.ElementFromHandle("ahk_pid 4242")  ; the process id changes on every run; "ahk_exe <name>" is stable
+element := window.FindElement({ClassName: "Button", Name: "Save"})
+element.Click()
+
+### index
+; AutoHotkey v2 with UIA-v2 (copy UIA.ahk into a Lib folder): https://github.com/Descolada/UIA-v2/wiki
+; Selector quality: Needs index. Attribute shared by 4 elements; index 1 breaks if the list changes.
+#Requires AutoHotkey v2.0
+#include <UIA>
+
+window := UIA.ElementFromHandle("ahk_pid 4242")  ; the process id changes on every run; "ahk_exe <name>" is stable
+element := window.FindElement({AutomationId: "row"}, 4, 2)
+element.Click()
+
+### anchor
+; AutoHotkey v2 with UIA-v2 (copy UIA.ahk into a Lib folder): https://github.com/Descolada/UIA-v2/wiki
+; Selector quality: Fragile. Path from a unique anchor element.
+#Requires AutoHotkey v2.0
+#include <UIA>
+
+window := UIA.ElementFromHandle("ahk_pid 4242")  ; the process id changes on every run; "ahk_exe <name>" is stable
+element := window.FindElement({AutomationId: "pane"})[2][1]
+element.Click()
+
+### path
+; AutoHotkey v2 with UIA-v2 (copy UIA.ahk into a Lib folder): https://github.com/Descolada/UIA-v2/wiki
+; Selector quality: Fragile. Position in the tree only.
+#Requires AutoHotkey v2.0
+#include <UIA>
+
+window := UIA.ElementFromHandle("ahk_pid 4242")  ; the process id changes on every run; "ahk_exe <name>" is stable
+element := window[3][2]
+element.Click()
+
+### coordinates
+; AutoHotkey v2 with UIA-v2 (copy UIA.ahk into a Lib folder): https://github.com/Descolada/UIA-v2/wiki
+; Selector quality: Fragile. Screen coordinates: last resort.
+#Requires AutoHotkey v2.0
+#include <UIA>
+
+CoordMode("Mouse", "Screen")  ; absolute screen pixels
+Click(640, 480)

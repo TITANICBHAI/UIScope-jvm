@@ -1,0 +1,62 @@
+### reliable id
+# Maestro: https://docs.maestro.dev/reference/selectors/core-selectors
+appId: "com.example"
+---
+- launchApp
+- tapOn:
+    id: "app:id/login_button"
+
+### content description
+# Maestro: https://docs.maestro.dev/reference/selectors/core-selectors
+appId: "com.example"
+---
+- launchApp
+# Maestro matches a content description through the text selector (accessibility text).
+- tapOn:
+    text: "Close"
+
+### id and text
+# Maestro: https://docs.maestro.dev/reference/selectors/core-selectors
+appId: "com.example"
+---
+- launchApp
+- tapOn:
+    id: "app:id/title"
+    text: "Orders"
+
+### class and text
+NOT AVAILABLE: This target cannot express the selector Attr(class="android.widget.Button", text="OK").
+
+### index
+# Maestro: https://docs.maestro.dev/reference/selectors/core-selectors
+# Selector quality: Needs index. Attribute shared by 14 elements; index 3 breaks if the list changes.
+appId: "com.example"
+---
+- launchApp
+- tapOn:
+    id: "app:id/row"
+    index: 3
+
+### anchor
+NOT AVAILABLE: This target has no path-based selector. Use an attribute selector, or pick uiautomator2, Appium or XPath.
+
+### path
+NOT AVAILABLE: This target has no path-based selector. Use an attribute selector, or pick uiautomator2, Appium or XPath.
+
+### coordinates
+# Maestro: https://docs.maestro.dev/reference/selectors/core-selectors
+# Selector quality: Fragile. Screen coordinates: last resort.
+appId: "com.example"
+---
+- launchApp
+- tapOn:
+    point: "540, 1200"
+
+### dynamic text
+# Maestro: https://docs.maestro.dev/reference/selectors/core-selectors
+# Selector quality: Fragile. Unique, but the text looks dynamic. Warnings: depends on the app language, text looks dynamic (digits/time).
+appId: "com.example"
+---
+- launchApp
+- tapOn:
+    text: "12:45"

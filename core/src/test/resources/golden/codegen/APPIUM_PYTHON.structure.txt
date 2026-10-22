@@ -1,0 +1,110 @@
+### reliable id
+# Appium Python client: https://github.com/appium/python-client
+from appium import webdriver
+from appium.options.android import UiAutomator2Options
+from appium.webdriver.common.appiumby import AppiumBy
+
+# Appium 2 server on its default address. Several devices attached? Set the appium:udid capability.
+options = UiAutomator2Options()
+driver = webdriver.Remote('http://127.0.0.1:4723', options=options)
+driver.activate_app('com.example')
+element = driver.find_element(by=AppiumBy.ID, value='app:id/login_button')
+element.click()
+
+### content description
+# Appium Python client: https://github.com/appium/python-client
+from appium import webdriver
+from appium.options.android import UiAutomator2Options
+from appium.webdriver.common.appiumby import AppiumBy
+
+# Appium 2 server on its default address. Several devices attached? Set the appium:udid capability.
+options = UiAutomator2Options()
+driver = webdriver.Remote('http://127.0.0.1:4723', options=options)
+driver.activate_app('com.example')
+element = driver.find_element(by=AppiumBy.ACCESSIBILITY_ID, value='Close')
+element.click()
+
+### id and text
+# Appium Python client: https://github.com/appium/python-client
+from appium import webdriver
+from appium.options.android import UiAutomator2Options
+from appium.webdriver.common.appiumby import AppiumBy
+
+# Appium 2 server on its default address. Several devices attached? Set the appium:udid capability.
+options = UiAutomator2Options()
+driver = webdriver.Remote('http://127.0.0.1:4723', options=options)
+driver.activate_app('com.example')
+element = driver.find_element(by=AppiumBy.XPATH, value='//*[@resource-id=\'app:id/title\' and @text=\'Orders\']')
+element.click()
+
+### class and text
+# Appium Python client: https://github.com/appium/python-client
+from appium import webdriver
+from appium.options.android import UiAutomator2Options
+from appium.webdriver.common.appiumby import AppiumBy
+
+# Appium 2 server on its default address. Several devices attached? Set the appium:udid capability.
+options = UiAutomator2Options()
+driver = webdriver.Remote('http://127.0.0.1:4723', options=options)
+driver.activate_app('com.example')
+element = driver.find_element(by=AppiumBy.XPATH, value='//*[@class=\'android.widget.Button\' and @text=\'OK\']')
+element.click()
+
+### index
+# Appium Python client: https://github.com/appium/python-client
+# Selector quality: Needs index. Attribute shared by 14 elements; index 3 breaks if the list changes.
+from appium import webdriver
+from appium.options.android import UiAutomator2Options
+from appium.webdriver.common.appiumby import AppiumBy
+
+# Appium 2 server on its default address. Several devices attached? Set the appium:udid capability.
+options = UiAutomator2Options()
+driver = webdriver.Remote('http://127.0.0.1:4723', options=options)
+driver.activate_app('com.example')
+element = driver.find_elements(by=AppiumBy.ID, value='app:id/row')[3]
+element.click()
+
+### anchor
+# Appium Python client: https://github.com/appium/python-client
+# Selector quality: Fragile. Path from a unique anchor element.
+from appium import webdriver
+from appium.options.android import UiAutomator2Options
+from appium.webdriver.common.appiumby import AppiumBy
+
+# Appium 2 server on its default address. Several devices attached? Set the appium:udid capability.
+options = UiAutomator2Options()
+driver = webdriver.Remote('http://127.0.0.1:4723', options=options)
+driver.activate_app('com.example')
+element = driver.find_element(by=AppiumBy.XPATH, value='//*[@resource-id=\'app:id/root\']/*[3]/*[1]')
+element.click()
+
+### path
+# Appium Python client: https://github.com/appium/python-client
+# Selector quality: Fragile. Position in the tree only.
+from appium import webdriver
+from appium.options.android import UiAutomator2Options
+from appium.webdriver.common.appiumby import AppiumBy
+
+# Appium 2 server on its default address. Several devices attached? Set the appium:udid capability.
+options = UiAutomator2Options()
+driver = webdriver.Remote('http://127.0.0.1:4723', options=options)
+driver.activate_app('com.example')
+element = driver.find_element(by=AppiumBy.XPATH, value='/hierarchy/*[1]/*[4]/*[2]')
+element.click()
+
+### coordinates
+NOT AVAILABLE: Appium has no one-line coordinate tap. Use another target for coordinates.
+
+### dynamic text
+# Appium Python client: https://github.com/appium/python-client
+# Selector quality: Fragile. Unique, but the text looks dynamic. Warnings: depends on the app language, text looks dynamic (digits/time).
+from appium import webdriver
+from appium.options.android import UiAutomator2Options
+from appium.webdriver.common.appiumby import AppiumBy
+
+# Appium 2 server on its default address. Several devices attached? Set the appium:udid capability.
+options = UiAutomator2Options()
+driver = webdriver.Remote('http://127.0.0.1:4723', options=options)
+driver.activate_app('com.example')
+element = driver.find_element(by=AppiumBy.XPATH, value='//*[@text=\'12:45\']')
+element.click()

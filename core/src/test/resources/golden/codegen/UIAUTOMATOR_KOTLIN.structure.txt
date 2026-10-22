@@ -1,0 +1,78 @@
+### reliable id
+// UI Automator: https://developer.android.com/training/testing/ui-automator
+import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.uiautomator.By
+import androidx.test.uiautomator.UiDevice
+
+val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+device.executeShellCommand("monkey -p com.example -c android.intent.category.LAUNCHER 1")
+device.findObject(By.res("app:id/login_button")).click()
+
+### content description
+// UI Automator: https://developer.android.com/training/testing/ui-automator
+import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.uiautomator.By
+import androidx.test.uiautomator.UiDevice
+
+val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+device.executeShellCommand("monkey -p com.example -c android.intent.category.LAUNCHER 1")
+device.findObject(By.desc("Close")).click()
+
+### id and text
+// UI Automator: https://developer.android.com/training/testing/ui-automator
+import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.uiautomator.By
+import androidx.test.uiautomator.UiDevice
+
+val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+device.executeShellCommand("monkey -p com.example -c android.intent.category.LAUNCHER 1")
+device.findObject(By.res("app:id/title").text("Orders")).click()
+
+### class and text
+// UI Automator: https://developer.android.com/training/testing/ui-automator
+import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.uiautomator.By
+import androidx.test.uiautomator.UiDevice
+
+val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+device.executeShellCommand("monkey -p com.example -c android.intent.category.LAUNCHER 1")
+device.findObject(By.clazz("android.widget.Button").text("OK")).click()
+
+### index
+// UI Automator: https://developer.android.com/training/testing/ui-automator
+// Selector quality: Needs index. Attribute shared by 14 elements; index 3 breaks if the list changes.
+import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.uiautomator.By
+import androidx.test.uiautomator.UiDevice
+
+val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+device.executeShellCommand("monkey -p com.example -c android.intent.category.LAUNCHER 1")
+device.findObjects(By.res("app:id/row"))[3].click()
+
+### anchor
+NOT AVAILABLE: This target has no path-based selector. Use an attribute selector, or pick uiautomator2, Appium or XPath.
+
+### path
+NOT AVAILABLE: This target has no path-based selector. Use an attribute selector, or pick uiautomator2, Appium or XPath.
+
+### coordinates
+// UI Automator: https://developer.android.com/training/testing/ui-automator
+// Selector quality: Fragile. Screen coordinates: last resort.
+import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.uiautomator.By
+import androidx.test.uiautomator.UiDevice
+
+val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+device.executeShellCommand("monkey -p com.example -c android.intent.category.LAUNCHER 1")
+device.click(540, 1200)
+
+### dynamic text
+// UI Automator: https://developer.android.com/training/testing/ui-automator
+// Selector quality: Fragile. Unique, but the text looks dynamic. Warnings: depends on the app language, text looks dynamic (digits/time).
+import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.uiautomator.By
+import androidx.test.uiautomator.UiDevice
+
+val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+device.executeShellCommand("monkey -p com.example -c android.intent.category.LAUNCHER 1")
+device.findObject(By.text("12:45")).click()

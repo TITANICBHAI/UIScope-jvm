@@ -12,6 +12,8 @@ Nothing has been released yet. Entries below describe only what exists in the co
   locations, rotating logs.
 - App identity (`app.properties`) and version generated from `version.txt`.
 - Test harness and synthetic Android dump fixtures.
+- XML and outline export with redaction, a deterministic selector engine (reliability tiers, warnings, verdict), and code generation for
+  uiautomator2, UI Automator, Appium (Java, Python), Maestro, XPath, pywinauto, FlaUI, AutoHotkey v2 and PowerShell with correct escaping.
 
 ### Changed
 - The application window is a placeholder while the user interface is rebuilt.

@@ -1,0 +1,54 @@
+### apostrophe
+//*[@text="Don't allow"]
+
+### double-quote
+//*[@text='Say "hi"']
+
+### both-quotes
+//*[@text=concat('He said "it', "'", 's" ok')]
+
+### backslash
+//*[@text='back\slash']
+
+### newline
+//*[@text='line one
+line two']
+
+### markup
+//*[@text='<a & b>']
+
+### cjk
+//*[@text='日本語']
+
+### dollar
+//*[@text='$dollar and ${braces}']
+
+### backtick
+//*[@text='`tick`']
+
+### percent
+//*[@text='100%']
+
+### empty
+//*[@text='']
+
+### tab-cr
+//*[@text='a	bc']
+
+### emoji
+//*[@text='😀 ok']
+
+### regex-meta
+//*[@text='a.b*c(d)[e]{f}|g^h$']
+
+### smart-quotes
+//*[@text='it’s ‘x’']
+
+### backslash-u
+//*[@text='\u0041 \n']
+
+### control-chars
+//*[@text='abcd']
+
+### lone-surrogate
+//*[@text='xy']

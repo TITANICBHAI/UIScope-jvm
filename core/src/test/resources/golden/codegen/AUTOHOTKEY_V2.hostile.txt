@@ -1,0 +1,161 @@
+### apostrophe
+; AutoHotkey v2 with UIA-v2 (copy UIA.ahk into a Lib folder): https://github.com/Descolada/UIA-v2/wiki
+#Requires AutoHotkey v2.0
+#include <UIA>
+
+window := UIA.ElementFromHandle("ahk_pid 4242")  ; the process id changes on every run; "ahk_exe <name>" is stable
+element := window.FindElement({Name: "Don't allow"})
+element.Click()
+
+### double-quote
+; AutoHotkey v2 with UIA-v2 (copy UIA.ahk into a Lib folder): https://github.com/Descolada/UIA-v2/wiki
+#Requires AutoHotkey v2.0
+#include <UIA>
+
+window := UIA.ElementFromHandle("ahk_pid 4242")  ; the process id changes on every run; "ahk_exe <name>" is stable
+element := window.FindElement({Name: "Say `"hi`""})
+element.Click()
+
+### both-quotes
+; AutoHotkey v2 with UIA-v2 (copy UIA.ahk into a Lib folder): https://github.com/Descolada/UIA-v2/wiki
+#Requires AutoHotkey v2.0
+#include <UIA>
+
+window := UIA.ElementFromHandle("ahk_pid 4242")  ; the process id changes on every run; "ahk_exe <name>" is stable
+element := window.FindElement({Name: "He said `"it's`" ok"})
+element.Click()
+
+### backslash
+; AutoHotkey v2 with UIA-v2 (copy UIA.ahk into a Lib folder): https://github.com/Descolada/UIA-v2/wiki
+#Requires AutoHotkey v2.0
+#include <UIA>
+
+window := UIA.ElementFromHandle("ahk_pid 4242")  ; the process id changes on every run; "ahk_exe <name>" is stable
+element := window.FindElement({Name: "back\slash"})
+element.Click()
+
+### newline
+; AutoHotkey v2 with UIA-v2 (copy UIA.ahk into a Lib folder): https://github.com/Descolada/UIA-v2/wiki
+#Requires AutoHotkey v2.0
+#include <UIA>
+
+window := UIA.ElementFromHandle("ahk_pid 4242")  ; the process id changes on every run; "ahk_exe <name>" is stable
+element := window.FindElement({Name: "line one`nline two"})
+element.Click()
+
+### markup
+; AutoHotkey v2 with UIA-v2 (copy UIA.ahk into a Lib folder): https://github.com/Descolada/UIA-v2/wiki
+#Requires AutoHotkey v2.0
+#include <UIA>
+
+window := UIA.ElementFromHandle("ahk_pid 4242")  ; the process id changes on every run; "ahk_exe <name>" is stable
+element := window.FindElement({Name: "<a & b>"})
+element.Click()
+
+### cjk
+; AutoHotkey v2 with UIA-v2 (copy UIA.ahk into a Lib folder): https://github.com/Descolada/UIA-v2/wiki
+#Requires AutoHotkey v2.0
+#include <UIA>
+
+window := UIA.ElementFromHandle("ahk_pid 4242")  ; the process id changes on every run; "ahk_exe <name>" is stable
+element := window.FindElement({Name: "日本語"})
+element.Click()
+
+### dollar
+; AutoHotkey v2 with UIA-v2 (copy UIA.ahk into a Lib folder): https://github.com/Descolada/UIA-v2/wiki
+#Requires AutoHotkey v2.0
+#include <UIA>
+
+window := UIA.ElementFromHandle("ahk_pid 4242")  ; the process id changes on every run; "ahk_exe <name>" is stable
+element := window.FindElement({Name: "$dollar and ${braces}"})
+element.Click()
+
+### backtick
+; AutoHotkey v2 with UIA-v2 (copy UIA.ahk into a Lib folder): https://github.com/Descolada/UIA-v2/wiki
+#Requires AutoHotkey v2.0
+#include <UIA>
+
+window := UIA.ElementFromHandle("ahk_pid 4242")  ; the process id changes on every run; "ahk_exe <name>" is stable
+element := window.FindElement({Name: "``tick``"})
+element.Click()
+
+### percent
+; AutoHotkey v2 with UIA-v2 (copy UIA.ahk into a Lib folder): https://github.com/Descolada/UIA-v2/wiki
+#Requires AutoHotkey v2.0
+#include <UIA>
+
+window := UIA.ElementFromHandle("ahk_pid 4242")  ; the process id changes on every run; "ahk_exe <name>" is stable
+element := window.FindElement({Name: "100%"})
+element.Click()
+
+### empty
+; AutoHotkey v2 with UIA-v2 (copy UIA.ahk into a Lib folder): https://github.com/Descolada/UIA-v2/wiki
+#Requires AutoHotkey v2.0
+#include <UIA>
+
+window := UIA.ElementFromHandle("ahk_pid 4242")  ; the process id changes on every run; "ahk_exe <name>" is stable
+element := window.FindElement({Name: ""})
+element.Click()
+
+### tab-cr
+; AutoHotkey v2 with UIA-v2 (copy UIA.ahk into a Lib folder): https://github.com/Descolada/UIA-v2/wiki
+#Requires AutoHotkey v2.0
+#include <UIA>
+
+window := UIA.ElementFromHandle("ahk_pid 4242")  ; the process id changes on every run; "ahk_exe <name>" is stable
+element := window.FindElement({Name: "a`tb`rc"})
+element.Click()
+
+### emoji
+; AutoHotkey v2 with UIA-v2 (copy UIA.ahk into a Lib folder): https://github.com/Descolada/UIA-v2/wiki
+#Requires AutoHotkey v2.0
+#include <UIA>
+
+window := UIA.ElementFromHandle("ahk_pid 4242")  ; the process id changes on every run; "ahk_exe <name>" is stable
+element := window.FindElement({Name: "😀 ok"})
+element.Click()
+
+### regex-meta
+; AutoHotkey v2 with UIA-v2 (copy UIA.ahk into a Lib folder): https://github.com/Descolada/UIA-v2/wiki
+#Requires AutoHotkey v2.0
+#include <UIA>
+
+window := UIA.ElementFromHandle("ahk_pid 4242")  ; the process id changes on every run; "ahk_exe <name>" is stable
+element := window.FindElement({Name: "a.b*c(d)[e]{f}|g^h$"})
+element.Click()
+
+### smart-quotes
+; AutoHotkey v2 with UIA-v2 (copy UIA.ahk into a Lib folder): https://github.com/Descolada/UIA-v2/wiki
+#Requires AutoHotkey v2.0
+#include <UIA>
+
+window := UIA.ElementFromHandle("ahk_pid 4242")  ; the process id changes on every run; "ahk_exe <name>" is stable
+element := window.FindElement({Name: "it’s ‘x’"})
+element.Click()
+
+### backslash-u
+; AutoHotkey v2 with UIA-v2 (copy UIA.ahk into a Lib folder): https://github.com/Descolada/UIA-v2/wiki
+#Requires AutoHotkey v2.0
+#include <UIA>
+
+window := UIA.ElementFromHandle("ahk_pid 4242")  ; the process id changes on every run; "ahk_exe <name>" is stable
+element := window.FindElement({Name: "\u0041 \n"})
+element.Click()
+
+### control-chars
+; AutoHotkey v2 with UIA-v2 (copy UIA.ahk into a Lib folder): https://github.com/Descolada/UIA-v2/wiki
+#Requires AutoHotkey v2.0
+#include <UIA>
+
+window := UIA.ElementFromHandle("ahk_pid 4242")  ; the process id changes on every run; "ahk_exe <name>" is stable
+element := window.FindElement({Name: ("a" . Chr(1) . "b" . Chr(127) . "c" . Chr(31) . "d")})
+element.Click()
+
+### lone-surrogate
+; AutoHotkey v2 with UIA-v2 (copy UIA.ahk into a Lib folder): https://github.com/Descolada/UIA-v2/wiki
+#Requires AutoHotkey v2.0
+#include <UIA>
+
+window := UIA.ElementFromHandle("ahk_pid 4242")  ; the process id changes on every run; "ahk_exe <name>" is stable
+element := window.FindElement({Name: ("x" . Chr(55296) . "y")})
+element.Click()

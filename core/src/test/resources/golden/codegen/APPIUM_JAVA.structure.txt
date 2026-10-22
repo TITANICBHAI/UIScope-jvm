@@ -1,0 +1,126 @@
+### reliable id
+// Appium Java client: https://github.com/appium/java-client
+import io.appium.java_client.AppiumBy;
+import io.appium.java_client.android.AndroidDriver;
+import io.appium.java_client.android.options.UiAutomator2Options;
+import java.net.URL;
+import org.openqa.selenium.WebElement;
+
+// Appium 2 server on its default address. Several devices attached? Set the appium:udid capability.
+UiAutomator2Options options = new UiAutomator2Options();
+AndroidDriver driver = new AndroidDriver(new URL("http://127.0.0.1:4723"), options);
+driver.activateApp("com.example");
+WebElement element = driver.findElement(AppiumBy.id("app:id/login_button"));
+element.click();
+
+### content description
+// Appium Java client: https://github.com/appium/java-client
+import io.appium.java_client.AppiumBy;
+import io.appium.java_client.android.AndroidDriver;
+import io.appium.java_client.android.options.UiAutomator2Options;
+import java.net.URL;
+import org.openqa.selenium.WebElement;
+
+// Appium 2 server on its default address. Several devices attached? Set the appium:udid capability.
+UiAutomator2Options options = new UiAutomator2Options();
+AndroidDriver driver = new AndroidDriver(new URL("http://127.0.0.1:4723"), options);
+driver.activateApp("com.example");
+WebElement element = driver.findElement(AppiumBy.accessibilityId("Close"));
+element.click();
+
+### id and text
+// Appium Java client: https://github.com/appium/java-client
+import io.appium.java_client.AppiumBy;
+import io.appium.java_client.android.AndroidDriver;
+import io.appium.java_client.android.options.UiAutomator2Options;
+import java.net.URL;
+import org.openqa.selenium.WebElement;
+
+// Appium 2 server on its default address. Several devices attached? Set the appium:udid capability.
+UiAutomator2Options options = new UiAutomator2Options();
+AndroidDriver driver = new AndroidDriver(new URL("http://127.0.0.1:4723"), options);
+driver.activateApp("com.example");
+WebElement element = driver.findElement(AppiumBy.xpath("//*[@resource-id='app:id/title' and @text='Orders']"));
+element.click();
+
+### class and text
+// Appium Java client: https://github.com/appium/java-client
+import io.appium.java_client.AppiumBy;
+import io.appium.java_client.android.AndroidDriver;
+import io.appium.java_client.android.options.UiAutomator2Options;
+import java.net.URL;
+import org.openqa.selenium.WebElement;
+
+// Appium 2 server on its default address. Several devices attached? Set the appium:udid capability.
+UiAutomator2Options options = new UiAutomator2Options();
+AndroidDriver driver = new AndroidDriver(new URL("http://127.0.0.1:4723"), options);
+driver.activateApp("com.example");
+WebElement element = driver.findElement(AppiumBy.xpath("//*[@class='android.widget.Button' and @text='OK']"));
+element.click();
+
+### index
+// Appium Java client: https://github.com/appium/java-client
+// Selector quality: Needs index. Attribute shared by 14 elements; index 3 breaks if the list changes.
+import io.appium.java_client.AppiumBy;
+import io.appium.java_client.android.AndroidDriver;
+import io.appium.java_client.android.options.UiAutomator2Options;
+import java.net.URL;
+import org.openqa.selenium.WebElement;
+
+// Appium 2 server on its default address. Several devices attached? Set the appium:udid capability.
+UiAutomator2Options options = new UiAutomator2Options();
+AndroidDriver driver = new AndroidDriver(new URL("http://127.0.0.1:4723"), options);
+driver.activateApp("com.example");
+WebElement element = driver.findElements(AppiumBy.id("app:id/row")).get(3);
+element.click();
+
+### anchor
+// Appium Java client: https://github.com/appium/java-client
+// Selector quality: Fragile. Path from a unique anchor element.
+import io.appium.java_client.AppiumBy;
+import io.appium.java_client.android.AndroidDriver;
+import io.appium.java_client.android.options.UiAutomator2Options;
+import java.net.URL;
+import org.openqa.selenium.WebElement;
+
+// Appium 2 server on its default address. Several devices attached? Set the appium:udid capability.
+UiAutomator2Options options = new UiAutomator2Options();
+AndroidDriver driver = new AndroidDriver(new URL("http://127.0.0.1:4723"), options);
+driver.activateApp("com.example");
+WebElement element = driver.findElement(AppiumBy.xpath("//*[@resource-id='app:id/root']/*[3]/*[1]"));
+element.click();
+
+### path
+// Appium Java client: https://github.com/appium/java-client
+// Selector quality: Fragile. Position in the tree only.
+import io.appium.java_client.AppiumBy;
+import io.appium.java_client.android.AndroidDriver;
+import io.appium.java_client.android.options.UiAutomator2Options;
+import java.net.URL;
+import org.openqa.selenium.WebElement;
+
+// Appium 2 server on its default address. Several devices attached? Set the appium:udid capability.
+UiAutomator2Options options = new UiAutomator2Options();
+AndroidDriver driver = new AndroidDriver(new URL("http://127.0.0.1:4723"), options);
+driver.activateApp("com.example");
+WebElement element = driver.findElement(AppiumBy.xpath("/hierarchy/*[1]/*[4]/*[2]"));
+element.click();
+
+### coordinates
+NOT AVAILABLE: Appium has no one-line coordinate tap. Use another target for coordinates.
+
+### dynamic text
+// Appium Java client: https://github.com/appium/java-client
+// Selector quality: Fragile. Unique, but the text looks dynamic. Warnings: depends on the app language, text looks dynamic (digits/time).
+import io.appium.java_client.AppiumBy;
+import io.appium.java_client.android.AndroidDriver;
+import io.appium.java_client.android.options.UiAutomator2Options;
+import java.net.URL;
+import org.openqa.selenium.WebElement;
+
+// Appium 2 server on its default address. Several devices attached? Set the appium:udid capability.
+UiAutomator2Options options = new UiAutomator2Options();
+AndroidDriver driver = new AndroidDriver(new URL("http://127.0.0.1:4723"), options);
+driver.activateApp("com.example");
+WebElement element = driver.findElement(AppiumBy.xpath("//*[@text='12:45']"));
+element.click();

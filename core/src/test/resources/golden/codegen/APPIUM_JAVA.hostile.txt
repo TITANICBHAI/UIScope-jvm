@@ -1,0 +1,269 @@
+### apostrophe
+// Appium Java client: https://github.com/appium/java-client
+import io.appium.java_client.AppiumBy;
+import io.appium.java_client.android.AndroidDriver;
+import io.appium.java_client.android.options.UiAutomator2Options;
+import java.net.URL;
+import org.openqa.selenium.WebElement;
+
+// Appium 2 server on its default address. Several devices attached? Set the appium:udid capability.
+UiAutomator2Options options = new UiAutomator2Options();
+AndroidDriver driver = new AndroidDriver(new URL("http://127.0.0.1:4723"), options);
+driver.activateApp("com.example");
+WebElement element = driver.findElement(AppiumBy.xpath("//*[@text=\"Don't allow\"]"));
+element.click();
+
+### double-quote
+// Appium Java client: https://github.com/appium/java-client
+import io.appium.java_client.AppiumBy;
+import io.appium.java_client.android.AndroidDriver;
+import io.appium.java_client.android.options.UiAutomator2Options;
+import java.net.URL;
+import org.openqa.selenium.WebElement;
+
+// Appium 2 server on its default address. Several devices attached? Set the appium:udid capability.
+UiAutomator2Options options = new UiAutomator2Options();
+AndroidDriver driver = new AndroidDriver(new URL("http://127.0.0.1:4723"), options);
+driver.activateApp("com.example");
+WebElement element = driver.findElement(AppiumBy.xpath("//*[@text='Say \"hi\"']"));
+element.click();
+
+### both-quotes
+// Appium Java client: https://github.com/appium/java-client
+import io.appium.java_client.AppiumBy;
+import io.appium.java_client.android.AndroidDriver;
+import io.appium.java_client.android.options.UiAutomator2Options;
+import java.net.URL;
+import org.openqa.selenium.WebElement;
+
+// Appium 2 server on its default address. Several devices attached? Set the appium:udid capability.
+UiAutomator2Options options = new UiAutomator2Options();
+AndroidDriver driver = new AndroidDriver(new URL("http://127.0.0.1:4723"), options);
+driver.activateApp("com.example");
+WebElement element = driver.findElement(AppiumBy.xpath("//*[@text=concat('He said \"it', \"'\", 's\" ok')]"));
+element.click();
+
+### backslash
+// Appium Java client: https://github.com/appium/java-client
+import io.appium.java_client.AppiumBy;
+import io.appium.java_client.android.AndroidDriver;
+import io.appium.java_client.android.options.UiAutomator2Options;
+import java.net.URL;
+import org.openqa.selenium.WebElement;
+
+// Appium 2 server on its default address. Several devices attached? Set the appium:udid capability.
+UiAutomator2Options options = new UiAutomator2Options();
+AndroidDriver driver = new AndroidDriver(new URL("http://127.0.0.1:4723"), options);
+driver.activateApp("com.example");
+WebElement element = driver.findElement(AppiumBy.xpath("//*[@text='back\\slash']"));
+element.click();
+
+### newline
+// Appium Java client: https://github.com/appium/java-client
+import io.appium.java_client.AppiumBy;
+import io.appium.java_client.android.AndroidDriver;
+import io.appium.java_client.android.options.UiAutomator2Options;
+import java.net.URL;
+import org.openqa.selenium.WebElement;
+
+// Appium 2 server on its default address. Several devices attached? Set the appium:udid capability.
+UiAutomator2Options options = new UiAutomator2Options();
+AndroidDriver driver = new AndroidDriver(new URL("http://127.0.0.1:4723"), options);
+driver.activateApp("com.example");
+WebElement element = driver.findElement(AppiumBy.xpath("//*[@text='line one\nline two']"));
+element.click();
+
+### markup
+// Appium Java client: https://github.com/appium/java-client
+import io.appium.java_client.AppiumBy;
+import io.appium.java_client.android.AndroidDriver;
+import io.appium.java_client.android.options.UiAutomator2Options;
+import java.net.URL;
+import org.openqa.selenium.WebElement;
+
+// Appium 2 server on its default address. Several devices attached? Set the appium:udid capability.
+UiAutomator2Options options = new UiAutomator2Options();
+AndroidDriver driver = new AndroidDriver(new URL("http://127.0.0.1:4723"), options);
+driver.activateApp("com.example");
+WebElement element = driver.findElement(AppiumBy.xpath("//*[@text='<a & b>']"));
+element.click();
+
+### cjk
+// Appium Java client: https://github.com/appium/java-client
+import io.appium.java_client.AppiumBy;
+import io.appium.java_client.android.AndroidDriver;
+import io.appium.java_client.android.options.UiAutomator2Options;
+import java.net.URL;
+import org.openqa.selenium.WebElement;
+
+// Appium 2 server on its default address. Several devices attached? Set the appium:udid capability.
+UiAutomator2Options options = new UiAutomator2Options();
+AndroidDriver driver = new AndroidDriver(new URL("http://127.0.0.1:4723"), options);
+driver.activateApp("com.example");
+WebElement element = driver.findElement(AppiumBy.xpath("//*[@text='日本語']"));
+element.click();
+
+### dollar
+// Appium Java client: https://github.com/appium/java-client
+import io.appium.java_client.AppiumBy;
+import io.appium.java_client.android.AndroidDriver;
+import io.appium.java_client.android.options.UiAutomator2Options;
+import java.net.URL;
+import org.openqa.selenium.WebElement;
+
+// Appium 2 server on its default address. Several devices attached? Set the appium:udid capability.
+UiAutomator2Options options = new UiAutomator2Options();
+AndroidDriver driver = new AndroidDriver(new URL("http://127.0.0.1:4723"), options);
+driver.activateApp("com.example");
+WebElement element = driver.findElement(AppiumBy.xpath("//*[@text='$dollar and ${braces}']"));
+element.click();
+
+### backtick
+// Appium Java client: https://github.com/appium/java-client
+import io.appium.java_client.AppiumBy;
+import io.appium.java_client.android.AndroidDriver;
+import io.appium.java_client.android.options.UiAutomator2Options;
+import java.net.URL;
+import org.openqa.selenium.WebElement;
+
+// Appium 2 server on its default address. Several devices attached? Set the appium:udid capability.
+UiAutomator2Options options = new UiAutomator2Options();
+AndroidDriver driver = new AndroidDriver(new URL("http://127.0.0.1:4723"), options);
+driver.activateApp("com.example");
+WebElement element = driver.findElement(AppiumBy.xpath("//*[@text='`tick`']"));
+element.click();
+
+### percent
+// Appium Java client: https://github.com/appium/java-client
+import io.appium.java_client.AppiumBy;
+import io.appium.java_client.android.AndroidDriver;
+import io.appium.java_client.android.options.UiAutomator2Options;
+import java.net.URL;
+import org.openqa.selenium.WebElement;
+
+// Appium 2 server on its default address. Several devices attached? Set the appium:udid capability.
+UiAutomator2Options options = new UiAutomator2Options();
+AndroidDriver driver = new AndroidDriver(new URL("http://127.0.0.1:4723"), options);
+driver.activateApp("com.example");
+WebElement element = driver.findElement(AppiumBy.xpath("//*[@text='100%']"));
+element.click();
+
+### empty
+// Appium Java client: https://github.com/appium/java-client
+import io.appium.java_client.AppiumBy;
+import io.appium.java_client.android.AndroidDriver;
+import io.appium.java_client.android.options.UiAutomator2Options;
+import java.net.URL;
+import org.openqa.selenium.WebElement;
+
+// Appium 2 server on its default address. Several devices attached? Set the appium:udid capability.
+UiAutomator2Options options = new UiAutomator2Options();
+AndroidDriver driver = new AndroidDriver(new URL("http://127.0.0.1:4723"), options);
+driver.activateApp("com.example");
+WebElement element = driver.findElement(AppiumBy.xpath("//*[@text='']"));
+element.click();
+
+### tab-cr
+// Appium Java client: https://github.com/appium/java-client
+import io.appium.java_client.AppiumBy;
+import io.appium.java_client.android.AndroidDriver;
+import io.appium.java_client.android.options.UiAutomator2Options;
+import java.net.URL;
+import org.openqa.selenium.WebElement;
+
+// Appium 2 server on its default address. Several devices attached? Set the appium:udid capability.
+UiAutomator2Options options = new UiAutomator2Options();
+AndroidDriver driver = new AndroidDriver(new URL("http://127.0.0.1:4723"), options);
+driver.activateApp("com.example");
+WebElement element = driver.findElement(AppiumBy.xpath("//*[@text='a\tb\rc']"));
+element.click();
+
+### emoji
+// Appium Java client: https://github.com/appium/java-client
+import io.appium.java_client.AppiumBy;
+import io.appium.java_client.android.AndroidDriver;
+import io.appium.java_client.android.options.UiAutomator2Options;
+import java.net.URL;
+import org.openqa.selenium.WebElement;
+
+// Appium 2 server on its default address. Several devices attached? Set the appium:udid capability.
+UiAutomator2Options options = new UiAutomator2Options();
+AndroidDriver driver = new AndroidDriver(new URL("http://127.0.0.1:4723"), options);
+driver.activateApp("com.example");
+WebElement element = driver.findElement(AppiumBy.xpath("//*[@text='😀 ok']"));
+element.click();
+
+### regex-meta
+// Appium Java client: https://github.com/appium/java-client
+import io.appium.java_client.AppiumBy;
+import io.appium.java_client.android.AndroidDriver;
+import io.appium.java_client.android.options.UiAutomator2Options;
+import java.net.URL;
+import org.openqa.selenium.WebElement;
+
+// Appium 2 server on its default address. Several devices attached? Set the appium:udid capability.
+UiAutomator2Options options = new UiAutomator2Options();
+AndroidDriver driver = new AndroidDriver(new URL("http://127.0.0.1:4723"), options);
+driver.activateApp("com.example");
+WebElement element = driver.findElement(AppiumBy.xpath("//*[@text='a.b*c(d)[e]{f}|g^h$']"));
+element.click();
+
+### smart-quotes
+// Appium Java client: https://github.com/appium/java-client
+import io.appium.java_client.AppiumBy;
+import io.appium.java_client.android.AndroidDriver;
+import io.appium.java_client.android.options.UiAutomator2Options;
+import java.net.URL;
+import org.openqa.selenium.WebElement;
+
+// Appium 2 server on its default address. Several devices attached? Set the appium:udid capability.
+UiAutomator2Options options = new UiAutomator2Options();
+AndroidDriver driver = new AndroidDriver(new URL("http://127.0.0.1:4723"), options);
+driver.activateApp("com.example");
+WebElement element = driver.findElement(AppiumBy.xpath("//*[@text='it’s ‘x’']"));
+element.click();
+
+### backslash-u
+// Appium Java client: https://github.com/appium/java-client
+import io.appium.java_client.AppiumBy;
+import io.appium.java_client.android.AndroidDriver;
+import io.appium.java_client.android.options.UiAutomator2Options;
+import java.net.URL;
+import org.openqa.selenium.WebElement;
+
+// Appium 2 server on its default address. Several devices attached? Set the appium:udid capability.
+UiAutomator2Options options = new UiAutomator2Options();
+AndroidDriver driver = new AndroidDriver(new URL("http://127.0.0.1:4723"), options);
+driver.activateApp("com.example");
+WebElement element = driver.findElement(AppiumBy.xpath("//*[@text='\\u0041 \\n']"));
+element.click();
+
+### control-chars
+// Appium Java client: https://github.com/appium/java-client
+import io.appium.java_client.AppiumBy;
+import io.appium.java_client.android.AndroidDriver;
+import io.appium.java_client.android.options.UiAutomator2Options;
+import java.net.URL;
+import org.openqa.selenium.WebElement;
+
+// Appium 2 server on its default address. Several devices attached? Set the appium:udid capability.
+UiAutomator2Options options = new UiAutomator2Options();
+AndroidDriver driver = new AndroidDriver(new URL("http://127.0.0.1:4723"), options);
+driver.activateApp("com.example");
+WebElement element = driver.findElement(AppiumBy.xpath("//*[@text='ab\177cd']"));
+element.click();
+
+### lone-surrogate
+// Appium Java client: https://github.com/appium/java-client
+import io.appium.java_client.AppiumBy;
+import io.appium.java_client.android.AndroidDriver;
+import io.appium.java_client.android.options.UiAutomator2Options;
+import java.net.URL;
+import org.openqa.selenium.WebElement;
+
+// Appium 2 server on its default address. Several devices attached? Set the appium:udid capability.
+UiAutomator2Options options = new UiAutomator2Options();
+AndroidDriver driver = new AndroidDriver(new URL("http://127.0.0.1:4723"), options);
+driver.activateApp("com.example");
+WebElement element = driver.findElement(AppiumBy.xpath("//*[@text='xy']"));
+element.click();

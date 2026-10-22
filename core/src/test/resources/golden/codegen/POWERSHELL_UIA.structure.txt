@@ -1,0 +1,67 @@
+### automation id
+# PowerShell with the built-in UI Automation assemblies: https://learn.microsoft.com/dotnet/api/system.windows.automation.automationelement
+# Run it in Windows PowerShell with the -STA switch (powershell.exe -STA -File script.ps1).
+Add-Type -AssemblyName UIAutomationClient
+Add-Type -AssemblyName UIAutomationTypes
+
+$root = [System.Windows.Automation.AutomationElement]::RootElement
+$windowCondition = New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::ProcessIdProperty, 4242)  # the process id changes on every run; match the window name instead if needed
+$window = $root.FindFirst([System.Windows.Automation.TreeScope]::Children, $windowCondition)
+$c1 = New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::AutomationIdProperty, 'num1Button')
+$element = $window.FindFirst([System.Windows.Automation.TreeScope]::Descendants, $c1)
+# Invoke works for buttons and similar controls; other controls need another pattern.
+$element.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke()
+
+### control type and name
+# PowerShell with the built-in UI Automation assemblies: https://learn.microsoft.com/dotnet/api/system.windows.automation.automationelement
+# Run it in Windows PowerShell with the -STA switch (powershell.exe -STA -File script.ps1).
+Add-Type -AssemblyName UIAutomationClient
+Add-Type -AssemblyName UIAutomationTypes
+
+$root = [System.Windows.Automation.AutomationElement]::RootElement
+$windowCondition = New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::ProcessIdProperty, 4242)  # the process id changes on every run; match the window name instead if needed
+$window = $root.FindFirst([System.Windows.Automation.TreeScope]::Children, $windowCondition)
+$c1 = New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::ControlTypeProperty, [System.Windows.Automation.ControlType]::Button)
+$c2 = New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::NameProperty, 'Save')
+$element = $window.FindFirst([System.Windows.Automation.TreeScope]::Descendants, (New-Object System.Windows.Automation.AndCondition($c1, $c2)))
+# Invoke works for buttons and similar controls; other controls need another pattern.
+$element.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke()
+
+### class and name
+# PowerShell with the built-in UI Automation assemblies: https://learn.microsoft.com/dotnet/api/system.windows.automation.automationelement
+# Run it in Windows PowerShell with the -STA switch (powershell.exe -STA -File script.ps1).
+Add-Type -AssemblyName UIAutomationClient
+Add-Type -AssemblyName UIAutomationTypes
+
+$root = [System.Windows.Automation.AutomationElement]::RootElement
+$windowCondition = New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::ProcessIdProperty, 4242)  # the process id changes on every run; match the window name instead if needed
+$window = $root.FindFirst([System.Windows.Automation.TreeScope]::Children, $windowCondition)
+$c1 = New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::ClassNameProperty, 'Button')
+$c2 = New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::NameProperty, 'Save')
+$element = $window.FindFirst([System.Windows.Automation.TreeScope]::Descendants, (New-Object System.Windows.Automation.AndCondition($c1, $c2)))
+# Invoke works for buttons and similar controls; other controls need another pattern.
+$element.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke()
+
+### index
+# PowerShell with the built-in UI Automation assemblies: https://learn.microsoft.com/dotnet/api/system.windows.automation.automationelement
+# Run it in Windows PowerShell with the -STA switch (powershell.exe -STA -File script.ps1).
+# Selector quality: Needs index. Attribute shared by 4 elements; index 1 breaks if the list changes.
+Add-Type -AssemblyName UIAutomationClient
+Add-Type -AssemblyName UIAutomationTypes
+
+$root = [System.Windows.Automation.AutomationElement]::RootElement
+$windowCondition = New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::ProcessIdProperty, 4242)  # the process id changes on every run; match the window name instead if needed
+$window = $root.FindFirst([System.Windows.Automation.TreeScope]::Children, $windowCondition)
+$c1 = New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::AutomationIdProperty, 'row')
+$element = $window.FindAll([System.Windows.Automation.TreeScope]::Descendants, $c1).Item(1)
+# Invoke works for buttons and similar controls; other controls need another pattern.
+$element.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke()
+
+### anchor
+NOT AVAILABLE: This target has no path-based selector. Use an attribute selector, or pick pywinauto, FlaUI or AutoHotkey.
+
+### path
+NOT AVAILABLE: This target has no path-based selector. Use an attribute selector, or pick pywinauto, FlaUI or AutoHotkey.
+
+### coordinates
+NOT AVAILABLE: This target has no coordinate click in its basic API. Use pywinauto, FlaUI or AutoHotkey.

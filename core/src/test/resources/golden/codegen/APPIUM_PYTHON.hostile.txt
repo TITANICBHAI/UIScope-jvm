@@ -1,0 +1,233 @@
+### apostrophe
+# Appium Python client: https://github.com/appium/python-client
+from appium import webdriver
+from appium.options.android import UiAutomator2Options
+from appium.webdriver.common.appiumby import AppiumBy
+
+# Appium 2 server on its default address. Several devices attached? Set the appium:udid capability.
+options = UiAutomator2Options()
+driver = webdriver.Remote('http://127.0.0.1:4723', options=options)
+driver.activate_app('com.example')
+element = driver.find_element(by=AppiumBy.XPATH, value='//*[@text="Don\'t allow"]')
+element.click()
+
+### double-quote
+# Appium Python client: https://github.com/appium/python-client
+from appium import webdriver
+from appium.options.android import UiAutomator2Options
+from appium.webdriver.common.appiumby import AppiumBy
+
+# Appium 2 server on its default address. Several devices attached? Set the appium:udid capability.
+options = UiAutomator2Options()
+driver = webdriver.Remote('http://127.0.0.1:4723', options=options)
+driver.activate_app('com.example')
+element = driver.find_element(by=AppiumBy.XPATH, value='//*[@text=\'Say "hi"\']')
+element.click()
+
+### both-quotes
+# Appium Python client: https://github.com/appium/python-client
+from appium import webdriver
+from appium.options.android import UiAutomator2Options
+from appium.webdriver.common.appiumby import AppiumBy
+
+# Appium 2 server on its default address. Several devices attached? Set the appium:udid capability.
+options = UiAutomator2Options()
+driver = webdriver.Remote('http://127.0.0.1:4723', options=options)
+driver.activate_app('com.example')
+element = driver.find_element(by=AppiumBy.XPATH, value='//*[@text=concat(\'He said "it\', "\'", \'s" ok\')]')
+element.click()
+
+### backslash
+# Appium Python client: https://github.com/appium/python-client
+from appium import webdriver
+from appium.options.android import UiAutomator2Options
+from appium.webdriver.common.appiumby import AppiumBy
+
+# Appium 2 server on its default address. Several devices attached? Set the appium:udid capability.
+options = UiAutomator2Options()
+driver = webdriver.Remote('http://127.0.0.1:4723', options=options)
+driver.activate_app('com.example')
+element = driver.find_element(by=AppiumBy.XPATH, value='//*[@text=\'back\\slash\']')
+element.click()
+
+### newline
+# Appium Python client: https://github.com/appium/python-client
+from appium import webdriver
+from appium.options.android import UiAutomator2Options
+from appium.webdriver.common.appiumby import AppiumBy
+
+# Appium 2 server on its default address. Several devices attached? Set the appium:udid capability.
+options = UiAutomator2Options()
+driver = webdriver.Remote('http://127.0.0.1:4723', options=options)
+driver.activate_app('com.example')
+element = driver.find_element(by=AppiumBy.XPATH, value='//*[@text=\'line one\nline two\']')
+element.click()
+
+### markup
+# Appium Python client: https://github.com/appium/python-client
+from appium import webdriver
+from appium.options.android import UiAutomator2Options
+from appium.webdriver.common.appiumby import AppiumBy
+
+# Appium 2 server on its default address. Several devices attached? Set the appium:udid capability.
+options = UiAutomator2Options()
+driver = webdriver.Remote('http://127.0.0.1:4723', options=options)
+driver.activate_app('com.example')
+element = driver.find_element(by=AppiumBy.XPATH, value='//*[@text=\'<a & b>\']')
+element.click()
+
+### cjk
+# Appium Python client: https://github.com/appium/python-client
+from appium import webdriver
+from appium.options.android import UiAutomator2Options
+from appium.webdriver.common.appiumby import AppiumBy
+
+# Appium 2 server on its default address. Several devices attached? Set the appium:udid capability.
+options = UiAutomator2Options()
+driver = webdriver.Remote('http://127.0.0.1:4723', options=options)
+driver.activate_app('com.example')
+element = driver.find_element(by=AppiumBy.XPATH, value='//*[@text=\'日本語\']')
+element.click()
+
+### dollar
+# Appium Python client: https://github.com/appium/python-client
+from appium import webdriver
+from appium.options.android import UiAutomator2Options
+from appium.webdriver.common.appiumby import AppiumBy
+
+# Appium 2 server on its default address. Several devices attached? Set the appium:udid capability.
+options = UiAutomator2Options()
+driver = webdriver.Remote('http://127.0.0.1:4723', options=options)
+driver.activate_app('com.example')
+element = driver.find_element(by=AppiumBy.XPATH, value='//*[@text=\'$dollar and ${braces}\']')
+element.click()
+
+### backtick
+# Appium Python client: https://github.com/appium/python-client
+from appium import webdriver
+from appium.options.android import UiAutomator2Options
+from appium.webdriver.common.appiumby import AppiumBy
+
+# Appium 2 server on its default address. Several devices attached? Set the appium:udid capability.
+options = UiAutomator2Options()
+driver = webdriver.Remote('http://127.0.0.1:4723', options=options)
+driver.activate_app('com.example')
+element = driver.find_element(by=AppiumBy.XPATH, value='//*[@text=\'`tick`\']')
+element.click()
+
+### percent
+# Appium Python client: https://github.com/appium/python-client
+from appium import webdriver
+from appium.options.android import UiAutomator2Options
+from appium.webdriver.common.appiumby import AppiumBy
+
+# Appium 2 server on its default address. Several devices attached? Set the appium:udid capability.
+options = UiAutomator2Options()
+driver = webdriver.Remote('http://127.0.0.1:4723', options=options)
+driver.activate_app('com.example')
+element = driver.find_element(by=AppiumBy.XPATH, value='//*[@text=\'100%\']')
+element.click()
+
+### empty
+# Appium Python client: https://github.com/appium/python-client
+from appium import webdriver
+from appium.options.android import UiAutomator2Options
+from appium.webdriver.common.appiumby import AppiumBy
+
+# Appium 2 server on its default address. Several devices attached? Set the appium:udid capability.
+options = UiAutomator2Options()
+driver = webdriver.Remote('http://127.0.0.1:4723', options=options)
+driver.activate_app('com.example')
+element = driver.find_element(by=AppiumBy.XPATH, value='//*[@text=\'\']')
+element.click()
+
+### tab-cr
+# Appium Python client: https://github.com/appium/python-client
+from appium import webdriver
+from appium.options.android import UiAutomator2Options
+from appium.webdriver.common.appiumby import AppiumBy
+
+# Appium 2 server on its default address. Several devices attached? Set the appium:udid capability.
+options = UiAutomator2Options()
+driver = webdriver.Remote('http://127.0.0.1:4723', options=options)
+driver.activate_app('com.example')
+element = driver.find_element(by=AppiumBy.XPATH, value='//*[@text=\'a\tb\rc\']')
+element.click()
+
+### emoji
+# Appium Python client: https://github.com/appium/python-client
+from appium import webdriver
+from appium.options.android import UiAutomator2Options
+from appium.webdriver.common.appiumby import AppiumBy
+
+# Appium 2 server on its default address. Several devices attached? Set the appium:udid capability.
+options = UiAutomator2Options()
+driver = webdriver.Remote('http://127.0.0.1:4723', options=options)
+driver.activate_app('com.example')
+element = driver.find_element(by=AppiumBy.XPATH, value='//*[@text=\'😀 ok\']')
+element.click()
+
+### regex-meta
+# Appium Python client: https://github.com/appium/python-client
+from appium import webdriver
+from appium.options.android import UiAutomator2Options
+from appium.webdriver.common.appiumby import AppiumBy
+
+# Appium 2 server on its default address. Several devices attached? Set the appium:udid capability.
+options = UiAutomator2Options()
+driver = webdriver.Remote('http://127.0.0.1:4723', options=options)
+driver.activate_app('com.example')
+element = driver.find_element(by=AppiumBy.XPATH, value='//*[@text=\'a.b*c(d)[e]{f}|g^h$\']')
+element.click()
+
+### smart-quotes
+# Appium Python client: https://github.com/appium/python-client
+from appium import webdriver
+from appium.options.android import UiAutomator2Options
+from appium.webdriver.common.appiumby import AppiumBy
+
+# Appium 2 server on its default address. Several devices attached? Set the appium:udid capability.
+options = UiAutomator2Options()
+driver = webdriver.Remote('http://127.0.0.1:4723', options=options)
+driver.activate_app('com.example')
+element = driver.find_element(by=AppiumBy.XPATH, value='//*[@text=\'it’s ‘x’\']')
+element.click()
+
+### backslash-u
+# Appium Python client: https://github.com/appium/python-client
+from appium import webdriver
+from appium.options.android import UiAutomator2Options
+from appium.webdriver.common.appiumby import AppiumBy
+
+# Appium 2 server on its default address. Several devices attached? Set the appium:udid capability.
+options = UiAutomator2Options()
+driver = webdriver.Remote('http://127.0.0.1:4723', options=options)
+driver.activate_app('com.example')
+element = driver.find_element(by=AppiumBy.XPATH, value='//*[@text=\'\\u0041 \\n\']')
+element.click()
+
+### control-chars
+# Appium Python client: https://github.com/appium/python-client
+from appium import webdriver
+from appium.options.android import UiAutomator2Options
+from appium.webdriver.common.appiumby import AppiumBy
+
+# Appium 2 server on its default address. Several devices attached? Set the appium:udid capability.
+options = UiAutomator2Options()
+driver = webdriver.Remote('http://127.0.0.1:4723', options=options)
+driver.activate_app('com.example')
+element = driver.find_element(by=AppiumBy.XPATH, value='//*[@text=\'ab\x7fcd\']')
+element.click()
+
+### lone-surrogate
+# Appium Python client: https://github.com/appium/python-client
+from appium import webdriver
+from appium.options.android import UiAutomator2Options
+from appium.webdriver.common.appiumby import AppiumBy
+
+# Appium 2 server on its default address. Several devices attached? Set the appium:udid capability.
+options = UiAutomator2Options()
+driver = webdriver.Remote('http://127.0.0.1:4723', options=options)
+driver.activate_app('com.example')
+element = driver.find_element(by=AppiumBy.XPATH, value='//*[@text=\'xy\']')
+element.click()

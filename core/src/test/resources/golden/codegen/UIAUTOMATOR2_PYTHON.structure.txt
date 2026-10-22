@@ -1,0 +1,76 @@
+### reliable id
+# uiautomator2: https://github.com/openatx/uiautomator2
+import uiautomator2 as u2
+
+d = u2.connect()  # several devices attached? u2.connect("<serial>") or set ANDROID_SERIAL
+d.app_start('com.example')
+d(resourceId='app:id/login_button').click()
+
+### content description
+# uiautomator2: https://github.com/openatx/uiautomator2
+import uiautomator2 as u2
+
+d = u2.connect()  # several devices attached? u2.connect("<serial>") or set ANDROID_SERIAL
+d.app_start('com.example')
+d(description='Close').click()
+
+### id and text
+# uiautomator2: https://github.com/openatx/uiautomator2
+import uiautomator2 as u2
+
+d = u2.connect()  # several devices attached? u2.connect("<serial>") or set ANDROID_SERIAL
+d.app_start('com.example')
+d(resourceId='app:id/title', text='Orders').click()
+
+### class and text
+# uiautomator2: https://github.com/openatx/uiautomator2
+import uiautomator2 as u2
+
+d = u2.connect()  # several devices attached? u2.connect("<serial>") or set ANDROID_SERIAL
+d.app_start('com.example')
+d(className='android.widget.Button', text='OK').click()
+
+### index
+# uiautomator2: https://github.com/openatx/uiautomator2
+# Selector quality: Needs index. Attribute shared by 14 elements; index 3 breaks if the list changes.
+import uiautomator2 as u2
+
+d = u2.connect()  # several devices attached? u2.connect("<serial>") or set ANDROID_SERIAL
+d.app_start('com.example')
+d(resourceId='app:id/row', instance=3).click()
+
+### anchor
+# uiautomator2: https://github.com/openatx/uiautomator2
+# Selector quality: Fragile. Path from a unique anchor element.
+import uiautomator2 as u2
+
+d = u2.connect()  # several devices attached? u2.connect("<serial>") or set ANDROID_SERIAL
+d.app_start('com.example')
+d.xpath('//*[@resource-id=\'app:id/root\']/*[3]/*[1]').click()
+
+### path
+# uiautomator2: https://github.com/openatx/uiautomator2
+# Selector quality: Fragile. Position in the tree only.
+import uiautomator2 as u2
+
+d = u2.connect()  # several devices attached? u2.connect("<serial>") or set ANDROID_SERIAL
+d.app_start('com.example')
+d.xpath('/hierarchy/*[1]/*[4]/*[2]').click()
+
+### coordinates
+# uiautomator2: https://github.com/openatx/uiautomator2
+# Selector quality: Fragile. Screen coordinates: last resort.
+import uiautomator2 as u2
+
+d = u2.connect()  # several devices attached? u2.connect("<serial>") or set ANDROID_SERIAL
+d.app_start('com.example')
+d.click(540, 1200)
+
+### dynamic text
+# uiautomator2: https://github.com/openatx/uiautomator2
+# Selector quality: Fragile. Unique, but the text looks dynamic. Warnings: depends on the app language, text looks dynamic (digits/time).
+import uiautomator2 as u2
+
+d = u2.connect()  # several devices attached? u2.connect("<serial>") or set ANDROID_SERIAL
+d.app_start('com.example')
+d(text='12:45').click()

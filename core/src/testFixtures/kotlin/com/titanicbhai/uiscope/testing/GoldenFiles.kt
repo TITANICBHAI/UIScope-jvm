@@ -15,10 +15,15 @@ object GoldenFiles {
     private val updateRequested: Boolean
         get() = System.getenv("UPDATE_GOLDEN") == "1" || System.getProperty("golden.update") == "true"
 
-    fun assertMatches(name: String, actual: String, dir: Path = Path.of("src", "test", "resources", "golden")) {
+    fun assertMatches(
+        name: String,
+        actual: String,
+        dir: Path = Path.of("src", "test", "resources", "golden"),
+        update: Boolean = updateRequested,
+    ) {
         val file = dir.resolve(name)
         val normalizedActual = normalize(actual)
-        if (updateRequested) {
+        if (update) {
             val current = if (Files.exists(file)) normalize(Files.readString(file)) else null
             if (current != normalizedActual) {
                 Files.createDirectories(file.parent)
