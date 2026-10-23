@@ -56,6 +56,29 @@ object ErrorCodes {
     const val NETWORK_HTTP_STATUS = "NETWORK_HTTP_STATUS"
     const val NETWORK_TOO_LARGE = "NETWORK_TOO_LARGE"
     const val NETWORK_IO = "NETWORK_IO"
+
+    // Android (Appendix A)
+    const val ADB_NOT_FOUND = "ADB_NOT_FOUND"
+    const val ADB_VERSION_MISMATCH = "ADB_VERSION_MISMATCH"
+    const val ADB_START_FAILED = "ADB_START_FAILED"
+    const val NO_DEVICE = "NO_DEVICE"
+    const val DEVICE_UNAUTHORIZED = "DEVICE_UNAUTHORIZED"
+    const val DEVICE_OFFLINE = "DEVICE_OFFLINE"
+    const val NO_PERMISSIONS = "NO_PERMISSIONS"
+    const val DUMP_NULL_ROOT = "DUMP_NULL_ROOT"
+    const val DUMP_IDLE_TIMEOUT = "DUMP_IDLE_TIMEOUT"
+    const val UIAUTOMATOR_BUSY = "UIAUTOMATOR_BUSY"
+    const val DUMP_TIMEOUT = "DUMP_TIMEOUT"
+    const val SCREENSHOT_FAILED = "SCREENSHOT_FAILED"
+    const val SECURE_WINDOW = "SECURE_WINDOW"
+    const val PARSE_FAILED = "PARSE_FAILED"
+    const val WIRELESS_PAIR_FAILED = "WIRELESS_PAIR_FAILED"
+    const val WIRELESS_CONNECT_FAILED = "WIRELESS_CONNECT_FAILED"
+
+    // ADB download (not in Appendix A; P4-10's "every code has copy" test must include them)
+    const val ADB_DOWNLOAD_UNAVAILABLE = "ADB_DOWNLOAD_UNAVAILABLE"
+    const val ADB_DOWNLOAD_CHECKSUM = "ADB_DOWNLOAD_CHECKSUM"
+    const val ADB_DOWNLOAD_INVALID_ARCHIVE = "ADB_DOWNLOAD_INVALID_ARCHIVE"
 }
 
 /** Result of an engine call: a value or an [AppError]. Engines return this instead of throwing. */

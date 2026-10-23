@@ -13,7 +13,8 @@ import com.titanicbhai.uiscope.model.Target
  * - `& < > " '` are escaped; tab, line feed and carriage return inside attribute values become character references, so the
  *   value survives a round trip through any XML parser (fixes B4's cousin for XML).
  * - Android captures use UIAutomator's real attribute set and the `<hierarchy rotation="…">` root, so tools that read
- *   `uiautomator dump` files can read the export. `rotation` is derived from the screen shape (0 portrait, 1 landscape).
+ *   `uiautomator dump` files can read the export. `rotation` comes from [com.titanicbhai.uiscope.model.ScreenInfo.rotation]; when a node
+ *   has them, `hint`, `drawing-order` and `display-id` are written too.
  * - Windows captures use `<hierarchy platform="windows" …>` with UI Automation names (`automation-id`, `control-type`).
  */
 object XmlExporter {
@@ -28,8 +29,7 @@ object XmlExporter {
             out.append("<hierarchy platform=\"windows\" window=\"").append(attr(window.title))
                 .append("\" process=\"").append(attr(window.processName)).append("\">\n")
         } else {
-            val rotation = if (capture.screen.width > capture.screen.height) 1 else 0
-            out.append("<hierarchy rotation=\"").append(rotation).append("\">\n")
+            out.append("<hierarchy rotation=\"").append(capture.screen.rotation).append("\">\n")
         }
         capture.roots.forEach { writeNode(out, it, 1, windows) }
         out.append("</hierarchy>\n")
@@ -69,6 +69,7 @@ object XmlExporter {
         put(out, "password", f.password)
         put(out, "selected", f.selected)
         put(out, "bounds", boundsText(node.bounds))
+        for (extra in listOf("hint", "drawing-order", "display-id")) node.properties[extra]?.let { put(out, extra, it) }
     }
 
     private fun windowsAttributes(out: StringBuilder, node: ElementNode, index: String) {

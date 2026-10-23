@@ -75,9 +75,9 @@ class XmlExporterTest {
     }
 
     @Test
-    fun `landscape captures export rotation 1`() {
-        val xml = XmlExporter.export(capture(listOf(n()), screen = ScreenInfo(2400, 1080)))
-        assertEquals("1", SecureXml.parse(xml).getAttribute("rotation"))
+    fun `the rotation of the screen is exported`() {
+        val xml = XmlExporter.export(capture(listOf(n()), screen = ScreenInfo(2400, 1080, rotation = 3)))
+        assertEquals("3", SecureXml.parse(xml).getAttribute("rotation"))
     }
 
     @Test

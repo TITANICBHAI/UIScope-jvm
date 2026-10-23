@@ -1,0 +1,2 @@
+FrameLayout [0,0,1080,2400]
+  TextView "Hello" #com.app:id/title [0,0,100,100]

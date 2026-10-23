@@ -8,7 +8,7 @@ const val REDACTED = "[redacted]"
 
 /** Property keys that describe structure, not content. Every other property value is treated as text-bearing and redacted. */
 private val STRUCTURAL_PROPERTIES = setOf(
-    "package", "index", "ControlType", "LocalizedControlType", "FrameworkId", "ProcessId", "Hwnd", "RuntimeId", "Patterns", "rotation",
+    "package", "index", "ControlType", "LocalizedControlType", "FrameworkId", "ProcessId", "Hwnd", "RuntimeId", "Patterns", "rotation", "drawing-order", "display-id",
 )
 
 /**

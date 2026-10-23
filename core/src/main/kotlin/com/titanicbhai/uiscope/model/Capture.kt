@@ -37,6 +37,8 @@ data class ScreenInfo(
     val height: Int,
     val originX: Int = 0,
     val originY: Int = 0,
+    /** Android display rotation (0–3) as reported by `<hierarchy rotation>`; 0 for Windows. */
+    val rotation: Int = 0,
 )
 
 /** A screenshot belonging to a capture. [file] is a path (absolute for a live capture, relative inside a snapshot folder). */
