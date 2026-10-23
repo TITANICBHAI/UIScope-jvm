@@ -1,0 +1,10 @@
+* daemon not running; starting now at tcp:5037
+* daemon started successfully
+List of devices attached
+R58M12ABCDE            device usb:1-1 product:o1sxxx model:SM_G991B device:o1s transport_id:3
+emulator-5554          device product:sdk_gphone64_x86_64 model:sdk_gphone64_x86_64 device:emu64xa transport_id:1
+0123456789ABCDEF       no permissions (user in plugdev group; are you root?); see [http://developer.android.com/tools/device.html]
+adb-R58M12ABCDE-aBcDeF._adb-tls-connect._tcp device product:o1sxxx model:SM_G991B device:o1s transport_id:4
+ZY22XXXXXXXX           unauthorized usb:1-2 transport_id:5
+192.168.1.20:5555      offline product:o1sxxx model:SM_G991B device:o1s transport_id:6
+adb server version (41) doesn't match this client (40); killing...
