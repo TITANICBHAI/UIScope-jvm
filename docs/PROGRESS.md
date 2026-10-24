@@ -105,7 +105,8 @@ Not done: **P2-5** (the Android state holder; it needs the settings types of P1-
 ### Test totals (local run: kotlinc + JUnit 4 against the compiler's bundled coroutines 1.5)
 
 After Round 1: core 54 + engine 38 = 92, three complete from-scratch runs all green.
-After Round 2: core **105** + engine **38** = **143** tests, all passing in the last complete run; production code compiles with zero compiler warnings.
+After Round 2: core 105 + engine 38 = 143.
+After Round 3: core **105** + engine **103** = **208** tests, all passing in the last complete from-scratch run.
 
 ## Deviations from the plan, and why
 
