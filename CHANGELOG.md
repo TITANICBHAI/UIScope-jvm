@@ -15,6 +15,9 @@ Nothing has been released yet. Entries below describe only what exists in the co
 - XML and outline export with redaction, a deterministic selector engine (reliability tiers, warnings, verdict), and code generation for
   uiautomator2, UI Automator, Appium (Java, Python), Maestro, XPath, pywinauto, FlaUI, AutoHotkey v2 and PowerShell with correct escaping.
 
+- Android engine (not connected to the user interface yet): finds adb, lists devices and watches for changes, captures the UI tree and screenshot with
+  fallbacks and retries, wireless-debugging commands, and a checksum-verified download of Google's platform-tools.
+
 ### Changed
 - The application window is a placeholder while the user interface is rebuilt.
 

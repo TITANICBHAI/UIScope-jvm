@@ -17,7 +17,7 @@ selector workbench and code generation. The full plan is in `plan.md`; progress 
 - `core`: the capture data model (element tree, stable structural ids, element lookup index, viewport math), XML/outline export with
   redaction, the selector engine and code generation for ten test frameworks, error and result types, app identity/version information.
   None of this is visible in the app yet (the window is a placeholder).
-- `engine`: a process runner (kills the whole process tree on timeout/cancel), a long-lived process wrapper, the single HTTP gateway,
+- `engine`: the Android layer (finding adb, devices, UI-tree capture, wireless debugging, verified platform-tools download), a process runner (kills the whole process tree on timeout/cancel), a long-lived process wrapper, the single HTTP gateway,
   data-folder locations and rotating logs.
 - Test harness: fakes for processes and HTTP, golden-file and fixture helpers, synthetic Android dump samples.
 - `scripts/capture-fixtures.sh|.ps1`: records raw `adb` dumps from your phone for parser tests.

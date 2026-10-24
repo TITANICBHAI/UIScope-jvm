@@ -70,6 +70,13 @@ class AdbClient(
         return Outcome.Success(listing)
     }
 
+    /** `adb start-server`: what the device tracker calls when the server is not running. Starting a running server is harmless. */
+    suspend fun startServer(): Outcome<Unit> =
+        when (val r = run(null, 15.seconds, ErrorCodes.ADB_START_FAILED, "start-server")) {
+            is Outcome.Failure -> r
+            is Outcome.Success -> AdbErrors.classify(r.value.stdoutText() + "\n" + r.value.stderrText())?.let { Outcome.Failure(it) } ?: Outcome.Success(Unit)
+        }
+
     suspend fun restartServer(): Outcome<Unit> {
         run(null, 5.seconds, ErrorCodes.ADB_START_FAILED, "kill-server")
         return when (val r = run(null, 15.seconds, ErrorCodes.ADB_START_FAILED, "start-server")) {

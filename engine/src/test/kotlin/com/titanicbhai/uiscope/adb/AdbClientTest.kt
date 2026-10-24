@@ -92,6 +92,16 @@ class AdbClientTest {
     }
 
     @Test
+    fun `start server runs adb start-server and reports a daemon that cannot start`() = blocking {
+        val ok = FakeProcessRunner { FakeProcessRunner.ok("* daemon not running; starting now at tcp:5037\n* daemon started successfully") }
+        AdbClient("adb", ok, Path.of("."), StandardDispatcherProvider(Dispatchers.Unconfined)).startServer().assertSuccess()
+        assertEquals(listOf(listOf("adb", "start-server")), ok.calls.toList())
+        assertEquals(15.seconds, ok.timeouts.single())
+        val bad = FakeProcessRunner { FakeProcessRunner.ok("", "* failed to start daemon\nadb: error: could not install *smartsocket* listener: Address already in use", 1) }
+        AdbClient("adb", bad, Path.of("."), StandardDispatcherProvider(Dispatchers.Unconfined)).startServer().assertFailure(ErrorCodes.ADB_START_FAILED)
+    }
+
+    @Test
     fun `a normal capture has the tree, the screenshot, the device and the timeouts of the plan`() = blocking {
         withTempDir { dir ->
             val phone = happy()

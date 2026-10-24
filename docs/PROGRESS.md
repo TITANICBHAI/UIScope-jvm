@@ -61,11 +61,46 @@ in PowerShell.
 3. **Obfuscation counts distinct identifiers** (the plan says "identifiers").
 4. **`HitTest` was implemented in P1-4** because the coordinates candidate needs it. Its test (G11, dialog over activity) still belongs to P4-5.
 5. **The verdict sentence is built in `core` in English** (`SelectorVerdict.summary`); P4-1 may move the wording into the strings table.
-6. **`rotation` in the XML export is derived from the screen shape** (0 portrait, 1 landscape); the model does not store it.
+6. **`rotation` in the XML export** was first derived from the screen shape; since Round 3 `ScreenInfo.rotation` stores the dump's real value.
 7. **Outline format:** `Class` is the simple class name; the label is the text, else Windows Name, else content description.
 8. **A lone surrogate cannot be written into a UTF-8 script**, so PowerShell and AutoHotkey emit it as `[char]55296` / `Chr(55296)`.
    (The golden-file writer caught this; the first version passed the raw character through.)
 9. Local test runs now also include SnakeYAML 1.33; the project declares 2.2. Only `Yaml().load/loadAll` are used.
+
+## Round 3 — Android engine (P2-1, P2-2, P2-3, P2-4, P2-6)
+
+| Task | Status | What changed | How verified |
+|---|---|---|---|
+| P2-1 AdbLocator | code-complete | Finds adb in the order saved path → `ANDROID_SDK_ROOT`/`ANDROID_HOME` → default SDK folder → `PATH` → the app's own copy; a candidate counts only if it is a file and `adb version` prints adb's banner; `select()` validates and remembers a chosen file; `FileAdbPathStore` | 7 tests with fake folders and a fake process runner: order, skipping broken candidates, rejecting non-adb files, a chosen path found again by a brand-new locator ("restart"), Windows `adb.exe` |
+| P2-2 Devices | code-complete | `AdbParsers` (strict `devices -l` parser, version banner), `AdbErrors` (adb's messages → Appendix A codes), `AdbClient` (devices, version, start/restart server, device info cached per device), `DeviceTracker` (adb's `host:track-devices` socket protocol with a 3 s polling fallback and back-off) | G9 with the exact output from the plan: 6 devices, correct states/models/connections, the version-mismatch line is a signal not a device, `no permissions`, mDNS and `ip:port` serials; tracker against a fake adb server: a change reaches the collector in < 1 s, cancelling closes the socket, polling waits go 3, 3, 3, 6, 12, 24, 30 s |
+| P2-3 Capture | code-complete | `UiAutomatorParser` (slices the XML from the first declaration to the last `</hierarchy>`, tolerates the `UI hierchary dumped to:` suffix, CRLF, BOM, `ERROR:` lines and illegal characters, hardened XML parser, typed errors, never an empty list as failure, keeps all attributes); capture pipeline in `AdbClient.capture`: three dump strategies with the winner remembered per device, two retries on null-root/idle, tree and screenshot fetched at the same time, a screenshot problem is only a warning, single-colour screenshot or system-UI-only tree gives `SECURE_WINDOW`, device file removed even on cancel | G1: clean/suffix/CRLF/`ERROR:` fixtures all give 2 nodes; malformed, truncated, DOCTYPE/entity and 1000-level nesting give typed errors without echoing screen text; 3000 nodes parse in < 200 ms; **all six P0-7 fixtures** go parse → committed outline/XML golden → export → parse round trip → selector engine (every element gets a unique best selector); pipeline tests for fallback order and caching, retries, error mapping, timeouts of 20 s / 10 s; **Red:** re-injecting the old slicing, an unguarded zip extractor and the blind device parser fails 19 of 102 engine tests |
+| P2-4 Download | code-complete, **manifest not pinned yet** | `AdbDownloader` (consent text, pinned versioned URL, SHA-256 check, safe extraction, "adb inside?" check, atomic replace of the install folder, cleanup on failure and cancel), `ZipSafe` (rejects `..`, absolute paths, drive letters, backslash tricks, too many entries, zip bombs), `scripts/update-platform-tools.sh` / `.ps1` that pin the manifest | against a local fake server: good archive installed and found as managed adb; wrong checksum; 8 zip-slip names; no adb inside; entry and size limits; not a zip; existing install replaced without leftovers; cancel mid-download leaves nothing; empty manifest refuses without touching the network. The `.sh` script was run against a local server (3 platforms pinned, bad argument refused, a 404 leaves the file untouched) and the Kotlin it generates compiles; the `.ps1` was not run |
+| P2-6 Wireless | code-complete | `WirelessParsers` (pair, connect, already connected, mDNS services), `AdbWifi` (validated addresses and 6-digit codes, 15 s / 5 s timeouts); failures carry adb's own message verbatim plus hints | parser tests on sample outputs; bad input never reaches adb |
+
+Not done: **P2-5** (the Android state holder; it needs the settings types of P1-6), and still **P1-2, P1-6, P1-7**.
+
+### What I could not verify in Round 3 (please read)
+
+- **No real adb or phone was involved.** The fake adb server, the fake process runner and the fixtures encode my understanding of adb's behaviour:
+  the `host:track-devices` socket protocol (length-prefixed messages, `OKAY`, an initial device list), the exact wording of `adb pair`/`connect`
+  results, the `adb mdns services` layout, the shape of `exec-out uiautomator dump` / `screencap -p`. Round 1 on your phone is where they get confirmed.
+- **The platform-tools manifest is empty on purpose.** `dl.google.com` is not reachable from where this was written, so no checksum could be computed.
+  Until you run `scripts/update-platform-tools.sh <revision>` (or the `.ps1`) the in-app download reports `ADB_DOWNLOAD_UNAVAILABLE`. The archive
+  name pattern in the script (`platform-tools_r<revision>-<windows|darwin|linux>.zip`) is from my memory of Google's download URLs and was not
+  verified; if the first run reports 404, tell me the real pattern. Find revisions at https://developer.android.com/tools/releases/platform-tools.
+- Image decoding for the "single colour screenshot" check uses `javax.imageio`, which the packaged runtime must include (P8-1: `java.desktop`).
+
+### Decisions and deviations in Round 3
+
+1. **The tracker speaks adb's socket protocol directly** instead of parsing the output of an `adb track-devices` child process, so it needs no
+   `ManagedProcess` and can be tested against a fake server.
+2. `ScreenInfo` gained `rotation`; `XmlExporter` writes the stored rotation and, when present, `hint`, `drawing-order` and `display-id`.
+3. `checked` is `null` unless the element is checkable (a `checked="true"` on a non-checkable element is kept as `true`).
+4. `foregroundPackage` is the package of the first root window that is not system UI.
+5. The remembered adb path is a one-line file for now (`FileAdbPathStore`); when settings (P1-6) exist it should become a settings field.
+6. Screenshots are written to `<data>/tmp/<capture id>.png`; saving a snapshot (P1-7/P5) copies them into the snapshot folder.
+7. Extraction limits: 5000 entries, 500 MB. Download timeout: 10 minutes.
+8. New error codes beyond Appendix A: `ADB_DOWNLOAD_UNAVAILABLE`, `ADB_DOWNLOAD_CHECKSUM`, `ADB_DOWNLOAD_INVALID_ARCHIVE`.
 
 ### Test totals (local run: kotlinc + JUnit 4 against the compiler's bundled coroutines 1.5)
 
