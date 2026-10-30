@@ -195,6 +195,12 @@ After Round 5: core **180** + engine **171** = **351** tests, all passing in a c
 
 Still not verified anywhere (unchanged): a real desktop launch (`./gradlew :app:run`), behaviour against real adb and a phone, and the Windows pick/hotkey hardware checks — see `docs/MANUAL_QA.md`.
 
+## Round 6 continued — Round 5 wired into the shell (HANDOFF §8.2)
+
+| Task | Status | What changed | How verified |
+|---|---|---|---|
+| Shell wiring | code-complete | `Main.kt` opens the snapshot database on an I/O thread at start-up (`SnapshotDatabase(<data>/db/snapshots.db, sqliteTmpDir = <data>/tmp)` → `SnapshotStoreImpl.open()`), wraps it in `RetainingSnapshotStore` reading the policy from settings on every save, runs `enforceNow()`, moves the legacy platform-tools once (`LegacyData.movePlatformTools`, failures logged with the code), builds `SnapshotBundles` (held for the Phase 5 screens) and an `UpdateChecker` (enabled = the setting, Store build respected inside the checker); `store.close()` runs on window close. The developer harness gained a "Snapshots: ready/opening…" line, a *Save as snapshot* button for the current capture (the early manual storage check) and a *Check for updates* button; a retention cleanup failure is logged, never swallowed. | CI run 41112593854 (commit `f038f49`): green on `windows-latest` + `ubuntu-latest` — the app module compiles with the wiring and every check passes. **Runtime behaviour (window opens, SQLite file created on first save, update check against the real repository) still needs a human: MANUAL_QA Round 5 additions 1, 6 and 7.** |
+
 ## Deviations from the plan, and why
 
 1. **No git history came with the zip**, so a baseline commit of the unchanged upload was made first and each task is its own commit.
