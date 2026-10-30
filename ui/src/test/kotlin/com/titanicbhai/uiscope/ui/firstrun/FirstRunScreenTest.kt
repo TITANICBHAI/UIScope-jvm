@@ -16,8 +16,9 @@ import com.titanicbhai.uiscope.settings.ThemeMode
 import com.titanicbhai.uiscope.state.AndroidInspectUi
 import com.titanicbhai.uiscope.state.AndroidState
 import com.titanicbhai.uiscope.ui.theme.UiScopeTheme
+import org.junit.Rule
+import org.junit.Test
 import java.nio.file.Path
-import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
