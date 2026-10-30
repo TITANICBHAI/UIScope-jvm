@@ -3,6 +3,7 @@ package com.titanicbhai.uiscope.ui.inspect
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -41,6 +42,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -207,8 +209,11 @@ private fun TargetBar(
                             Text("Capture now")
                         }
                     }
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Switch(checked = ui.live.enabled, onCheckedChange = { callbacks.onSetLive(it) })
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.toggleable(value = ui.live.enabled, role = Role.Switch, onValueChange = { callbacks.onSetLive(it) }),
+                    ) {
+                        Switch(checked = ui.live.enabled, onCheckedChange = null)
                         Text("Live", modifier = Modifier.padding(start = UiScopeTokens.spaceXs))
                     }
                 }
