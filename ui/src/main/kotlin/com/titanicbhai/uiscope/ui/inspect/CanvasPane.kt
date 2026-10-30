@@ -5,8 +5,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -27,10 +30,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asComposeImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.isCtrlPressed
-import androidx.compose.ui.input.pointer.isMiddlePressed
+import androidx.compose.ui.input.pointer.isTertiaryPressed
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.testTag
@@ -89,7 +91,7 @@ fun CanvasPane(
         } else {
             withContext(Dispatchers.IO) {
                 try {
-                    Image.makeFromEncoded(Files.readAllBytes(Path.of(file))).asComposeImageBitmap()
+                    org.jetbrains.skia.Image.makeFromEncoded(Files.readAllBytes(Path.of(file))).asComposeImageBitmap()
                 } catch (t: Throwable) {
                     canvasLogger.log(Level.WARNING, "the screenshot could not be decoded (${t.javaClass.simpleName}); showing the wireframe", t)
                     null
@@ -147,13 +149,13 @@ fun CanvasPane(
                                 }
                                 PointerEventType.Press -> {
                                     val start = event.changes.first().position
-                                    val panning = event.buttons.isMiddlePressed
+                                    val panning = event.buttons.isTertiaryPressed
                                     var last = start
                                     var dragged = false
                                     while (true) {
                                         val move = awaitPointerEvent()
                                         val change = move.changes.first()
-                                        if (move.type == PointerEventType.Move && panning && move.buttons.isMiddlePressed) {
+                                        if (move.type == PointerEventType.Move && panning && move.buttons.isTertiaryPressed) {
                                             viewport = (viewport ?: current).panBy(
                                                 change.position.x - last.x.toDouble(),
                                                 change.position.y - last.y.toDouble(),
