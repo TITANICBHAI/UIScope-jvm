@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Refresh
@@ -46,7 +47,6 @@ import androidx.compose.ui.unit.dp
 import com.titanicbhai.uiscope.error.AppError
 import com.titanicbhai.uiscope.error.CodedError
 import com.titanicbhai.uiscope.error.ErrorCodes
-import com.titanicbhai.uiscope.logging.LogSafe
 import com.titanicbhai.uiscope.model.ElementIndex
 import com.titanicbhai.uiscope.model.ElementNode
 import com.titanicbhai.uiscope.model.ElementPath
@@ -74,6 +74,12 @@ data class InspectCallbacks(
 private val DEFAULT_TREE_PANE = 320.dp
 private val DEFAULT_DETAILS_PANE = 320.dp
 private val SPLITTER_TOUCH = 12.dp
+
+/**
+ * Full serials are never shown or logged (the engine's LogSafe rule); the UI shows only the last four characters.
+ * Duplicated here because `ui` must not depend on `engine` (plan §3.1).
+ */
+private fun serialTail(serial: String): String = "…" + serial.takeLast(4)
 
 /** The exact empty state the plan prescribes for the PC target on a non-Windows build (§4.1, P4-3). */
 const val PC_TARGET_EMPTY_STATE = "Windows app inspection is available on Windows. Android inspection works on this OS."
@@ -181,7 +187,7 @@ private fun TargetBar(
                         if (ui.devices.isEmpty()) DropdownMenuItem(text = { Text("No devices") }, onClick = { devicesOpen = false })
                         for (device in ui.devices) {
                             DropdownMenuItem(
-                                text = { Text("${device.model ?: "device"} · …${LogSafe.serial(device.serial)} (${device.state})") },
+                                text = { Text("${device.model ?: "device"} · ${serialTail(device.serial)} (${device.state})") },
                                 onClick = {
                                     devicesOpen = false
                                     callbacks.onSelectDevice(device.serial)
@@ -215,7 +221,7 @@ private fun deviceLabel(ui: AndroidInspectUi): String {
     val selected = ui.devices.firstOrNull { it.serial == ui.selectedSerial } ?: ui.devices.firstOrNull()
     return when {
         ui.devices.isEmpty() -> "No devices"
-        selected != null -> "${selected.model ?: "device"} · …${LogSafe.serial(selected.serial)}"
+        selected != null -> "${selected.model ?: "device"} · ${serialTail(selected.serial)}"
         else -> "${ui.devices.size} devices"
     }
 }
