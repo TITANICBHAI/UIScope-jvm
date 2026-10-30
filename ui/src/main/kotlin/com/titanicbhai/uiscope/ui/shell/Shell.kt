@@ -35,8 +35,7 @@ import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.MenuBar
-import com.titanicbhai.uiscope.error.AppError
-import com.titanicbhai.uiscope.ui.theme.UiScopeTokens
+import com.titanicbhai.uiscope.error.AppErrorimport com.titanicbhai.uiscope.ui.theme.UiScopeTokens
 
 /** The rail destinations (plan §4.1). Screens arrive with P4-3 (Inspect), P5-1 (Snapshots) and P4-8 (Settings). */
 enum class ShellScreen { INSPECT, SNAPSHOTS, SETTINGS, HELP }
