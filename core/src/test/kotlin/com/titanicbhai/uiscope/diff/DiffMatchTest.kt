@@ -56,12 +56,14 @@ class DiffMatchTest {
 
     @Test
     fun `duplicate ids that swap positions are matched by class and text`() {
+        // Different classes per position, so pass 1 (path + class + identifier) cannot pair them and the
+        // content pass has to: the two rows share one identifier, so the id pass alone cannot tell them apart either.
         val before = n(children = listOf(
             n(className = "android.widget.TextView", identifier = "app:id/row", text = "alpha"),
-            n(className = "android.widget.TextView", identifier = "app:id/row", text = "beta"),
+            n(className = "android.widget.Button", identifier = "app:id/row", text = "beta"),
         ))
         val after = n(children = listOf(
-            n(className = "android.widget.TextView", identifier = "app:id/row", text = "beta"),
+            n(className = "android.widget.Button", identifier = "app:id/row", text = "beta"),
             n(className = "android.widget.TextView", identifier = "app:id/row", text = "alpha"),
         ))
         val result = diff(before, after)
