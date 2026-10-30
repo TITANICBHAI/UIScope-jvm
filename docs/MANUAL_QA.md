@@ -20,6 +20,7 @@ Rounds are seeded from Appendix K of the plan. Every acceptance box tagged `need
 | P1-5 | One generated snippet per framework you use actually runs (Maestro especially: `id:` with the full `pkg:id/name`) | **not yet verified** — nothing could be run against the real frameworks where this was written |
 | P4-5 | Canvas interaction is smooth on a 3k-node capture (zoom/pan/hover) | **not yet verified** — needs a real display (CI has no eyes) |
 | P4-5 | Windows captures align pixel-perfect at 100–200 % display scaling (Appendix K, Round 2) | **not yet verified** — needs your Windows PC at 125–150 % scaling |
+| P4-8 | Every Settings control has an observable effect (theme applies instantly, Live interval changes a Live run, retention clamps on the next save, Copy diagnostics/Open folders/Reset work) | **partially verified on CI** (theme, diagnostics, reset, update-check hiding); the rest needs a real display — fold into Round 3 step 3 |
 
 ## Round 0 — Fixture capture (at the very start, about 10 minutes)
 
