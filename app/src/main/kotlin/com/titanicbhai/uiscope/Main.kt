@@ -32,7 +32,10 @@ import com.titanicbhai.uiscope.error.Outcome
 import com.titanicbhai.uiscope.logging.LoggingSetup
 import com.titanicbhai.uiscope.process.JdkNetworkGateway
 import com.titanicbhai.uiscope.process.SystemProcessRunner
+import com.titanicbhai.uiscope.ui.inspect.InspectCallbacks
+import com.titanicbhai.uiscope.ui.inspect.InspectScreen
 import com.titanicbhai.uiscope.ui.shell.AppShell
+import com.titanicbhai.uiscope.update.UpdateCheck
 import com.titanicbhai.uiscope.ui.shell.NoSingleInstance
 import com.titanicbhai.uiscope.ui.shell.ShellDialogState
 import com.titanicbhai.uiscope.ui.shell.ShellScreen
@@ -64,6 +67,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 private val shellLogger = Logger.getLogger("uiscope.shell")
 
@@ -187,7 +191,9 @@ fun main() {
                     with(density) { WindowPlacementMath.MIN_HEIGHT.dp.toPx().roundToInt() },
                 )
             }
-            // The menu bar mirrors actions (plan §4.1); View and Help entries arrive with their screens (P4-5/P4-7).
+            // The menu bar mirrors actions (plan §4.1); View entries arrive with their screens (P4-5).
+            val toasts = rememberToastState()
+            val dialogs = rememberShellDialogState()
             MenuBar {
                 Menu("File", mnemonic = 'F') {
                     Item("Exit", onClick = onClose)
@@ -199,6 +205,17 @@ fun main() {
                     Item("Live", enabled = false, onClick = {})
                 }
                 Menu("Help", mnemonic = 'H') {
+                    Item("Check for updates", onClick = {
+                        scope.launch {
+                            val result = withContext(Dispatchers.IO) { updater.check() }
+                            when (result) {
+                                is UpdateCheck.Available -> toasts.show("Update available: v${result.version}")
+                                UpdateCheck.UpToDate -> toasts.show("UIScope is up to date")
+                                UpdateCheck.Disabled -> Unit
+                                is UpdateCheck.Failed -> Unit // logged by the checker, never shown (P7-5)
+                            }
+                        }
+                    })
                     Item("Welcome", enabled = false, onClick = {})
                     Item("Keyboard shortcuts", enabled = false, onClick = {})
                     Item("Report an issue", enabled = false, onClick = {})
@@ -208,8 +225,6 @@ fun main() {
             val settingsState by settings.settings.collectAsState()
             val inspect by android.ui.collectAsState()
             var screen by remember { mutableStateOf(ShellScreen.INSPECT) }
-            val toasts = rememberToastState()
-            val dialogs = rememberShellDialogState()
             val status = ShellStatus(
                 target = statusTarget(inspect),
                 captureInfo = inspect.capture?.let { "${inspect.index?.size ?: 0} elements" },
@@ -225,7 +240,31 @@ fun main() {
                     dialogs = dialogs,
                 ) {
                     when (screen) {
-                        ShellScreen.INSPECT -> DevHarness(android, appInfo, paths, snapshotsReady, updater)
+                        ShellScreen.INSPECT -> InspectScreen(
+                            ui = inspect,
+                            target = settingsState.lastTarget,
+                            windowsPcAvailable = FeatureFlags.forHost().windowsPc,
+                            callbacks = InspectCallbacks(
+                                onStart = { android.start() },
+                                onSelectDevice = { android.selectDevice(it) },
+                                onCapture = { android.capture() },
+                                onCancelCapture = { android.cancelCapture() },
+                                onSetLive = { android.setLive(it) },
+                                onSelect = { android.select(it) },
+                                onToggleExpanded = { android.toggleExpanded(it) },
+                                onSetTarget = {
+                                    settings.update { current -> current.copy(lastTarget = it) }
+                                },
+                                onSetTreePaneWidth = { width ->
+                                    settings.update { current -> current.copy(treePaneWidth = width) }
+                                },
+                                onSetDetailsPaneWidth = { width ->
+                                    settings.update { current -> current.copy(detailsPaneWidth = width) }
+                                },
+                            ),
+                            treePaneWidth = settingsState.treePaneWidth,
+                            detailsPaneWidth = settingsState.detailsPaneWidth,
+                        )
                         ShellScreen.SNAPSHOTS -> PlaceholderScreen("Snapshots", "P5-1")
                         ShellScreen.SETTINGS -> PlaceholderScreen("Settings", "P4-8")
                         ShellScreen.HELP -> PlaceholderScreen("Help", "P4-7")

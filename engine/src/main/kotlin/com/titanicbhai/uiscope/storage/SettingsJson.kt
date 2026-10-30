@@ -43,6 +43,8 @@ object SettingsJson {
             "windowX" to s.windowX.toString(),
             "windowY" to s.windowY.toString(),
             "windowMaximized" to s.windowMaximized.toString(),
+            "treePaneWidth" to s.treePaneWidth.toString(),
+            "detailsPaneWidth" to s.detailsPaneWidth.toString(),
         )
         return "{\n" + fields.joinToString(",\n") { (k, v) -> "  ${q(k)}: $v" } + "\n}\n"
     }
@@ -86,6 +88,8 @@ object SettingsJson {
                 windowX = intOrNull("windowX"),
                 windowY = intOrNull("windowY"),
                 windowMaximized = bool("windowMaximized", d.windowMaximized),
+                treePaneWidth = intOrNull("treePaneWidth"),
+                detailsPaneWidth = intOrNull("detailsPaneWidth"),
             ).sanitized(),
         )
     }

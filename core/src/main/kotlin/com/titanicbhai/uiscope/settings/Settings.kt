@@ -56,6 +56,10 @@ data class Settings(
     val windowX: Int? = null,
     val windowY: Int? = null,
     val windowMaximized: Boolean = false,
+    /** Width of the Inspect screen's tree pane in dp (P4-3); null = the default split. */
+    val treePaneWidth: Int? = null,
+    /** Width of the Inspect screen's details pane in dp (P4-3); null = the default split. */
+    val detailsPaneWidth: Int? = null,
 ) {
     fun sanitized(): Settings = copy(
         liveIntervalSeconds = liveIntervalSeconds.coerceIn(MIN_LIVE_SECONDS, MAX_LIVE_SECONDS),
@@ -66,6 +70,8 @@ data class Settings(
         lastSerial = lastSerial?.ifBlank { null },
         lastWirelessHost = lastWirelessHost?.ifBlank { null },
         lastFolder = lastFolder?.ifBlank { null },
+        treePaneWidth = treePaneWidth?.coerceIn(MIN_PANE_WIDTH, MAX_PANE_WIDTH),
+        detailsPaneWidth = detailsPaneWidth?.coerceIn(MIN_PANE_WIDTH, MAX_PANE_WIDTH),
     )
 
     companion object {
@@ -77,6 +83,8 @@ data class Settings(
         const val MIN_RETENTION_COUNT = 1
         const val DEFAULT_RETENTION_BYTES = 1L * 1024 * 1024 * 1024
         const val MIN_RETENTION_BYTES = 50L * 1024 * 1024
+        const val MIN_PANE_WIDTH = 120
+        const val MAX_PANE_WIDTH = 1600
         const val SCHEMA_VERSION = 1
     }
 }
