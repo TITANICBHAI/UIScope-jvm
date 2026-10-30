@@ -61,6 +61,9 @@ fun SettingsScreen(
     appInfo: AppInfo,
     adbLine: String?,
     snapshots: SnapshotStore?,
+    adbDownload: com.titanicbhai.uiscope.ui.firstrun.AdbDownloadActions? = null,
+    onBrowseAdb: () -> Unit = {},
+    onAdbRecheck: () -> Unit = {},
     diagnostics: () -> String,
     onOpenLogs: () -> Unit,
     onOpenSnapshots: () -> Unit,
@@ -70,6 +73,9 @@ fun SettingsScreen(
     val clipboard = LocalClipboardManager.current
     val uriHandler = LocalUriHandler.current
     var confirmReset by remember { mutableStateOf(false) }
+    var consentText by remember { mutableStateOf<String?>(null) }
+    var consentNote by remember { mutableStateOf<String?>(null) }
+    var downloading by remember { mutableStateOf(false) }
     val ioScope = remember { CoroutineScope(SupervisorJob() + Dispatchers.IO) }
     val storageUsed = produceState<String?>(initialValue = null, snapshots) {
         if (snapshots != null) {
@@ -98,7 +104,26 @@ fun SettingsScreen(
         }
         SettingsSection("Android") {
             Text("adb: ${adbLine ?: "not found"}", style = MaterialTheme.typography.bodySmall)
-            Text("Browse, test and download arrive with the first-run screen (P4-7).", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            adbDownload?.let { actions ->
+                Row(horizontalArrangement = Arrangement.spacedBy(UiScopeTokens.spaceS)) {
+                    OutlinedButton(onClick = {
+                        when (val consent = actions.consentText()) {
+                            is Outcome.Success -> {
+                                consentNote = null
+                                consentText = consent.value
+                            }
+                            is Outcome.Failure -> consentNote = "Downloading is not available right now (${consent.error.code})."
+                        }
+                    }) { Text("Download platform-tools") }
+                    OutlinedButton(onClick = onBrowseAdb) { Text("Browse...") }
+                    OutlinedButton(onClick = onAdbRecheck) { Text("Re-check") }
+                }
+                if (downloading) Text("Downloading and installing platform-tools...", style = MaterialTheme.typography.bodySmall)
+                consentNote?.let { Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+            }
+            if (adbDownload == null) {
+                Text("Browse, test and download arrive with the first-run screen (P4-7).", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
             SettingSlider("Live interval", current.liveIntervalSeconds.toFloat(), 1f..10f, steps = 8, display = { "${it.toInt()} s" }) { value ->
                 settings.update { it.copy(liveIntervalSeconds = value.toInt()) }
             }
@@ -180,6 +205,25 @@ fun SettingsScreen(
                 }) { Text("Reset") }
             },
             dismissButton = { TextButton(onClick = { confirmReset = false }) { Text("Cancel") } },
+        )
+    }
+    if (consentText != null) {
+        com.titanicbhai.uiscope.ui.firstrun.AdbConsentDialog(
+            consentText = consentText!!,
+            onConfirm = {
+                val actions = adbDownload ?: return@AdbConsentDialog
+                consentText = null
+                downloading = true
+                ioScope.launch {
+                    val result = actions.install { _, _ -> }
+                    downloading = false
+                    consentNote = when (result) {
+                        is Outcome.Success -> "Platform-tools installed. Press Re-check."
+                        is Outcome.Failure -> "The download failed (${result.error.code})."
+                    }
+                }
+            },
+            onDismiss = { consentText = null },
         )
     }
 }

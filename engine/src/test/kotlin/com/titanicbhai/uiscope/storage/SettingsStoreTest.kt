@@ -33,7 +33,7 @@ class SettingsStoreTest {
         liveIntervalSeconds = 7, pickHotkeyEnabled = false, pickHotkey = "Ctrl+Shift+K", hideWhilePicking = false,
         autoSaveSnapshots = true, retentionCount = 42, retentionBytes = 123_456_789_012L, renderer = Renderer.SOFTWARE, logLevel = LogLevelSetting.DEBUG,
         windowWidth = 1280, windowHeight = 800, windowX = -1920, windowY = 40, windowMaximized = true,
-        treePaneWidth = 480, detailsPaneWidth = 360,
+        treePaneWidth = 480, detailsPaneWidth = 360, firstRunDone = true,
     )
 
     @Test

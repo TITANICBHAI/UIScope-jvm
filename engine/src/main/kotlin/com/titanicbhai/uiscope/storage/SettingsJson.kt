@@ -45,6 +45,7 @@ object SettingsJson {
             "windowMaximized" to s.windowMaximized.toString(),
             "treePaneWidth" to s.treePaneWidth.toString(),
             "detailsPaneWidth" to s.detailsPaneWidth.toString(),
+            "firstRunDone" to s.firstRunDone.toString(),
         )
         return "{\n" + fields.joinToString(",\n") { (k, v) -> "  ${q(k)}: $v" } + "\n}\n"
     }
@@ -90,6 +91,7 @@ object SettingsJson {
                 windowMaximized = bool("windowMaximized", d.windowMaximized),
                 treePaneWidth = intOrNull("treePaneWidth"),
                 detailsPaneWidth = intOrNull("detailsPaneWidth"),
+                firstRunDone = bool("firstRunDone", d.firstRunDone),
             ).sanitized(),
         )
     }

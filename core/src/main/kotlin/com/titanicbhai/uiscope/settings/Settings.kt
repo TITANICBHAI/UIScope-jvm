@@ -60,6 +60,8 @@ data class Settings(
     val treePaneWidth: Int? = null,
     /** Width of the Inspect screen's details pane in dp (P4-3); null = the default split. */
     val detailsPaneWidth: Int? = null,
+    /** The first-run screen (P4-7) has been finished or skipped. */
+    val firstRunDone: Boolean = false,
 ) {
     fun sanitized(): Settings = copy(
         liveIntervalSeconds = liveIntervalSeconds.coerceIn(MIN_LIVE_SECONDS, MAX_LIVE_SECONDS),

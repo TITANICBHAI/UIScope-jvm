@@ -24,14 +24,20 @@ import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.MenuBar
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
+import com.titanicbhai.uiscope.adb.AdbDownloader
 import com.titanicbhai.uiscope.adb.AdbLocator
 import com.titanicbhai.uiscope.adb.EngineAdbPort
+import com.titanicbhai.uiscope.adb.PlatformToolsManifestData
 import com.titanicbhai.uiscope.adb.SettingsAdbPathStore
 import com.titanicbhai.uiscope.error.AppError
 import com.titanicbhai.uiscope.error.Outcome
 import com.titanicbhai.uiscope.logging.LoggingSetup
 import com.titanicbhai.uiscope.process.JdkNetworkGateway
 import com.titanicbhai.uiscope.process.SystemProcessRunner
+import com.titanicbhai.uiscope.ui.firstrun.AdbDownloadActions
+import com.titanicbhai.uiscope.ui.firstrun.FirstRunCallbacks
+import com.titanicbhai.uiscope.ui.firstrun.FirstRunScreen
+import com.titanicbhai.uiscope.ui.help.HelpScreen
 import com.titanicbhai.uiscope.ui.inspect.InspectCallbacks
 import com.titanicbhai.uiscope.ui.inspect.InspectScreen
 import com.titanicbhai.uiscope.ui.settings.SettingsScreen
@@ -71,6 +77,15 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 private val shellLogger = Logger.getLogger("uiscope.shell")
+
+/** The native file dialog (parented, so never the 1.0 bug of a parentless chooser); the choice lands in settings and the engines re-check. */
+private fun browseForAdb(window: java.awt.Window, settings: com.titanicbhai.uiscope.settings.SettingsStore, toasts: com.titanicbhai.uiscope.ui.shell.ToastState, onRechecked: () -> Unit) {
+    val dialog = java.awt.FileDialog(window, "Choose the adb executable", java.awt.FileDialog.LOAD)
+    dialog.isVisible = true
+    val chosen = dialog.file?.let { Path.of(dialog.directory, it) } ?: return
+    settings.update { it.copy(adbPath = chosen.toString()) }
+    onRechecked()
+}
 
 /** Reported by [RetainingSnapshotStore] when the post-save cleanup fails; logged with context, never swallowed. */
 private fun logRetentionError(error: AppError) {
@@ -127,6 +142,12 @@ fun main() {
     val snapshotsReady = mutableStateOf<SnapshotStoreImpl?>(null)
     val bundles = mutableStateOf<SnapshotBundles?>(null) // held for the Phase 5 screens
     val updater = UpdateChecker(JdkNetworkGateway(dispatchers = dispatchers), appInfo, enabled = { settings.settings.value.checkForUpdates })
+    // The ADB download (P2-4): the consent text and the install are wired here, the first-run and Settings screens only see lambdas.
+    val adbDownloader = AdbDownloader(JdkNetworkGateway(dispatchers = dispatchers), paths, PlatformToolsManifestData.MANIFEST, HostOs.current(), dispatchers)
+    val adbDownload = AdbDownloadActions(
+        consentText = { adbDownloader.consent().map { it.text() } },
+        install = { onProgress -> adbDownloader.install(onProgress) },
+    )
     scope.launch(Dispatchers.IO) {
         val database = SnapshotDatabase(paths.database.resolve("snapshots.db"), sqliteTmpDir = paths.tmp)
         val impl = SnapshotStoreImpl(database, paths.snapshots, dispatchers, appVersion = appInfo.version)
@@ -193,8 +214,30 @@ fun main() {
                 )
             }
             // The menu bar mirrors actions (plan §4.1); View entries arrive with their screens (P4-5).
+            val settingsState by settings.settings.collectAsState()
+            val inspect by android.ui.collectAsState()
             val toasts = rememberToastState()
             val dialogs = rememberShellDialogState()
+            if (!settingsState.firstRunDone) {
+                UiScopeTheme(mode = settingsState.theme) {
+                    FirstRunScreen(
+                        ui = inspect,
+                        target = settingsState.lastTarget,
+                        windowsPcAvailable = FeatureFlags.forHost().windowsPc,
+                        storeBuild = appInfo.isStoreBuild,
+                        checkForUpdates = settingsState.checkForUpdates,
+                        download = adbDownload,
+                        callbacks = FirstRunCallbacks(
+                            onRecheck = { android.start() },
+                            onSetTarget = { t -> settings.update { it.copy(lastTarget = t) } },
+                            onSetCheckUpdates = { enabled -> settings.update { it.copy(checkForUpdates = enabled) } },
+                            onBrowseAdb = { browseForAdb(window, settings, toasts, onRechecked = { android.start() }) },
+                            onFinish = { settings.update { it.copy(firstRunDone = true) } },
+                        ),
+                    )
+                }
+                return@Window
+            }
             MenuBar {
                 Menu("File", mnemonic = 'F') {
                     Item("Exit", onClick = onClose)
@@ -217,14 +260,12 @@ fun main() {
                             }
                         }
                     })
-                    Item("Welcome", enabled = false, onClick = {})
+                    Item("Welcome", onClick = { settings.update { it.copy(firstRunDone = false) } })
                     Item("Keyboard shortcuts", enabled = false, onClick = {})
                     Item("Report an issue", enabled = false, onClick = {})
                     Item("About", enabled = false, onClick = {})
                 }
             }
-            val settingsState by settings.settings.collectAsState()
-            val inspect by android.ui.collectAsState()
             var screen by remember { mutableStateOf(ShellScreen.INSPECT) }
             val status = ShellStatus(
                 target = statusTarget(inspect),
@@ -276,6 +317,9 @@ fun main() {
                             appInfo = appInfo,
                             adbLine = inspect.adb?.let { "${it.path} (version ${it.version}, found via ${it.source})" },
                             snapshots = snapshotsReady.value,
+                            adbDownload = adbDownload,
+                            onBrowseAdb = { browseForAdb(window, settings, toasts) { android.start() } },
+                            onAdbRecheck = { android.start() },
                             diagnostics = {
                                 buildString {
                                     appendLine("${appInfo.name} ${appInfo.version} (build ${appInfo.buildDate}, ${appInfo.commit})")
@@ -301,7 +345,7 @@ fun main() {
                                 }
                             },
                         )
-                        ShellScreen.HELP -> PlaceholderScreen("Help", "P4-7")
+                        ShellScreen.HELP -> HelpScreen(appInfo = appInfo, onReplayFirstRun = { settings.update { it.copy(firstRunDone = false) } })
                     }
                 }
             }
