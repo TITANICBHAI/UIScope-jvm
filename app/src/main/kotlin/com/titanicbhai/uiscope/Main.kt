@@ -12,6 +12,7 @@ import com.titanicbhai.uiscope.logging.LoggingSetup
 import com.titanicbhai.uiscope.process.JdkNetworkGateway
 import com.titanicbhai.uiscope.process.SystemProcessRunner
 import com.titanicbhai.uiscope.snapshot.RetainingSnapshotStore
+import com.titanicbhai.uiscope.snapshot.retentionPolicy
 import com.titanicbhai.uiscope.state.AndroidInspectState
 import com.titanicbhai.uiscope.storage.DataPaths
 import com.titanicbhai.uiscope.storage.FileSettingsStore
