@@ -9,6 +9,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.dp
 import com.titanicbhai.uiscope.AppInfo
 import com.titanicbhai.uiscope.settings.InMemorySettingsStore
 import com.titanicbhai.uiscope.settings.Settings
@@ -22,8 +23,9 @@ import kotlin.test.assertTrue
 /** P4-8: settings apply instantly through the store, the update check hides in Store builds, diagnostics and Reset work. */
 class SettingsScreenTest {
 
+    // The Advanced section sits below the fold on a default window; a tall test window keeps every control clickable.
     @get:Rule
-    val rule = createComposeRule()
+    val rule = createComposeRule(width = 1280.dp, height = 2400.dp)
 
     private class FakeClipboard : ClipboardManager {
         var last: String? = null
