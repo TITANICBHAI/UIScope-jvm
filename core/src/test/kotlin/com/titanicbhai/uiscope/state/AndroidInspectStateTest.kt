@@ -489,8 +489,10 @@ class AndroidInspectStateTest {
         s.setLive(false)
         s.stop()
         assertTrue(port.threads.size >= 6, "only ${port.threads.size} port calls were recorded")
-        assertTrue(port.threads.none { it == "ui-main" }, "port calls on the main thread: ${port.threads.filter { it == "ui-main" }.size}")
-        assertTrue(port.threads.all { it == "ui-io" }, port.threads.toSet().toString())
+        // Release kotlinx-coroutines artifacts run with debug mode on: a thread's name gains " @coroutine#N"
+        // while a coroutine occupies it, so the guards must match the pool prefix, not the exact name.
+        assertTrue(port.threads.none { it.startsWith("ui-main") }, "port calls on the main thread: ${port.threads.filter { it.startsWith("ui-main") }.size}")
+        assertTrue(port.threads.all { it.startsWith("ui-io") }, port.threads.toSet().toString())
     }
 
     @Test
