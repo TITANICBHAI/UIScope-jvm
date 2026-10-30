@@ -1,6 +1,7 @@
 package com.titanicbhai.uiscope.ui.theme
 
 import androidx.compose.material3.ColorScheme
+import androidx.compose.ui.graphics.Color
 import kotlin.math.pow
 import kotlin.test.Test
 import kotlin.test.assertTrue
