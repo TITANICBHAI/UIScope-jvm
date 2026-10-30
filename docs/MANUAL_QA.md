@@ -10,13 +10,13 @@ Rounds are seeded from Appendix K of the plan. Every acceptance box tagged `need
 
 | From | Check | Status |
 |---|---|---|
-| P0-1 | `./gradlew check` is green on a clean clone on **Windows and Linux** (CI) and Gradle fetches JDK 21 by itself | **not yet verified** — Gradle could not be run where this code was written |
-| P0-1 | detekt runs inside `check` with Kotlin 2.0 (workaround for detekt 1.23 is in `build.gradle.kts`) | **not yet verified** |
-| P0-2 | `./gradlew :app:run` opens a window (now the developer harness described under Round 1) | **not yet verified** |
+| P0-1 | `./gradlew check` is green on a clean clone on **Windows and Linux** (CI) | **verified on CI** — run 41109448073 (commit `8f8ce06`) green on `windows-latest` + `ubuntu-latest` with temurin 21 provided by `setup-java` (the foojay *auto-provisioning* path itself was not exercised — the runner already had a JDK) |
+| P0-1 | detekt runs inside `check` with Kotlin 2.0 (workaround for detekt 1.23 is in `build.gradle.kts`) | **verified on CI** — detekt runs and is clean in every green run since `8f8ce06` |
+| P0-2 | `./gradlew :app:run` opens a window (now the developer harness described under Round 1) | **not yet verified** — a desktop launch cannot be checked on CI; needs a human at a display |
 | P0-7 | Round 0 fixture capture done on your phone | **pending — your turn** |
 | P2-4 | `scripts/update-platform-tools.sh <revision>` (or `.ps1`) pins the platform-tools download; tell me if the archive URL pattern is wrong | **pending — needs internet access** |
 | P2-1…P2-6 | The Android engine works against a real phone (device list, dump, screenshot, wireless pairing) | **not yet verified** — only fakes and fixtures were available; Round 1 covers it once the UI exists |
-| P2-5 | Early check 1a (Android capture from the developer window) | **pending — your turn once `./gradlew check` is green** |
+| P2-5 | Early check 1a (Android capture from the developer window) | **pending — needs a display for `./gradlew :app:run`** |
 | P1-5 | One generated snippet per framework you use actually runs (Maestro especially: `id:` with the full `pkg:id/name`) | **not yet verified** — nothing could be run against the real frameworks where this was written |
 
 ## Round 0 — Fixture capture (at the very start, about 10 minutes)

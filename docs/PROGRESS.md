@@ -181,6 +181,20 @@ caught it. Not run as mutations: disk-full mapping (cannot be provoked here), `M
 
 After Round 5: core **180** + engine **171** = **351** tests, all passing in a complete from-scratch run of `scripts/local-check.sh` (the new storage/update/guardrail classes were also run three more times in a row without a failure).
 
+## Round 6 — Gradle and CI verification (AGENT_PROMPT Step 1)
+
+`./gradlew check` ran for the first time ever on this code, on GitHub Actions (`windows-latest` + `ubuntu-latest`, temurin 21, `.github/workflows/ci.yml`). The loop was: push → watch the run → read the uploaded test/detekt reports → fix. Four fix rounds were needed. **Final state: run 41109448073 (commit `8f8ce06`) is green on both OSes** — detekt clean, the Compose `app` module compiles, `org.xerial:sqlite-jdbc:3.46.1.3` resolves and runs, and the core (180) and engine (171) tests pass under Gradle with JUnit 5 and coroutines 1.8.1. Of HANDOFF §4's "never verified" list, items 1–4, 6 and 7 (CI itself) are now closed; item 5's type-check stand-ins are replaced by a real Compose compile. What still needs a human is in `docs/MANUAL_QA.md`.
+
+| Fix | What was wrong | What changed | How verified |
+|---|---|---|---|
+| detekt (`cbd14ad`) | `:core:detekt` failed with 1 weighted issue: `SwallowedException` at `BundleCodec.kt:109` — `catch (e: TooLarge)` never used `e` | The internal cap signal is now handled inside the `IOException` catch via an `is TooLarge` check; every user-facing message is unchanged; `detekt.yml` stays minimal | CI run 41107026623: `:core:detekt` passes |
+| `gradlew` exec bit (`82ecc03`) | The zip handoff lost the executable bit (mode `100644`): Ubuntu's `./gradlew check` died with exit 126 before Gradle started | `git update-index --chmod=+x gradlew` | CI run 41107961743: the ubuntu leg runs and is green |
+| Thread-name assertions (`82ecc03`) | `AndroidInspectStateTest` asserted port calls ran on threads named exactly `ui-io`; released coroutines 1.8.1 runs with debug mode, so a thread's name gains ` @coroutine#N` while a coroutine occupies it (the sandbox's bundled 1.5 jar did not do this) | The guards match the pool prefix (`startsWith("ui-main")` / `startsWith("ui-io")`) — which also closes the gap where a call on `ui-main @coroutine#N` would have slipped past the old exact-name check | CI run 41107961743: `:core:test` green on Windows |
+| Engine tests simulate the real host (`8f8ce06`) | `AdbLocatorTest` (2 tests) and `EngineAdbPortTest` (1) simulated `HostOs.LINUX` with a `":"` PATH separator: on a Windows host the split also cuts at the temp dir's drive letter, so no PATH candidate survived (the locator fell through to MANAGED, or reported "4 places checked") | The tests simulate `HostOs.current()` with the host's separator and exe name (`adb.exe` on Windows); the default-SDK location follows the simulated OS (`LOCALAPPDATA\Android\Sdk` for Windows) | CI run 41109448073: both legs green |
+| Unique test screenshots (`8f8ce06`) | `SnapshotRig.shot()` wrote the same `live.png` from several threads in the store concurrency test — a sharing violation on Windows (Linux tolerates concurrent opens) | The rig writes a uniquely named PNG per call | CI run 41109448073: both legs green |
+
+Still not verified anywhere (unchanged): a real desktop launch (`./gradlew :app:run`), behaviour against real adb and a phone, and the Windows pick/hotkey hardware checks — see `docs/MANUAL_QA.md`.
+
 ## Deviations from the plan, and why
 
 1. **No git history came with the zip**, so a baseline commit of the unchanged upload was made first and each task is its own commit.
