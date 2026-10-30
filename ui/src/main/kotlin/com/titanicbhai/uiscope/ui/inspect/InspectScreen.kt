@@ -243,8 +243,10 @@ private fun Workspace(
 ) {
     val treeWidth = remember { mutableStateOf(treePaneWidth?.dp ?: DEFAULT_TREE_PANE) }
     val detailsWidth = remember { mutableStateOf(detailsPaneWidth?.dp ?: DEFAULT_DETAILS_PANE) }
+    val testHighlight = remember { mutableStateOf<TestHighlight?>(null) }
     LaunchedEffect(treePaneWidth) { treePaneWidth?.let { treeWidth.value = it.dp } }
     LaunchedEffect(detailsPaneWidth) { detailsPaneWidth?.let { detailsWidth.value = it.dp } }
+    LaunchedEffect(ui.capture) { testHighlight.value = null } // a new capture invalidates a Test-selector run
     val selectedNode = ui.selected?.let { path -> ui.index?.byPath?.get(path) }
     Row(Modifier.fillMaxSize()) {
         com.titanicbhai.uiscope.ui.inspect.TreePane(
@@ -270,6 +272,7 @@ private fun Workspace(
                     index = ui.index,
                     selected = ui.selected,
                     onSelect = callbacks.onSelect,
+                    testHighlight = testHighlight.value,
                     modifier = Modifier.fillMaxSize(),
                 )
             }
@@ -278,6 +281,8 @@ private fun Workspace(
         DetailsPane(
             node = selectedNode,
             path = ui.selected,
+            index = ui.index,
+            onTestHighlight = { testHighlight.value = it },
             width = detailsWidth.value,
         )
     }
@@ -322,9 +327,15 @@ private fun Splitter(onDrag: (Dp) -> Unit, onDragEnd: () -> Unit) {
     )
 }
 
-/** Selector | Properties | Path (plan 4.5); the selector and code tab arrives with P4-6. */
+/** Selector | Properties | Path (plan 4.5/4.6); the selector and code tab arrives with P4-6. */
 @Composable
-private fun DetailsPane(node: ElementNode?, path: ElementPath?, width: Dp) {
+private fun DetailsPane(
+    node: ElementNode?,
+    path: ElementPath?,
+    index: com.titanicbhai.uiscope.model.ElementIndex?,
+    onTestHighlight: (TestHighlight?) -> Unit,
+    width: Dp,
+) {
     var tab by remember { mutableStateOf(0) }
     Surface(color = MaterialTheme.colorScheme.surface, modifier = Modifier.width(width).fillMaxHeight()) {
         Column {
@@ -334,7 +345,7 @@ private fun DetailsPane(node: ElementNode?, path: ElementPath?, width: Dp) {
                 Tab(selected = tab == 2, onClick = { tab = 2 }, text = { Text("Path") })
             }
             when (tab) {
-                0 -> PlaceholderPane("The selector verdict and generated code arrive with task P4-6.")
+                0 -> if (node != null && index != null) SelectorTab(node = node, index = index, onTestHighlight = onTestHighlight) else PlaceholderPane("Select an element in the tree")
                 1 -> PropertiesTab(node)
                 else -> PathTab(path)
             }
@@ -342,34 +353,65 @@ private fun DetailsPane(node: ElementNode?, path: ElementPath?, width: Dp) {
     }
 }
 
+internal data class PropertyRow(val section: String, val label: String, val value: String)
+
+internal fun propertyRows(node: ElementNode): List<PropertyRow> = buildList {
+    node.identifier?.let { add(PropertyRow("Identity", "resource-id", it)) }
+    add(PropertyRow("Identity", "class", node.className))
+    node.name?.let { add(PropertyRow("Identity", "name", it)) }
+    node.text?.let { add(PropertyRow("Identity", "text", it)) }
+    node.contentDescription?.let { add(PropertyRow("Identity", "content-desc", it)) }
+    node.flags.enabled.let { add(PropertyRow("State", "enabled", it.toString())) }
+    node.flags.clickable.let { add(PropertyRow("State", "clickable", it.toString())) }
+    node.flags.longClickable.let { add(PropertyRow("State", "long-clickable", it.toString())) }
+    node.flags.checkable.let { add(PropertyRow("State", "checkable", it.toString())) }
+    node.flags.checked?.let { add(PropertyRow("State", "checked", it.toString())) }
+    node.flags.focusable.let { add(PropertyRow("State", "focusable", it.toString())) }
+    node.flags.focused.let { add(PropertyRow("State", "focused", it.toString())) }
+    node.flags.scrollable.let { add(PropertyRow("State", "scrollable", it.toString())) }
+    node.flags.selected.let { add(PropertyRow("State", "selected", it.toString())) }
+    node.flags.offscreen.let { add(PropertyRow("State", "offscreen", it.toString())) }
+    node.flags.password.let { add(PropertyRow("State", "password", it.toString())) }
+    add(PropertyRow("Geometry", "bounds", "${node.bounds.x},${node.bounds.y} ${node.bounds.width}x${node.bounds.height}"))
+    for ((key, value) in node.properties) add(PropertyRow("Platform", key, value))
+}
+
+/** Grouped property rows (plan 4.5): click a value to copy it; Copy all as JSON puts every row on the clipboard. */
 @Composable
-private fun PropertiesTab(node: ElementNode?) {
+internal fun PropertiesTab(node: ElementNode?, modifier: Modifier = Modifier) {
+    val clipboard = LocalClipboardManager.current
     if (node == null) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("Select an element in the tree", style = MaterialTheme.typography.bodySmall) }
         return
     }
-    LazyColumn(Modifier.fillMaxSize()) {
-        items(propertyRows(node)) { (label, value) ->
-            Column(Modifier.fillMaxWidth().padding(horizontal = UiScopeTokens.spaceM, vertical = UiScopeTokens.spaceXs)) {
-                Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(value, style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+    val rows = remember(node) { propertyRows(node) }
+    LazyColumn(modifier.fillMaxSize()) {
+        item {
+            OutlinedButton(
+                onClick = {
+                    val json = rows.joinToString(prefix = "{", postfix = "}", separator = ",\n") { row ->
+                        "${com.titanicbhai.uiscope.json.JsonWriter.string(row.label)}: ${com.titanicbhai.uiscope.json.JsonWriter.string(row.value)}"
+                    }
+                    clipboard.setText(AnnotatedString(json))
+                },
+                modifier = Modifier.padding(UiScopeTokens.spaceS),
+            ) { Text("Copy all as JSON") }
+        }
+        for ((section, sectionRows) in rows.groupBy { it.section }) {
+            item(key = "section-$section") {
+                Text(section, style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(horizontal = UiScopeTokens.spaceM, vertical = UiScopeTokens.spaceXs))
+            }
+            items(sectionRows, key = { "${it.section}-${it.label}" }) { row ->
+                Row(
+                    Modifier.fillMaxWidth().clickable { clipboard.setText(AnnotatedString(row.value)) }.padding(horizontal = UiScopeTokens.spaceM, vertical = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(row.label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(120.dp))
+                    Text(row.value, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
             }
         }
     }
-}
-
-private fun propertyRows(node: ElementNode): List<Pair<String, String>> = buildList {
-    node.identifier?.let { add("resource-id" to it) }
-    add("class" to node.className)
-    node.name?.let { add("name" to it) }
-    node.text?.let { add("text" to it) }
-    node.contentDescription?.let { add("content-desc" to it) }
-    add("bounds" to "${node.bounds.x},${node.bounds.y} ${node.bounds.width}x${node.bounds.height}")
-    node.flags.clickable.takeIf { it }?.let { add("clickable" to "true") }
-    node.flags.checkable.takeIf { it }?.let { add("checkable" to "true") }
-    node.flags.scrollable.takeIf { it }?.let { add("scrollable" to "true") }
-    node.flags.password.takeIf { it }?.let { add("password" to "true") }
-    for ((key, value) in node.properties) add(key to value)
 }
 
 @Composable

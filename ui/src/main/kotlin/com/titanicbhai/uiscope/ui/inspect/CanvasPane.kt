@@ -75,6 +75,7 @@ fun CanvasPane(
     index: ElementIndex?,
     selected: ElementPath?,
     onSelect: (ElementPath?) -> Unit,
+    testHighlight: TestHighlight? = null,
     modifier: Modifier = Modifier,
 ) {
     var canvasSize by remember { mutableStateOf(IntSize.Zero) }
@@ -216,6 +217,13 @@ fun CanvasPane(
                     }
                 }
                 selected?.let { path -> index?.byPath?.get(path)?.let { node -> drawElementFill(vp, node.bounds, accent, onAccent, textMeasurer, label(node)) } }
+                // Test-selector highlight: green when exactly one element matches, red otherwise (plan 4.6).
+                testHighlight?.let { highlight ->
+                    val highlightColor = if (highlight.unique) Color(0xFF2E7D32) else Color(0xFFC62828)
+                    highlight.paths.forEach { path ->
+                        index?.byPath?.get(path)?.let { node -> drawElementOutline(vp, node.bounds, highlightColor, textMeasurer, label(node)) }
+                    }
+                }
                 hovered?.takeIf { it.path != selected }?.let { node -> drawElementOutline(vp, node.bounds, hoverColor, textMeasurer, label(node)) }
             }
         }
