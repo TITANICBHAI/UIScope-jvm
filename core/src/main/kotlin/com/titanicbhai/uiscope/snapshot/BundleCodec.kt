@@ -106,14 +106,15 @@ object BundleCodec {
                 total += bytes.size
                 entries[name] = bytes
             }
-        } catch (e: TooLarge) {
-            return invalid("It is larger than ${MAX_BYTES / (1024 * 1024)} MB.")
         } catch (e: ZipException) {
             return invalid("It is not a valid .uiscope file (the archive is damaged: ${e.javaClass.simpleName}).")
         } catch (e: IllegalArgumentException) {
             // The JDK reports undecodable file names this way.
             return invalid("It is not a valid .uiscope file (the archive is damaged: ${e.javaClass.simpleName}).")
         } catch (e: IOException) {
+            // BoundedInput throws TooLarge when the compressed stream passes the cap; the inflated caps return null above.
+            // Any other IOException is a genuinely damaged or unreadable file.
+            if (e is TooLarge) return invalid("It is larger than ${MAX_BYTES / (1024 * 1024)} MB.")
             return invalid("It could not be read (${e.javaClass.simpleName}).")
         }
         val captureBytes = entries[CAPTURE] ?: return invalid("It has no capture.json.")
