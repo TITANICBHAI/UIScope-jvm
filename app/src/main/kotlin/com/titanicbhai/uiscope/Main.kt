@@ -31,6 +31,7 @@ import com.titanicbhai.uiscope.adb.PlatformToolsManifestData
 import com.titanicbhai.uiscope.adb.SettingsAdbPathStore
 import com.titanicbhai.uiscope.error.AppError
 import com.titanicbhai.uiscope.error.Outcome
+import com.titanicbhai.uiscope.error.map
 import com.titanicbhai.uiscope.logging.LoggingSetup
 import com.titanicbhai.uiscope.process.JdkNetworkGateway
 import com.titanicbhai.uiscope.process.SystemProcessRunner
@@ -79,7 +80,7 @@ import kotlinx.coroutines.withContext
 private val shellLogger = Logger.getLogger("uiscope.shell")
 
 /** The native file dialog (parented, so never the 1.0 bug of a parentless chooser); the choice lands in settings and the engines re-check. */
-private fun browseForAdb(window: java.awt.Window, settings: com.titanicbhai.uiscope.settings.SettingsStore, toasts: com.titanicbhai.uiscope.ui.shell.ToastState, onRechecked: () -> Unit) {
+private fun browseForAdb(window: java.awt.Frame, settings: com.titanicbhai.uiscope.settings.SettingsStore, toasts: com.titanicbhai.uiscope.ui.shell.ToastState, onRechecked: () -> Unit) {
     val dialog = java.awt.FileDialog(window, "Choose the adb executable", java.awt.FileDialog.LOAD)
     dialog.isVisible = true
     val chosen = dialog.file?.let { Path.of(dialog.directory, it) } ?: return
@@ -231,7 +232,7 @@ fun main() {
                             onRecheck = { android.start() },
                             onSetTarget = { t -> settings.update { it.copy(lastTarget = t) } },
                             onSetCheckUpdates = { enabled -> settings.update { it.copy(checkForUpdates = enabled) } },
-                            onBrowseAdb = { browseForAdb(window, settings, toasts, onRechecked = { android.start() }) },
+                            onBrowseAdb = { browseForAdb(window, settings, toasts) { android.start() } },
                             onFinish = { settings.update { it.copy(firstRunDone = true) } },
                         ),
                     )
