@@ -97,7 +97,7 @@ class InspectScreenTest {
         rule.onNodeWithText("Hello").assertIsDisplayed()
         rule.onNodeWithText("Hello").performClick()
         rule.waitForIdle()
-        assertEquals(listOf("0/0"), r.selectedPaths)
+        assertEquals(listOf<String?>("0/0"), r.selectedPaths)
     }
 
     @Test
