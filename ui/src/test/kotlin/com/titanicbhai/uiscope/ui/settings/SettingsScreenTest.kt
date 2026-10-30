@@ -94,7 +94,7 @@ class SettingsScreenTest {
     @Test
     fun `copy diagnostics puts the version on the clipboard`() {
         val clipboard = FakeClipboard()
-        setContent(InMemorySettingsStore(), appInfo = appInfo(false), clipboard = clipboard)
+        setContent(InMemorySettingsStore(), info = appInfo(false), clipboard = clipboard)
         rule.onNodeWithText("Copy diagnostics").performClick()
         rule.waitForIdle()
         val copied = clipboard.last
