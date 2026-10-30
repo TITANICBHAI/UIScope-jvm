@@ -14,6 +14,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowPlacement
@@ -53,9 +54,11 @@ import com.titanicbhai.uiscope.storage.SnapshotStoreImpl
 import com.titanicbhai.uiscope.ui.theme.UiScopeTheme
 import com.titanicbhai.uiscope.update.UpdateChecker
 import java.awt.Toolkit
+import java.awt.Dimension
 import java.nio.file.Path
 import java.util.logging.Level
 import java.util.logging.Logger
+import kotlin.math.roundToInt
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -172,26 +175,33 @@ fun main() {
         Window(
             onCloseRequest = onClose,
             state = windowState,
-            minWidth = WindowPlacementMath.MIN_WIDTH.dp,
-            minHeight = WindowPlacementMath.MIN_HEIGHT.dp,
             title = "${appInfo.name} ${appInfo.version} — developer harness",
         ) {
+            // CMP 1.7 removed Window's minWidth/minHeight parameters; the minimum is enforced on the AWT window instead,
+            // in real pixels for the current density.
+            val density = LocalDensity.current
+            LaunchedEffect(density) {
+                window.minimumSize = Dimension(
+                    with(density) { WindowPlacementMath.MIN_WIDTH.dp.toPx().roundToInt() },
+                    with(density) { WindowPlacementMath.MIN_HEIGHT.dp.toPx().roundToInt() },
+                )
+            }
             // The menu bar mirrors actions (plan §4.1); View and Help entries arrive with their screens (P4-5/P4-7).
             MenuBar {
                 Menu("File", mnemonic = 'F') {
                     Item("Exit", onClick = onClose)
                 }
                 Menu("View", mnemonic = 'V') {
-                    Item("Fit", enabled = false)
-                    Item("Actual size", enabled = false)
-                    Item("Show all bounds", enabled = false)
-                    Item("Live", enabled = false)
+                    Item("Fit", enabled = false, onClick = {})
+                    Item("Actual size", enabled = false, onClick = {})
+                    Item("Show all bounds", enabled = false, onClick = {})
+                    Item("Live", enabled = false, onClick = {})
                 }
                 Menu("Help", mnemonic = 'H') {
-                    Item("Welcome", enabled = false)
-                    Item("Keyboard shortcuts", enabled = false)
-                    Item("Report an issue", enabled = false)
-                    Item("About", enabled = false)
+                    Item("Welcome", enabled = false, onClick = {})
+                    Item("Keyboard shortcuts", enabled = false, onClick = {})
+                    Item("Report an issue", enabled = false, onClick = {})
+                    Item("About", enabled = false, onClick = {})
                 }
             }
             val settingsState by settings.settings.collectAsState()
