@@ -1,7 +1,6 @@
-package com.titanicbhai.uiscope.ui.inspect
+﻿package com.titanicbhai.uiscope.ui.inspect
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.layout.Box
@@ -17,8 +16,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
@@ -40,7 +37,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
@@ -49,7 +45,6 @@ import androidx.compose.ui.unit.dp
 import com.titanicbhai.uiscope.error.AppError
 import com.titanicbhai.uiscope.error.CodedError
 import com.titanicbhai.uiscope.error.ErrorCodes
-import com.titanicbhai.uiscope.model.ElementIndex
 import com.titanicbhai.uiscope.model.ElementNode
 import com.titanicbhai.uiscope.model.ElementPath
 import com.titanicbhai.uiscope.settings.InspectTarget
@@ -68,6 +63,10 @@ data class InspectCallbacks(
     val onSetLive: (Boolean) -> Unit = {},
     val onSelect: (ElementPath?) -> Unit = {},
     val onToggleExpanded: (ElementPath) -> Unit = {},
+    val onExpandAll: () -> Unit = {},
+    val onCollapseAll: () -> Unit = {},
+    val onExpandSubtree: (ElementPath) -> Unit = {},
+    val onCollapseSubtree: (ElementPath) -> Unit = {},
     val onSetTarget: (InspectTarget) -> Unit = {},
     val onSetTreePaneWidth: (Int) -> Unit = {},
     val onSetDetailsPaneWidth: (Int) -> Unit = {},
@@ -79,16 +78,16 @@ private val SPLITTER_TOUCH = 12.dp
 
 /**
  * Full serials are never shown or logged (the engine's LogSafe rule); the UI shows only the last four characters.
- * Duplicated here because `ui` must not depend on `engine` (plan §3.1).
+ * Duplicated here because `ui` must not depend on `engine` (plan Â§3.1).
  */
-private fun serialTail(serial: String): String = "…" + serial.takeLast(4)
+private fun serialTail(serial: String): String = "â€¦" + serial.takeLast(4)
 
-/** The exact empty state the plan prescribes for the PC target on a non-Windows build (§4.1, P4-3). */
+/** The exact empty state the plan prescribes for the PC target on a non-Windows build (Â§4.1, P4-3). */
 const val PC_TARGET_EMPTY_STATE = "Windows app inspection is available on Windows. Android inspection works on this OS."
 
 /**
- * The Inspect screen (plan P4-3, §4.3/§4.5): target bar on top, workspace of tree | canvas | details below, errors as a
- * banner over the last capture (M11). Takes the immutable [AndroidInspectUi] snapshot plus callbacks — no engine, no
+ * The Inspect screen (plan P4-3, Â§4.3/Â§4.5): target bar on top, workspace of tree | canvas | details below, errors as a
+ * banner over the last capture (M11). Takes the immutable [AndroidInspectUi] snapshot plus callbacks â€” no engine, no
  * process, no file work in composition. The Windows engine arrives with Phase 3; until then its target shows a placeholder.
  */
 @Composable
@@ -131,7 +130,7 @@ fun InspectScreen(
     }
 }
 
-/** Builds the AppError the copy layer needs; the detail stays empty — the codes carry the meaning (Appendix A). */
+/** Builds the AppError the copy layer needs; the detail stays empty â€” the codes carry the meaning (Appendix A). */
 private fun AppErrorFor(code: String, detail: String?): AppError = CodedError(code, detail)
 
 @Composable
@@ -144,7 +143,7 @@ private fun StartingPane() {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             CircularProgressIndicator()
-            Text("Looking for adb and devices…", modifier = Modifier.padding(UiScopeTokens.spaceM))
+            Text("Looking for adb and devicesâ€¦", modifier = Modifier.padding(UiScopeTokens.spaceM))
         }
     }
 }
@@ -189,7 +188,7 @@ private fun TargetBar(
                         if (ui.devices.isEmpty()) DropdownMenuItem(text = { Text("No devices") }, onClick = { devicesOpen = false })
                         for (device in ui.devices) {
                             DropdownMenuItem(
-                                text = { Text("${device.model ?: "device"} · ${serialTail(device.serial)} (${device.state})") },
+                                text = { Text("${device.model ?: "device"} Â· ${serialTail(device.serial)} (${device.state})") },
                                 onClick = {
                                     devicesOpen = false
                                     callbacks.onSelectDevice(device.serial)
@@ -226,7 +225,7 @@ private fun deviceLabel(ui: AndroidInspectUi): String {
     val selected = ui.devices.firstOrNull { it.serial == ui.selectedSerial } ?: ui.devices.firstOrNull()
     return when {
         ui.devices.isEmpty() -> "No devices"
-        selected != null -> "${selected.model ?: "device"} · ${serialTail(selected.serial)}"
+        selected != null -> "${selected.model ?: "device"} Â· ${serialTail(selected.serial)}"
         else -> "${ui.devices.size} devices"
     }
 }
@@ -249,8 +248,13 @@ private fun Workspace(
             index = ui.index,
             expanded = ui.expanded,
             selected = ui.selected,
-            onSelect = callbacks.onSelect,
             onToggleExpanded = callbacks.onToggleExpanded,
+            onSelect = callbacks.onSelect,
+            onExpandAll = callbacks.onExpandAll,
+            onCollapseAll = callbacks.onCollapseAll,
+            onExpandSubtree = callbacks.onExpandSubtree,
+            onCollapseSubtree = callbacks.onCollapseSubtree,
+            duplicateIds = { node -> ui.index?.hasDuplicateIdentifier(node) == true },
             modifier = Modifier.width(treeWidth.value).fillMaxHeight(),
         )
         Splitter(onDrag = { delta -> treeWidth.value = (treeWidth.value + delta).coerceIn(160.dp, 900.dp) }, onDragEnd = { callbacks.onSetTreePaneWidth(treeWidth.value.value.toInt()) })
@@ -273,7 +277,7 @@ private fun Workspace(
 @Composable
 private fun EmptyWorkspaceHint(ui: AndroidInspectUi) {
     val hint = when (val state = ui.state) {
-        is AndroidState.ChooseDevice -> "Several devices are connected — pick one in the device picker above."
+        is AndroidState.ChooseDevice -> "Several devices are connected â€” pick one in the device picker above."
         is AndroidState.Ready -> "Press Capture now to read the screen."
         is AndroidState.CaptureFailed -> "The last capture failed; the previous capture is still shown when there was one."
         is AndroidState.Disconnected -> "The device disconnected. The last capture is still shown; reconnect and press Capture now."
@@ -309,88 +313,7 @@ private fun Splitter(onDrag: (Dp) -> Unit, onDragEnd: () -> Unit) {
     )
 }
 
-/** One visible row of the tree: parents before children, children only under expanded parents (full search/keyboard arrives with P4-4). */
-@Composable
-fun TreePane(
-    index: ElementIndex?,
-    expanded: Set<ElementPath>,
-    selected: ElementPath?,
-    onSelect: (ElementPath?) -> Unit,
-    onToggleExpanded: (ElementPath) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Surface(color = MaterialTheme.colorScheme.surface, modifier = modifier) {
-        if (index == null) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("No capture yet", style = MaterialTheme.typography.bodySmall) }
-            return@Surface
-        }
-        LazyColumn(Modifier.fillMaxSize()) {
-            items(visibleNodes(index, expanded), key = { it.node.path.toString() }) { row ->
-                TreeRow(
-                    node = row.node,
-                    depth = row.depth,
-                    hasChildren = row.node.children.isNotEmpty(),
-                    expanded = row.node.path in expanded,
-                    selected = row.node.path == selected,
-                    onClick = { onSelect(row.node.path) },
-                    onToggle = { onToggleExpanded(row.node.path) },
-                )
-            }
-        }
-    }
-}
-
-private data class TreeRow(val node: ElementNode, val depth: Int)
-
-/** Pre-order walk that only descends into expanded subtrees. */
-private fun visibleNodes(index: ElementIndex, expanded: Set<ElementPath>): List<TreeRow> {
-    val out = ArrayList<TreeRow>()
-    val pending = ArrayDeque<Pair<ElementNode, Int>>()
-    index.capture.roots.asReversed().forEach { pending.addLast(it to 0) }
-    while (pending.isNotEmpty()) {
-        val (node, depth) = pending.removeLast()
-        out += TreeRow(node, depth)
-        if (node.path in expanded) {
-            node.children.asReversed().forEach { pending.addLast(it to depth + 1) }
-        }
-    }
-    return out
-}
-
-@Composable
-private fun TreeRow(node: ElementNode, depth: Int, hasChildren: Boolean, expanded: Boolean, selected: Boolean, onClick: () -> Unit, onToggle: () -> Unit) {
-    val background = if (selected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(background)
-            .clickable(onClick = onClick)
-            .padding(start = (depth * 16).dp, end = UiScopeTokens.spaceS),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Box(Modifier.width(24.dp), contentAlignment = Alignment.Center) {
-            if (hasChildren) {
-                Icon(
-                    imageVector = if (expanded) Icons.Filled.ExpandMore else Icons.Filled.ChevronRight,
-                    contentDescription = if (expanded) "Collapse" else "Expand",
-                    modifier = Modifier
-                        .width(20.dp)
-                        .clickable(onClick = onToggle),
-                )
-            }
-        }
-        Text(
-            node.text ?: node.name ?: node.identifier ?: node.className.substringAfterLast('.'),
-            style = MaterialTheme.typography.bodySmall,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-        Spacer(Modifier.weight(1f))
-        Text(node.className.substringAfterLast('.'), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
-    }
-}
-
-/** Selector | Properties | Path (plan §4.5); the selector and code tab arrives with P4-6. */
+/** Selector | Properties | Path (plan Â§4.5); the selector and code tab arrives with P4-6. */
 @Composable
 private fun DetailsPane(node: ElementNode?, path: ElementPath?, width: Dp) {
     var tab by remember { mutableStateOf(0) }

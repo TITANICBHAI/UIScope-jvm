@@ -252,6 +252,10 @@ fun main() {
                                 onSetLive = { android.setLive(it) },
                                 onSelect = { android.select(it) },
                                 onToggleExpanded = { android.toggleExpanded(it) },
+                                onExpandAll = { android.expandAll() },
+                                onCollapseAll = { android.collapseAll() },
+                                onExpandSubtree = { android.expandSubtree(it) },
+                                onCollapseSubtree = { android.collapseSubtree(it) },
                                 onSetTarget = {
                                     settings.update { current -> current.copy(lastTarget = it) }
                                 },

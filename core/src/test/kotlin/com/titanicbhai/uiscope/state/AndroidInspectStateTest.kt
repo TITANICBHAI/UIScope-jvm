@@ -478,6 +478,31 @@ class AndroidInspectStateTest {
     // ── threads ────────────────────────────────────────────────────────────────────────────────
 
     @Test
+    fun `expand all, collapse all and per-subtree expand and collapse work`() {
+        val s = state(instantLive = true)
+        s.start()
+        s.awaitState("NoDevice") { it is AndroidState.NoDevice }
+        port.devices(phone)
+        s.awaitState("Captured") { it is AndroidState.Captured }
+
+        s.collapseAll()
+        assertTrue(s.ui.value.expanded.isEmpty(), "collapse all clears expansion")
+
+        s.expandAll()
+        val withChildren = s.ui.value.index!!.nodes.filter { it.children.isNotEmpty() }.map { it.path }.toSet()
+        assertTrue(withChildren.isNotEmpty(), "the fixture tree has container nodes")
+        assertEquals(withChildren, s.ui.value.expanded)
+
+        s.collapseSubtree(ElementPath.root(0))
+        val subtree = s.ui.value.index!!.byPath.getValue(ElementPath.root(0)).children.map { it.path } + ElementPath.root(0)
+        assertTrue(s.ui.value.expanded.none { it in subtree }, "the whole subtree is collapsed")
+
+        s.expandSubtree(ElementPath.root(0))
+        assertEquals(withChildren, s.ui.value.expanded)
+        s.stop()
+    }
+
+    @Test
     fun `no adb work ever runs on the main thread`() {
         val s = state(instantLive = true)
         s.start()

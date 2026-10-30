@@ -7,6 +7,7 @@ import com.titanicbhai.uiscope.model.AdbDevice
 import com.titanicbhai.uiscope.model.Capture
 import com.titanicbhai.uiscope.model.DeviceState
 import com.titanicbhai.uiscope.model.ElementIndex
+import com.titanicbhai.uiscope.model.ElementNode
 import com.titanicbhai.uiscope.model.ElementPath
 import com.titanicbhai.uiscope.ports.AdbPort
 import com.titanicbhai.uiscope.ports.TrackerEvent
@@ -308,6 +309,35 @@ class AndroidInspectState(
     fun select(path: ElementPath?) = mutate { copy(selected = path?.takeIf { index?.byPath?.containsKey(it) == true }) }
 
     fun toggleExpanded(path: ElementPath) = mutate { copy(expanded = if (path in expanded) expanded - path else expanded + path) }
+
+    /** Expands every node that has children (the tree pane's Expand-all, P4-4). */
+    fun expandAll() = mutate {
+        copy(expanded = index?.nodes?.filter { it.children.isNotEmpty() }?.map { it.path }?.toSet() ?: expanded)
+    }
+
+    fun collapseAll() = mutate { copy(expanded = emptySet()) }
+
+    fun expandSubtree(path: ElementPath) = mutate {
+        val subtree = index?.byPath?.get(path)?.let(::subtreePaths) ?: return@mutate copy()
+        copy(expanded = expanded + subtree)
+    }
+
+    fun collapseSubtree(path: ElementPath) = mutate {
+        val subtree = index?.byPath?.get(path)?.let(::subtreePaths) ?: return@mutate copy()
+        copy(expanded = expanded - subtree)
+    }
+
+    private fun subtreePaths(root: ElementNode): Set<ElementPath> {
+        val out = HashSet<ElementPath>()
+        val pending = ArrayDeque<ElementNode>()
+        pending.addLast(root)
+        while (pending.isNotEmpty()) {
+            val node = pending.removeLast()
+            out += node.path
+            node.children.forEach { pending.addLast(it) }
+        }
+        return out
+    }
 
     companion object {
         const val MAX_LIVE_FAILURES = 3
