@@ -6,12 +6,12 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.ClipboardManager
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
-import androidx.compose.ui.test.ScrollDirection
 import com.titanicbhai.uiscope.AppInfo
 import com.titanicbhai.uiscope.settings.InMemorySettingsStore
 import com.titanicbhai.uiscope.settings.Settings
@@ -31,7 +31,7 @@ class SettingsScreenTest {
 
     /** The Advanced section sits below the fold; scroll the screen's column until the control is in view, then click. */
     private fun scrollTo(text: String) {
-        rule.onNode(hasScrollAction(ScrollDirection.Forward)).performScrollToNode(hasText(text))
+        rule.onNode(hasScrollAction()).performScrollToNode(hasText(text))
         rule.waitForIdle()
     }
 
