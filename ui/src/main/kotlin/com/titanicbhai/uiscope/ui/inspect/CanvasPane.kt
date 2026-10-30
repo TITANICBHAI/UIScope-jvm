@@ -91,7 +91,7 @@ fun CanvasPane(
         } else {
             withContext(Dispatchers.IO) {
                 try {
-                    org.jetbrains.skia.Image.makeFromEncoded(Files.readAllBytes(Path.of(file))).asComposeImageBitmap()
+                    org.jetbrains.skia.Image.makeFromEncoded(Files.readAllBytes(Path.of(file))).decodeToBitmap().asComposeImageBitmap()
                 } catch (t: Throwable) {
                     canvasLogger.log(Level.WARNING, "the screenshot could not be decoded (${t.javaClass.simpleName}); showing the wireframe", t)
                     null
