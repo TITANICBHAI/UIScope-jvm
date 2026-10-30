@@ -34,7 +34,6 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.MenuBar
 import com.titanicbhai.uiscope.error.AppError
 import com.titanicbhai.uiscope.ui.theme.UiScopeTokens
 
@@ -76,38 +75,19 @@ class ShellDialogState internal constructor() {
 fun rememberShellDialogState(): ShellDialogState = ShellDialogState()
 
 /**
- * The app shell (plan P4-2, §4.1): one window, a left navigation rail, a menu bar that mirrors actions, a 24 dp status bar,
- * toast and dialog hosts. [content] draws the active screen; the shell owns nothing about it.
+ * The app shell (plan P4-2, §4.1): one window, a left navigation rail, a 24 dp status bar, toast and dialog hosts.
+ * The menu bar is rendered by the caller inside the Window scope (it is a FrameWindowScope extension); the shell owns
+ * nothing about the active screen, passed as [content].
  */
 @Composable
 fun AppShell(
     screen: ShellScreen,
     onScreen: (ShellScreen) -> Unit,
     status: ShellStatus,
-    onExit: () -> Unit,
     toasts: ToastState,
     dialogs: ShellDialogState,
     content: @Composable () -> Unit,
 ) {
-    MenuBar {
-        Menu("File", mnemonic = 'F') {
-            Item("Exit", onClick = onExit)
-        }
-        // View (Fit, Actual size, Show all bounds, Live) and Help (Welcome, Shortcuts, …) mirror actions that arrive
-        // with P4-5/P4-7; the plan forbids actions that exist only in the menu, so nothing is added before its screen.
-        Menu("View", mnemonic = 'V') {
-            Item("Fit", enabled = false)
-            Item("Actual size", enabled = false)
-            Item("Show all bounds", enabled = false)
-            Item("Live", enabled = false)
-        }
-        Menu("Help", mnemonic = 'H') {
-            Item("Welcome", enabled = false)
-            Item("Keyboard shortcuts", enabled = false)
-            Item("Report an issue", enabled = false)
-            Item("About", enabled = false)
-        }
-    }
     Column(Modifier.fillMaxSize()) {
         Row(Modifier.weight(1f)) {
             NavigationRail {

@@ -19,6 +19,7 @@ import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowPlacement
 import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.WindowSize
+import androidx.compose.ui.window.MenuBar
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import com.titanicbhai.uiscope.adb.AdbLocator
@@ -161,19 +162,38 @@ fun main() {
                 }
             }
         }
+        val onClose: () -> Unit = {
+            android.stop()
+            settings.flush()
+            snapshotsReady.value?.close()
+            logging?.close()
+            exitApplication()
+        }
         Window(
-            onCloseRequest = {
-                android.stop()
-                settings.flush()
-                snapshotsReady.value?.close()
-                logging?.close()
-                exitApplication()
-            },
+            onCloseRequest = onClose,
             state = windowState,
             minWidth = WindowPlacementMath.MIN_WIDTH.dp,
             minHeight = WindowPlacementMath.MIN_HEIGHT.dp,
             title = "${appInfo.name} ${appInfo.version} — developer harness",
         ) {
+            // The menu bar mirrors actions (plan §4.1); View and Help entries arrive with their screens (P4-5/P4-7).
+            MenuBar {
+                Menu("File", mnemonic = 'F') {
+                    Item("Exit", onClick = onClose)
+                }
+                Menu("View", mnemonic = 'V') {
+                    Item("Fit", enabled = false)
+                    Item("Actual size", enabled = false)
+                    Item("Show all bounds", enabled = false)
+                    Item("Live", enabled = false)
+                }
+                Menu("Help", mnemonic = 'H') {
+                    Item("Welcome", enabled = false)
+                    Item("Keyboard shortcuts", enabled = false)
+                    Item("Report an issue", enabled = false)
+                    Item("About", enabled = false)
+                }
+            }
             val settingsState by settings.settings.collectAsState()
             val inspect by android.ui.collectAsState()
             var screen by remember { mutableStateOf(ShellScreen.INSPECT) }
@@ -190,13 +210,6 @@ fun main() {
                     screen = screen,
                     onScreen = { screen = it },
                     status = status,
-                    onExit = {
-                        android.stop()
-                        settings.flush()
-                        snapshotsReady.value?.close()
-                        logging?.close()
-                        exitApplication()
-                    },
                     toasts = toasts,
                     dialogs = dialogs,
                 ) {
