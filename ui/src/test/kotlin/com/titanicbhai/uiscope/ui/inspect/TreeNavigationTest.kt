@@ -47,6 +47,7 @@ class TreeNavigationTest {
     @Test
     fun `search over 10k nodes takes under 100 ms`() {
         val idx = com.titanicbhai.uiscope.model.ElementIndex(capture(TestTrees.balanced(10_000), id = "big"))
+        repeat(3) { searchTree(idx, "warm up") } // JIT warm-up, the P1-1 perf-test pattern
         val elapsed = measureTimeMillis { searchTree(idx, "text 50") }
         assertTrue(elapsed < 100, "search took $elapsed ms, the plan budgets 100 ms")
     }

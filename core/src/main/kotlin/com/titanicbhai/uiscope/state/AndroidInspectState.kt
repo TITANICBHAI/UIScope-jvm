@@ -318,22 +318,23 @@ class AndroidInspectState(
     fun collapseAll() = mutate { copy(expanded = emptySet()) }
 
     fun expandSubtree(path: ElementPath) = mutate {
-        val subtree = index?.byPath?.get(path)?.let(::subtreePaths) ?: return@mutate copy()
+        val subtree = index?.byPath?.get(path)?.let(::subtreeContainers) ?: return@mutate copy()
         copy(expanded = expanded + subtree)
     }
 
     fun collapseSubtree(path: ElementPath) = mutate {
-        val subtree = index?.byPath?.get(path)?.let(::subtreePaths) ?: return@mutate copy()
+        val subtree = index?.byPath?.get(path)?.let(::subtreeContainers) ?: return@mutate copy()
         copy(expanded = expanded - subtree)
     }
 
-    private fun subtreePaths(root: ElementNode): Set<ElementPath> {
+    /** The paths in [root]'s subtree that can hold an expansion: the nodes with children, root included. */
+    private fun subtreeContainers(root: ElementNode): Set<ElementPath> {
         val out = HashSet<ElementPath>()
         val pending = ArrayDeque<ElementNode>()
         pending.addLast(root)
         while (pending.isNotEmpty()) {
             val node = pending.removeLast()
-            out += node.path
+            if (node.children.isNotEmpty()) out += node.path
             node.children.forEach { pending.addLast(it) }
         }
         return out
