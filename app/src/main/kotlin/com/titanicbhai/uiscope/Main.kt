@@ -34,6 +34,7 @@ import com.titanicbhai.uiscope.process.JdkNetworkGateway
 import com.titanicbhai.uiscope.process.SystemProcessRunner
 import com.titanicbhai.uiscope.ui.inspect.InspectCallbacks
 import com.titanicbhai.uiscope.ui.inspect.InspectScreen
+import com.titanicbhai.uiscope.ui.settings.SettingsScreen
 import com.titanicbhai.uiscope.ui.shell.AppShell
 import com.titanicbhai.uiscope.update.UpdateCheck
 import com.titanicbhai.uiscope.ui.shell.NoSingleInstance
@@ -270,7 +271,36 @@ fun main() {
                             detailsPaneWidth = settingsState.detailsPaneWidth,
                         )
                         ShellScreen.SNAPSHOTS -> PlaceholderScreen("Snapshots", "P5-1")
-                        ShellScreen.SETTINGS -> PlaceholderScreen("Settings", "P4-8")
+                        ShellScreen.SETTINGS -> SettingsScreen(
+                            settings = settings,
+                            appInfo = appInfo,
+                            adbLine = inspect.adb?.let { "${it.path} (version ${it.version}, found via ${it.source})" },
+                            snapshots = snapshotsReady.value,
+                            diagnostics = {
+                                buildString {
+                                    appendLine("${appInfo.name} ${appInfo.version} (build ${appInfo.buildDate}, ${appInfo.commit})")
+                                    appendLine("OS: ${System.getProperty("os.name")} ${System.getProperty("os.version")}")
+                                    appendLine("Java: ${System.getProperty("java.version")}")
+                                    appendLine("Data folder: ${paths.root}")
+                                    appendLine("adb: ${inspect.adb?.let { "${it.path} (${it.version}, via ${it.source})" } ?: "not found"}")
+                                    appendLine("Devices: ${inspect.devices.size}")
+                                }
+                            },
+                            onOpenLogs = {
+                                try {
+                                    java.awt.Desktop.getDesktop().open(paths.logs.toFile())
+                                } catch (t: Throwable) {
+                                    toasts.showError("Could not open the folder (${t.javaClass.simpleName})")
+                                }
+                            },
+                            onOpenSnapshots = {
+                                try {
+                                    java.awt.Desktop.getDesktop().open(paths.snapshots.toFile())
+                                } catch (t: Throwable) {
+                                    toasts.showError("Could not open the folder (${t.javaClass.simpleName})")
+                                }
+                            },
+                        )
                         ShellScreen.HELP -> PlaceholderScreen("Help", "P4-7")
                     }
                 }
