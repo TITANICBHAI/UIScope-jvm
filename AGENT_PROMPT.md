@@ -15,11 +15,16 @@ tests first for `[REGRESSION]` items (show the red result); truth over marketing
 database work on the UI thread; never log element text, window titles, tree contents, full serials or command arguments; one commit per
 task; keep `docs/PROGRESS.md` and `docs/MANUAL_QA.md` current.
 
-**Step 1: verify before you build.** Nothing in this repository has been run through Gradle (the Kotlin code was compiled and tested with `kotlinc` + JUnit 4 and a real SQLite by the previous author: core 180 + engine 171 tests passing). If you have a normal environment, run
-`./gradlew check`, fix every failure (build scripts, detekt, tests, Compose), then run `./gradlew :app:run`, and record what you found and
-changed in PROGRESS. If Gradle cannot download dependencies, use `bash scripts/local-check.sh` (setup notes inside) as a safety net and
-list clearly what it cannot cover. Do not start new tasks until the existing code builds, or you have documented why it cannot be built
-in your environment.
+**Step 1: verify before you build — on CI, never on the owner's PC.** Nothing in this repository has been run through Gradle locally (the Kotlin
+code was compiled and tested with `kotlinc` + JUnit 4 and a real SQLite by the previous author: core 180 + engine 171 tests passing). Do **not**
+run `./gradlew` builds, tests or checks on the owner's machine: the owner cannot run verification themselves and their PC must stay idle. Instead,
+push your work to https://github.com/TITANICBHAI/UIScope-jvm and let GitHub Actions do it — on every push to `main` (and on PRs), `./gradlew check`
+runs on `windows-latest` + `ubuntu-latest` (`.github/workflows/ci.yml`) and uploads the test and detekt reports as artifacts. Watch the run, read
+the reports, fix every failure (build scripts, detekt, tests, Compose), and push again until CI is green on both OSes, recording what you found and
+changed in PROGRESS. This loop verifies everything that needs no real device. Anything else (a real desktop launch such as `./gradlew :app:run`, a
+phone, 125–150 % scaling, a second monitor, Store credentials) cannot be checked on CI: implement against fakes and add the manual steps to
+`docs/MANUAL_QA.md` rather than guessing results. Do not start new tasks until CI is green, or you have documented why it cannot pass in this
+environment.
 
 **Step 2: continue the plan** with the order in `docs/HANDOFF.md` section 8 (wire the Round 5 pieces into the shell, then Phase 3 and onward; P6-1 whenever hardware blocks you),
 one task at a time, each with tests, a PROGRESS line, and a commit. For anything that needs hardware or an account you do not have (a
