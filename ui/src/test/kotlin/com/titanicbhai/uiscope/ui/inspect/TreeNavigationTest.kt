@@ -1,6 +1,7 @@
 package com.titanicbhai.uiscope.ui.inspect
 
 import com.titanicbhai.uiscope.model.ElementPath
+import com.titanicbhai.uiscope.testing.N
 import com.titanicbhai.uiscope.testing.TestTrees
 import com.titanicbhai.uiscope.testing.TestTrees.capture
 import com.titanicbhai.uiscope.testing.TestTrees.n
@@ -12,7 +13,7 @@ import kotlin.test.assertTrue
 /** The pure tree-navigation math of P4-4 (plan §4.5): search, visible rows, keyboard movement. */
 class TreeNavigationTest {
 
-    private fun tree(): TestTrees.N = n(identifier = "app:id/root", children = listOf(
+    private fun tree(): N = n(identifier = "app:id/root", children = listOf(
         n(className = "android.widget.TextView", identifier = "app:id/a", text = "Alpha"),
         n(className = "android.widget.Button", identifier = "app:id/b", text = "beta value"),
         n(className = "android.view.ViewGroup", children = listOf(
@@ -20,7 +21,7 @@ class TreeNavigationTest {
         )),
     ))
 
-    private fun index() = com.titanicbhai.uiscope.model.ElementIndex(capture(tree(), id = "t"))
+    private fun index() = com.titanicbhai.uiscope.model.ElementIndex(capture(listOf(tree()), id = "t"))
 
     @Test
     fun `visible rows only descend into expanded subtrees`() {
