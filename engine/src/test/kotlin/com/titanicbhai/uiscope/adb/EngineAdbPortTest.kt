@@ -29,6 +29,12 @@ import kotlin.test.assertTrue
 class EngineAdbPortTest {
     private val dispatchers = StandardDispatcherProvider(Dispatchers.Unconfined)
 
+    // The simulated platform must match the real host: with the LINUX separator on a Windows host, the
+    // ":" split of the PATH entry would also cut at the temp dir's drive letter and adb would not be found.
+    private val host = HostOs.current()
+    private val exe = if (host == HostOs.WINDOWS) "adb.exe" else "adb"
+    private val sep = if (host == HostOs.WINDOWS) ";" else ":"
+
     private fun png(): ByteArray {
         val image = BufferedImage(60, 120, BufferedImage.TYPE_INT_RGB)
         for (y in 0 until 120) for (x in 0 until 60) image.setRGB(x, y, (x * 4 shl 16) or (y * 2 shl 8))
@@ -50,12 +56,12 @@ class EngineAdbPortTest {
     @Test
     fun `locate then capture and track go through the real engine classes`() = blocking {
         withTempDir { dir ->
-            val adb = dir.resolve("bin/adb")
+            val adb = dir.resolve("bin/$exe")
             Files.createDirectories(adb.parent)
             Files.writeString(adb, "binary")
             val runner = phoneRunner(adb.toString())
             FakeAdbServer().use { server ->
-                val locator = AdbLocator(runner, FileAdbPathStore(dir.resolve("none.txt")), DataPaths(dir.resolve("data")), HostOs.LINUX, mapOf("PATH" to adb.parent.toString()), dir.resolve("home"), ":")
+                val locator = AdbLocator(runner, FileAdbPathStore(dir.resolve("none.txt")), DataPaths(dir.resolve("data")), host, mapOf("PATH" to adb.parent.toString()), dir.resolve("home"), sep)
                 val port = EngineAdbPort(locator, runner, DataPaths(dir.resolve("data")), dispatchers, serverPort = server.port)
 
                 val status = port.locate().assertSuccess()
@@ -78,7 +84,7 @@ class EngineAdbPortTest {
     fun `before adb is located everything reports ADB_NOT_FOUND`() = blocking {
         withTempDir { dir ->
             val runner = FakeProcessRunner { null }
-            val locator = AdbLocator(runner, FileAdbPathStore(dir.resolve("none.txt")), DataPaths(dir.resolve("data")), HostOs.LINUX, emptyMap(), dir.resolve("home"), ":")
+            val locator = AdbLocator(runner, FileAdbPathStore(dir.resolve("none.txt")), DataPaths(dir.resolve("data")), host, emptyMap(), dir.resolve("home"), sep)
             val port = EngineAdbPort(locator, runner, DataPaths(dir.resolve("data")), dispatchers)
             port.locate().assertFailure(ErrorCodes.ADB_NOT_FOUND)
             val event = withTimeout(10_000) { port.trackDevices().first() }

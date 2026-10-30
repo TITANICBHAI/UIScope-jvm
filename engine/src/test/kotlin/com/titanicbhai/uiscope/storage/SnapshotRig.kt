@@ -26,14 +26,17 @@ internal class SnapshotRig(val root: Path, migrations: List<SnapshotMigration> =
     val snapshots: Path = root.resolve("snapshots")
     val db = SnapshotDatabase(dbFile, migrations, sqliteTmpDir = root.resolve("tmp"))
     private val counter = AtomicInteger()
+    private val shotCounter = AtomicInteger()
     val store = SnapshotStoreImpl(
         db, snapshots, StandardDispatcherProvider(Dispatchers.Unconfined), clock, appVersion = "1.0.0", zone = ZoneOffset.UTC, collator = java.text.Collator.getInstance(java.util.Locale.ROOT),
         idGenerator = ids ?: { "snap-%04d".format(counter.incrementAndGet()) },
         readFile = { reads.incrementAndGet(); Files.readAllBytes(it) },
     ).also { it.open().assertSuccess() }
 
-    /** A file that starts with a valid PNG signature and IHDR (1080x2400) and is padded to [bytes]; enough for the bundle validator. */
-    fun shot(name: String = "live.png", bytes: Int = 1000): Path {
+    /** A file that starts with a valid PNG signature and IHDR (1080x2400) and is padded to [bytes]; enough for the bundle validator.
+     *  The name is unique per call: the concurrency tests save from several threads at once, and on Windows two
+     *  simultaneous opens of the same file for writing are a sharing violation (Linux tolerates it). */
+    fun shot(name: String = "live-" + shotCounter.incrementAndGet() + ".png", bytes: Int = 1000): Path {
         val head = java.io.ByteArrayOutputStream()
         head.write(byteArrayOf(0x89.toByte(), 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0, 0, 0, 13))
         head.write("IHDR".toByteArray())
