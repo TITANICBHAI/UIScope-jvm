@@ -60,7 +60,7 @@ class CanvasPaneTest {
         rule.onNodeWithTag("uiscope.canvas").performTouchInput { click(center) }
         rule.waitForIdle()
         // The fitted viewport maps the canvas centre to capture (500,500) - inside the 400..600 button (and its parent).
-        assertEquals(listOf("0/0"), r.selected)
+        assertEquals(listOf<String?>("0/0"), r.selected)
     }
 
     @Test
