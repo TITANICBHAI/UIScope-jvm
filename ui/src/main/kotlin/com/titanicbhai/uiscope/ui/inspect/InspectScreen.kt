@@ -265,7 +265,13 @@ private fun Workspace(
             if (ui.capture == null) {
                 EmptyWorkspaceHint(ui)
             } else {
-                PlaceholderPane("The canvas with the screenshot arrives with task P4-5.")
+                CanvasPane(
+                    capture = ui.capture,
+                    index = ui.index,
+                    selected = ui.selected,
+                    onSelect = callbacks.onSelect,
+                    modifier = Modifier.fillMaxSize(),
+                )
             }
         }
         Splitter(onDrag = { delta -> detailsWidth.value = (detailsWidth.value - delta).coerceIn(160.dp, 900.dp) }, onDragEnd = { callbacks.onSetDetailsPaneWidth(detailsWidth.value.value.toInt()) })
