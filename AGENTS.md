@@ -12,7 +12,7 @@
 - **Never fry the owner's PC.** Do NOT run heavy work locally: no `./gradlew check`, no `./gradlew build`/`assemble`, no test suites, no long-running loops or watchers on this machine. The local PC is only for reading code, editing files, git operations, and light inspection.
 - **CI is our executor.** The verification loop is: make changes → commit → `git push origin main` → GitHub Actions runs the checks → watch the run → download/read the test, detekt and build reports (artifacts + logs, method below) → report honestly what passed, what failed, and what could not be verified.
 - **Scope = everything verifiable WITHOUT a real device**: unit tests, detekt/static analysis, Gradle build/compilation checks, and any other check `plan.md` requires that runs on a plain CI machine. Anything needing hardware or accounts (a phone/ADB device, 125–150 % display scaling, a second monitor, Store credentials) is NOT verifiable in this loop — implement against fakes and add the manual steps to `docs/MANUAL_QA.md`, per `AGENT_PROMPT.md`.
-- **Watch loop (verified working):** poll `https://api.github.com/repos/TITANICBHAI/UIScope-jvm/actions/runs?branch=main`, then `actions/runs/{id}/jobs` for per-leg conclusions; runs finish in ~2–5 min (queue + ~1–2 min runtime). **Use the Bearer token (method below) for ALL API calls, not just logs** — unauthenticated calls are capped at 60/hour *per IP*, and other agents on this PC share that IP, so anonymous polling dies mid-loop. Job logs and report artifacts additionally need the token: get the stored credential silently via `"protocol=https`nhost=github.com`n`n" | & 'C:\Program Files\Git\cmd\git.exe' credential fill` and use its `password=` line. Keep the token in memory only; never print or store it.
+- **Watch loop (verified working):** poll `https://api.github.com/repos/TITANICBHAI/UIScope-jvm/actions/runs?branch=main`, then `actions/runs/{id}/jobs` for per-leg conclusions; runs finish in ~2–5 min (queue + ~1–2 min runtime). **Use the Bearer token (method below) for ALL API calls, not just logs** — unauthenticated calls are capped at 60/hour *per IP*, and the owner's other agents on this PC poll GitHub for their own projects from the same IP, so anonymous polling dies mid-loop. Job logs and report artifacts additionally need the token: get the stored credential silently via `"protocol=https`nhost=github.com`n`n" | & 'C:\Program Files\Git\cmd\git.exe' credential fill` and use its `password=` line. Keep the token in memory only; never print or store it.
 
 ## Git history rules — ABSOLUTE (owner, 2026-10-31)
 
@@ -20,15 +20,14 @@
 - **History is append-only.** Never rewrite, reorder or remove commits that exist on `origin`: no filter-branch/filter-repo, no deleting remote branches or tags, no `git push origin :ref`. The owner's commit history is permanent.
 - If a push is rejected (non-fast-forward): `git fetch`, rebase only LOCAL unpushed commits onto the new `origin/main`, re-check the task is still needed, push again. History grows; it never shrinks.
 
-## Multi-agent protocol — MANDATORY before every push (a second agent works in a DIFFERENT folder under Downloads on this PC, same remote)
+## Pre-push protocol (confirmed by owner 2026-10-31: this is the ONLY agent working on this project — the owner's other agents work on different projects)
 
 **Check where you are heading before you push, every time:**
 
-1. `git fetch origin` — if `origin/main` has moved beyond local `main` (`git rev-list --left-right --count main...origin/main`), the other agent pushed: `git pull --rebase origin main` FIRST (rebasing only local unpushed commits — allowed, append-only), then re-check whether your task is still needed and whether your edit still applies cleanly.
-2. `git status -sb` — commit only your own files by explicit path (`git add <your files>`, never `git add .` / `-A`). Untracked files that are not yours (e.g. `Steps.md`, which the OWNER created) stay untouched.
-3. Before assuming a CI result is yours, match the run's `head_sha` to YOUR commit — the other agent's push may have started a run minutes before/after yours.
-4. To avoid colliding on the same task: check the newest `git log origin/main` and `docs/PROGRESS.md` before starting a task — if the other agent is visibly mid-task on it, take a different one. The OWNER routes tasks between the two agents.
-5. Lesson from 2026-10-30: a CANCELLED shell command can still have completed its push before the cancellation took effect (that is what happened with `cbd14ad` — first misread as another agent's identical commit). After any cancellation or interruption, re-run `git fetch` + `git log origin/main` and reconcile with what actually landed before redoing the work.
+1. `git fetch origin` — if `origin/main` has moved beyond local `main` (the owner can push from elsewhere), `git pull --rebase origin main` FIRST (rebasing only local unpushed commits — allowed, append-only), then re-check whether your edit still applies and the task is still needed.
+2. `git status -sb` — commit only your own files by explicit path (`git add <your files>`, never `git add .` / `-A`). Untracked files that are not yours (e.g. `Steps.md`, created by the OWNER) stay untouched.
+3. Match every CI result to its run's `head_sha` before drawing conclusions.
+4. Lesson from 2026-10-30: a CANCELLED shell command can still have completed its push before the cancellation took effect (that is what happened with `cbd14ad` — first misread as another agent's identical commit). After any cancellation or interruption, re-run `git fetch` + `git log origin/main` and reconcile with what actually landed before redoing the work.
 
 ## Environment notes (Windows PC, verified 2026-10-30)
 
