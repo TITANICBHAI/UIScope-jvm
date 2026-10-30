@@ -16,11 +16,11 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowPlacement
 import androidx.compose.ui.window.WindowPosition
-import androidx.compose.ui.window.WindowSize
 import androidx.compose.ui.window.MenuBar
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
@@ -155,7 +155,7 @@ fun main() {
         val windowState = rememberWindowState(
             placement = if (spec.maximized) WindowPlacement.Maximized else WindowPlacement.Floating,
             position = if (savedX != null && savedY != null) WindowPosition(savedX.dp, savedY.dp) else WindowPosition.PlatformDefault,
-            size = WindowSize(spec.width.dp, spec.height.dp),
+            size = DpSize(spec.width.dp, spec.height.dp),
         )        // Persist size, position and maximized state; the settings store debounces the writes.
         LaunchedEffect(windowState) {
             snapshotFlow { Triple(windowState.placement, windowState.size, windowState.position) }.collect {

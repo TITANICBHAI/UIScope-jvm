@@ -1,8 +1,8 @@
-﻿package com.titanicbhai.uiscope.ui.inspect
+package com.titanicbhai.uiscope.ui.inspect
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.AssistChip
@@ -31,6 +32,7 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -39,6 +41,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -78,16 +81,16 @@ private val SPLITTER_TOUCH = 12.dp
 
 /**
  * Full serials are never shown or logged (the engine's LogSafe rule); the UI shows only the last four characters.
- * Duplicated here because `ui` must not depend on `engine` (plan Â§3.1).
+ * Duplicated here because `ui` must not depend on `engine` (plan 3.1). ASCII only - it lands in test matchers too.
  */
-private fun serialTail(serial: String): String = "â€¦" + serial.takeLast(4)
+private fun serialTail(serial: String): String = "..." + serial.takeLast(4)
 
-/** The exact empty state the plan prescribes for the PC target on a non-Windows build (Â§4.1, P4-3). */
+/** The exact empty state the plan prescribes for the PC target on a non-Windows build (4.1, P4-3). */
 const val PC_TARGET_EMPTY_STATE = "Windows app inspection is available on Windows. Android inspection works on this OS."
 
 /**
- * The Inspect screen (plan P4-3, Â§4.3/Â§4.5): target bar on top, workspace of tree | canvas | details below, errors as a
- * banner over the last capture (M11). Takes the immutable [AndroidInspectUi] snapshot plus callbacks â€” no engine, no
+ * The Inspect screen (plan P4-3, 4.3/4.5): target bar on top, workspace of tree | canvas | details below, errors as a
+ * banner over the last capture (M11). Takes the immutable [AndroidInspectUi] snapshot plus callbacks - no engine, no
  * process, no file work in composition. The Windows engine arrives with Phase 3; until then its target shows a placeholder.
  */
 @Composable
@@ -130,7 +133,7 @@ fun InspectScreen(
     }
 }
 
-/** Builds the AppError the copy layer needs; the detail stays empty â€” the codes carry the meaning (Appendix A). */
+/** Builds the AppError the copy layer needs; the detail stays empty - the codes carry the meaning (Appendix A). */
 private fun AppErrorFor(code: String, detail: String?): AppError = CodedError(code, detail)
 
 @Composable
@@ -143,7 +146,7 @@ private fun StartingPane() {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             CircularProgressIndicator()
-            Text("Looking for adb and devicesâ€¦", modifier = Modifier.padding(UiScopeTokens.spaceM))
+            Text("Looking for adb and devices...", modifier = Modifier.padding(UiScopeTokens.spaceM))
         }
     }
 }
@@ -151,18 +154,18 @@ private fun StartingPane() {
 @Composable
 private fun PcTargetEmptyState() {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(PC_TARGET_EMPTY_STATE, style = MaterialTheme.typography.bodyLarge, textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.padding(UiScopeTokens.spaceXl))
+        Text(PC_TARGET_EMPTY_STATE, style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center, modifier = Modifier.padding(UiScopeTokens.spaceXl))
     }
 }
 
 @Composable
 private fun PlaceholderPane(text: String) {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(text, style = MaterialTheme.typography.bodyLarge, textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.padding(UiScopeTokens.spaceXl))
+        Text(text, style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center, modifier = Modifier.padding(UiScopeTokens.spaceXl))
     }
 }
 
-/** Target switch on the left, device picker and capture controls on the right; nothing drops off at minimum width (chips wrap). */
+/** Target switch on the left, device picker and capture controls on the right; the row wraps so nothing drops off at minimum width. */
 @Composable
 private fun TargetBar(
     target: InspectTarget,
@@ -174,8 +177,8 @@ private fun TargetBar(
     var devicesOpen by remember { mutableStateOf(false) }
     Surface(color = MaterialTheme.colorScheme.surfaceVariant) {
         Column(Modifier.fillMaxWidth().padding(horizontal = UiScopeTokens.spaceM, vertical = UiScopeTokens.spaceS)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(UiScopeTokens.spaceS)) {
-                AssistChip(onClick = { onTarget(InspectTarget.ANDROID) }, label = { Text("Android") }, leadingIcon = null)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(UiScopeTokens.spaceS)) {
+                AssistChip(onClick = { onTarget(InspectTarget.ANDROID) }, label = { Text("Android") })
                 if (windowsPcAvailable) {
                     AssistChip(onClick = { onTarget(InspectTarget.WINDOWS) }, label = { Text("Windows app") })
                 }
@@ -188,7 +191,7 @@ private fun TargetBar(
                         if (ui.devices.isEmpty()) DropdownMenuItem(text = { Text("No devices") }, onClick = { devicesOpen = false })
                         for (device in ui.devices) {
                             DropdownMenuItem(
-                                text = { Text("${device.model ?: "device"} Â· ${serialTail(device.serial)} (${device.state})") },
+                                text = { Text("${device.model ?: "device"} (${serialTail(device.serial)}) (${device.state})") },
                                 onClick = {
                                     devicesOpen = false
                                     callbacks.onSelectDevice(device.serial)
@@ -225,7 +228,7 @@ private fun deviceLabel(ui: AndroidInspectUi): String {
     val selected = ui.devices.firstOrNull { it.serial == ui.selectedSerial } ?: ui.devices.firstOrNull()
     return when {
         ui.devices.isEmpty() -> "No devices"
-        selected != null -> "${selected.model ?: "device"} Â· ${serialTail(selected.serial)}"
+        selected != null -> "${selected.model ?: "device"} (${serialTail(selected.serial)})"
         else -> "${ui.devices.size} devices"
     }
 }
@@ -240,11 +243,11 @@ private fun Workspace(
 ) {
     val treeWidth = remember { mutableStateOf(treePaneWidth?.dp ?: DEFAULT_TREE_PANE) }
     val detailsWidth = remember { mutableStateOf(detailsPaneWidth?.dp ?: DEFAULT_DETAILS_PANE) }
-    androidx.compose.runtime.LaunchedEffect(treePaneWidth) { treePaneWidth?.let { treeWidth.value = it.dp } }
-    androidx.compose.runtime.LaunchedEffect(detailsPaneWidth) { detailsPaneWidth?.let { detailsWidth.value = it.dp } }
+    LaunchedEffect(treePaneWidth) { treePaneWidth?.let { treeWidth.value = it.dp } }
+    LaunchedEffect(detailsPaneWidth) { detailsPaneWidth?.let { detailsWidth.value = it.dp } }
     val selectedNode = ui.selected?.let { path -> ui.index?.byPath?.get(path) }
     Row(Modifier.fillMaxSize()) {
-        TreePane(
+        com.titanicbhai.uiscope.ui.inspect.TreePane(
             index = ui.index,
             expanded = ui.expanded,
             selected = ui.selected,
@@ -277,14 +280,14 @@ private fun Workspace(
 @Composable
 private fun EmptyWorkspaceHint(ui: AndroidInspectUi) {
     val hint = when (val state = ui.state) {
-        is AndroidState.ChooseDevice -> "Several devices are connected â€” pick one in the device picker above."
+        is AndroidState.ChooseDevice -> "Several devices are connected - pick one in the device picker above."
         is AndroidState.Ready -> "Press Capture now to read the screen."
         is AndroidState.CaptureFailed -> "The last capture failed; the previous capture is still shown when there was one."
         is AndroidState.Disconnected -> "The device disconnected. The last capture is still shown; reconnect and press Capture now."
         else -> "Connect a device and capture to begin."
     }
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(hint, style = MaterialTheme.typography.bodyLarge, textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.padding(UiScopeTokens.spaceXl))
+        Text(hint, style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center, modifier = Modifier.padding(UiScopeTokens.spaceXl))
     }
 }
 
@@ -313,7 +316,7 @@ private fun Splitter(onDrag: (Dp) -> Unit, onDragEnd: () -> Unit) {
     )
 }
 
-/** Selector | Properties | Path (plan Â§4.5); the selector and code tab arrives with P4-6. */
+/** Selector | Properties | Path (plan 4.5); the selector and code tab arrives with P4-6. */
 @Composable
 private fun DetailsPane(node: ElementNode?, path: ElementPath?, width: Dp) {
     var tab by remember { mutableStateOf(0) }

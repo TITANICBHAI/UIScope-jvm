@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.Text
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
@@ -69,10 +70,10 @@ class TreePaneUiTest {
     @Test
     fun `expand all reports through the callback`() {
         val r = setContent(expanded = emptySet(), selected = null)
-        rule.onNodeWithText("Expand all").performClick()
+        rule.onNodeWithContentDescription("Expand all").performClick()
         rule.waitForIdle()
         assertEquals(1, r.expandedAll)
-        rule.onNodeWithText("Collapse all").performClick()
+        rule.onNodeWithContentDescription("Collapse all").performClick()
         rule.waitForIdle()
         assertEquals(1, r.collapsedAll)
     }

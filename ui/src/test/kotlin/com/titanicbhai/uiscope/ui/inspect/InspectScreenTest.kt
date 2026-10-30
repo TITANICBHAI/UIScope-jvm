@@ -126,9 +126,9 @@ class InspectScreenTest {
         val base = uiWithCapture()
         val ui = base.copy(devices = base.devices + AdbDevice("SERIAL2", DeviceState.DEVICE, "Emulator", "e", "2"))
         val r = setContent(ui)
-        rule.onNodeWithText("Pixel 7 · …IAL1", substring = true).performClick()
+        rule.onNodeWithText("Pixel 7", substring = true).performClick()
         rule.waitForIdle()
-        rule.onNodeWithText("Emulator · …IAL2", substring = true).performClick()
+        rule.onNodeWithText("Emulator", substring = true).performClick()
         rule.waitForIdle()
         assertEquals(listOf("SERIAL2"), r.selectedDevices)
     }

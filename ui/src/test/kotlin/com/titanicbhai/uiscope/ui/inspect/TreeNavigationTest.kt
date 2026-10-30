@@ -26,11 +26,12 @@ class TreeNavigationTest {
     @Test
     fun `visible rows only descend into expanded subtrees`() {
         val idx = index()
-        val rootPath = ElementPath.root(0)
-        val childPath = rootPath.child(2)
+        val root = ElementPath.root(0)
+        val child = root.child(2)
         assertEquals(1, visibleRows(idx, emptySet()).size, "collapsed: only the root")
-        assertEquals(4, visibleRows(idx, setOf(rootPath)).size, "root expanded: all four rows")
-        assertEquals(2, visibleRows(idx, setOf(childPath)).size, "expanding the collapsed child adds only its own row")
+        assertEquals(4, visibleRows(idx, setOf(root)).size, "root expanded: all four rows")
+        assertEquals(5, visibleRows(idx, setOf(root, child)).size, "the expanded child adds itself and its own child")
+        assertEquals(1, visibleRows(idx, setOf(child)).size, "expansion without the ancestors shows nothing new")
     }
 
     @Test
@@ -57,8 +58,8 @@ class TreeNavigationTest {
         val rows = visibleRows(idx, setOf(root))
         assertEquals(root, moveSelection(rows, null, 1), "from nothing, down selects the first row")
         assertEquals(root, moveSelection(rows, root, -1), "up from the first row stays")
-        assertEquals(root.child(2), moveSelection(rows, root, 1))
-        assertEquals(root, moveSelection(rows, root.child(2), -1))
+        assertEquals(root.child(0), moveSelection(rows, root, 1))
+        assertEquals(root.child(1), moveSelection(rows, root.child(2), -1))
         assertEquals(rows.last().path, moveSelection(rows, root, 50), "way past the end clamps to the last row")
         assertEquals(null, moveSelection(emptyList(), null, 1), "nothing visible, nothing selected")
     }
