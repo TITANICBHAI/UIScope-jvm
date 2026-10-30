@@ -48,6 +48,9 @@ class ToastState internal constructor() {
 private const val AUTO_DISMISS_MILLIS = 3_000L
 
 @Composable
+fun rememberToastState(): ToastState = ToastState()
+
+@Composable
 fun ToastHost(state: ToastState, modifier: Modifier = Modifier) {
     val toast = state.current ?: return
     LaunchedEffect(toast.id) {

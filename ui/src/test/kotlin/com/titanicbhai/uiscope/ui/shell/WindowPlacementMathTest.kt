@@ -50,10 +50,10 @@ class WindowPlacementMathTest {
     }
 
     @Test
-    fun `a window wider than the screen sits at the work area origin`() {
+    fun `a window wider than the screen has its x pinned to the work area origin`() {
         val (x, y) = WindowPlacementMath.clamp(100, 100, 2500, 800, workX = 0, workY = 0, workWidth = 1920, workHeight = 1080)
         assertEquals(0, x)
-        assertEquals(0, y)
+        assertEquals(100, y)
     }
 
     @Test

@@ -1,8 +1,9 @@
 package com.titanicbhai.uiscope.ui.shell
 
 /**
- * RED STUB (plan P4-2, regression M10): reproduces the old app's behaviour — a fixed 1280×800 window whatever the screen,
- * no minimum size, and a saved position that is never clamped. The tests fail against this on their assertions.
+ * Window placement (plan §4.1, M10): the default opens at min(1280×800 dp, 90 % of the work area) but never below the
+ * 960×600 minimum; saved sizes below the minimum are raised; a saved position is clamped to the work area so a
+ * 100 dp sliver of the title bar stays reachable (multi-monitor work areas arrive with Appendix K Round 2).
  */
 object WindowPlacementMath {
     const val MIN_WIDTH = 960
@@ -11,11 +12,23 @@ object WindowPlacementMath {
     const val DEFAULT_MAX_HEIGHT = 800
     const val WORK_AREA_FRACTION = 0.9
 
-    /** Default = max(minimum, min(1280×800 dp, 90 % of the work area)). */
-    fun defaultSize(workWidth: Int, workHeight: Int): Pair<Int, Int> = DEFAULT_MAX_WIDTH to DEFAULT_MAX_HEIGHT
+    private const val VISIBLE_SLIVER = 100
 
-    /** Keeps the window on the visible work area (a 100 dp sliver of the title bar stays reachable). */
-    fun clamp(x: Int, y: Int, width: Int, height: Int, workX: Int, workY: Int, workWidth: Int, workHeight: Int): Pair<Int, Int> = x to y
+    /** Default = max(minimum, min(1280×800 dp, 90 % of the work area)). */
+    fun defaultSize(workWidth: Int, workHeight: Int): Pair<Int, Int> {
+        val width = minOf(DEFAULT_MAX_WIDTH, (workWidth * WORK_AREA_FRACTION).toInt())
+        val height = minOf(DEFAULT_MAX_HEIGHT, (workHeight * WORK_AREA_FRACTION).toInt())
+        return maxOf(MIN_WIDTH, width) to maxOf(MIN_HEIGHT, height)
+    }
+
+    /** Keeps the window on the visible work area; a window at least as large as it sits at the work area origin. */
+    fun clamp(x: Int, y: Int, width: Int, height: Int, workX: Int, workY: Int, workWidth: Int, workHeight: Int): Pair<Int, Int> {
+        val minX = if (width >= workWidth) workX else workX - width + VISIBLE_SLIVER
+        val maxX = if (width >= workWidth) workX else workX + workWidth - VISIBLE_SLIVER
+        val minY = if (height >= workHeight) workY else workY - height + VISIBLE_SLIVER
+        val maxY = if (height >= workHeight) workY else workY + workHeight - VISIBLE_SLIVER
+        return x.coerceIn(minX, maxX) to y.coerceIn(minY, maxY)
+    }
 
     /** Builds the geometry to open with from the saved values (null = default), clamped to the work area. */
     fun restore(
@@ -26,7 +39,13 @@ object WindowPlacementMath {
         savedMaximized: Boolean,
         workWidth: Int,
         workHeight: Int,
-    ): WindowSpec = WindowSpec(savedWidth ?: DEFAULT_MAX_WIDTH, savedHeight ?: DEFAULT_MAX_HEIGHT, savedX, savedY, savedMaximized)
+    ): WindowSpec {
+        val (defaultWidth, defaultHeight) = defaultSize(workWidth, workHeight)
+        val width = (savedWidth ?: defaultWidth).coerceAtLeast(MIN_WIDTH)
+        val height = (savedHeight ?: defaultHeight).coerceAtLeast(MIN_HEIGHT)
+        val position = if (savedX != null && savedY != null) clamp(savedX, savedY, width, height, 0, 0, workWidth, workHeight) else null
+        return WindowSpec(width, height, position?.first, position?.second, savedMaximized)
+    }
 }
 
 /** The window geometry to open with. [x]/[y] null = let the platform place the window. */

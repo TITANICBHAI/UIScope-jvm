@@ -1,10 +1,26 @@
 package com.titanicbhai.uiscope
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
+import androidx.compose.ui.window.WindowPlacement
+import androidx.compose.ui.window.WindowPosition
+import androidx.compose.ui.window.WindowSize
 import androidx.compose.ui.window.application
+import androidx.compose.ui.window.rememberWindowState
 import com.titanicbhai.uiscope.adb.AdbLocator
 import com.titanicbhai.uiscope.adb.EngineAdbPort
 import com.titanicbhai.uiscope.adb.SettingsAdbPathStore
@@ -13,16 +29,29 @@ import com.titanicbhai.uiscope.error.Outcome
 import com.titanicbhai.uiscope.logging.LoggingSetup
 import com.titanicbhai.uiscope.process.JdkNetworkGateway
 import com.titanicbhai.uiscope.process.SystemProcessRunner
+import com.titanicbhai.uiscope.shell.AppShell
+import com.titanicbhai.uiscope.shell.NoSingleInstance
+import com.titanicbhai.uiscope.shell.ShellDialogState
+import com.titanicbhai.uiscope.shell.ShellScreen
+import com.titanicbhai.uiscope.shell.ShellStatus
+import com.titanicbhai.uiscope.shell.SingleInstanceHook
+import com.titanicbhai.uiscope.shell.ToastState
+import com.titanicbhai.uiscope.shell.WindowPlacementMath
+import com.titanicbhai.uiscope.shell.rememberShellDialogState
+import com.titanicbhai.uiscope.shell.rememberToastState
 import com.titanicbhai.uiscope.snapshot.RetainingSnapshotStore
 import com.titanicbhai.uiscope.snapshot.retentionPolicy
 import com.titanicbhai.uiscope.state.AndroidInspectState
+import com.titanicbhai.uiscope.state.AndroidState
 import com.titanicbhai.uiscope.storage.DataPaths
 import com.titanicbhai.uiscope.storage.FileSettingsStore
 import com.titanicbhai.uiscope.storage.LegacyData
 import com.titanicbhai.uiscope.storage.SnapshotBundles
 import com.titanicbhai.uiscope.storage.SnapshotDatabase
 import com.titanicbhai.uiscope.storage.SnapshotStoreImpl
+import com.titanicbhai.uiscope.ui.theme.UiScopeTheme
 import com.titanicbhai.uiscope.update.UpdateChecker
+import java.awt.Toolkit
 import java.nio.file.Path
 import java.util.logging.Level
 import java.util.logging.Logger
@@ -38,11 +67,37 @@ private fun logRetentionError(error: AppError) {
     shellLogger.log(Level.WARNING, "retention cleanup failed: code={0}, detail={1}", arrayOf(error.code, error.detail))
 }
 
+/** One line for the status bar's left slot (plan §4.1): what the Android side is doing right now. */
+private fun statusTarget(ui: com.titanicbhai.uiscope.state.AndroidInspectUi): String = when (val state = ui.state) {
+    AndroidState.Starting -> "looking for adb…"
+    AndroidState.AdbMissing -> "adb not found"
+    AndroidState.NoDevice -> "no device"
+    is AndroidState.ChooseDevice -> "${state.devices.size} devices"
+    is AndroidState.Unauthorized -> "device · not authorised"
+    is AndroidState.Offline -> "device · offline"
+    is AndroidState.NoPermissions -> "device · no permissions"
+    is AndroidState.Ready -> state.device.model ?: "device ready"
+    is AndroidState.Capturing -> "capturing…"
+    is AndroidState.Captured -> state.device.model ?: "captured"
+    is AndroidState.CaptureFailed -> "capture failed"
+    is AndroidState.Disconnected -> "disconnected"
+}
+
+/** Placeholder for screens that arrive with later Phase 4/5 tasks; the shell must never show a blank pane. */
+@androidx.compose.runtime.Composable
+private fun PlaceholderScreen(name: String, task: String) {
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text("$name is being rebuilt", style = MaterialTheme.typography.titleMedium)
+            Text("This screen arrives with task $task.", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 8.dp))
+        }
+    }
+}
+
 /**
- * Temporary shell (plan P0-2, extended in P2-5 with a developer harness and in the Round 6 wiring with snapshot storage,
- * bundles and the update check — HANDOFF §8.2). The real application shell replaces this in P4-2.
- * Wiring shown here (data folder, logging, settings, process runner, adb locator, state holder, snapshot store) is what
- * the real shell will do too.
+ * The application shell (plan P4-2, §4.1) hosting the developer harness until the real Inspect screen exists (P4-3).
+ * Wiring shown here (data folder, logging, settings, process runner, adb locator, state holder, snapshot store, window
+ * state) is what the real shell keeps.
  */
 fun main() {
     JdkNetworkGateway.enableSystemProxies() // before any network use
@@ -78,19 +133,81 @@ fun main() {
         snapshotsReady.value = impl
     }
 
+    // Window geometry (plan §4.1, M10): restore from settings, clamped to the screen; minimum 960×600.
+    val screen = Toolkit.getDefaultToolkit().screenSize
+    val saved = settings.settings.value
+    val spec = WindowPlacementMath.restore(saved.windowWidth, saved.windowHeight, saved.windowX, saved.windowY, saved.windowMaximized, screen.width, screen.height)
+    val singleInstance: SingleInstanceHook = NoSingleInstance // P7-1 replaces this with the lock-file guard
+
     application {
+        singleInstance.start(onSecondLaunch = { /* P7-1: focus the first window */ })
+        val savedX = spec.x
+        val savedY = spec.y
+        val windowState = rememberWindowState(
+            placement = if (spec.maximized) WindowPlacement.Maximized else WindowPlacement.Floating,
+            position = if (savedX != null && savedY != null) WindowPosition(savedX.dp, savedY.dp) else WindowPosition.PlatformDefault,
+            size = WindowSize(spec.width.dp, spec.height.dp),
+        )        // Persist size, position and maximized state; the settings store debounces the writes.
+        LaunchedEffect(windowState) {
+            snapshotFlow { Triple(windowState.placement, windowState.size, windowState.position) }.collect {
+                settings.update { current ->
+                    current.copy(
+                        windowWidth = windowState.size.width.value.toInt(),
+                        windowHeight = windowState.size.height.value.toInt(),
+                        windowX = (windowState.position as? WindowPosition)?.x?.value?.toInt() ?: current.windowX,
+                        windowY = (windowState.position as? WindowPosition)?.y?.value?.toInt() ?: current.windowY,
+                        windowMaximized = windowState.placement == WindowPlacement.Maximized,
+                    )
+                }
+            }
+        }
         Window(
             onCloseRequest = {
                 android.stop()
                 settings.flush()
-                snapshotsReady.value?.close() // checkpoints the SQLite WAL
+                snapshotsReady.value?.close()
                 logging?.close()
                 exitApplication()
             },
-            title = "${appInfo.name}: developer harness",
+            state = windowState,
+            minWidth = WindowPlacementMath.MIN_WIDTH.dp,
+            minHeight = WindowPlacementMath.MIN_HEIGHT.dp,
+            title = "${appInfo.name} ${appInfo.version} — developer harness",
         ) {
             val settingsState by settings.settings.collectAsState()
-            DevHarness(android, appInfo, paths, snapshotsReady, updater, mode = settingsState.theme)
+            val inspect by android.ui.collectAsState()
+            var screen by remember { mutableStateOf(ShellScreen.INSPECT) }
+            val toasts = rememberToastState()
+            val dialogs = rememberShellDialogState()
+            val status = ShellStatus(
+                target = statusTarget(inspect),
+                captureInfo = inspect.capture?.let { "${inspect.index?.size ?: 0} elements" },
+                warning = inspect.problem,
+                live = inspect.live.enabled,
+            )
+            UiScopeTheme(mode = settingsState.theme) {
+                AppShell(
+                    screen = screen,
+                    onScreen = { screen = it },
+                    status = status,
+                    onExit = {
+                        android.stop()
+                        settings.flush()
+                        snapshotsReady.value?.close()
+                        logging?.close()
+                        exitApplication()
+                    },
+                    toasts = toasts,
+                    dialogs = dialogs,
+                ) {
+                    when (screen) {
+                        ShellScreen.INSPECT -> DevHarness(android, appInfo, paths, snapshotsReady, updater)
+                        ShellScreen.SNAPSHOTS -> PlaceholderScreen("Snapshots", "P5-1")
+                        ShellScreen.SETTINGS -> PlaceholderScreen("Settings", "P4-8")
+                        ShellScreen.HELP -> PlaceholderScreen("Help", "P4-7")
+                    }
+                }
+            }
         }
     }
 }
