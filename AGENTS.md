@@ -14,6 +14,17 @@
 - **Scope = everything verifiable WITHOUT a real device**: unit tests, detekt/static analysis, Gradle build/compilation checks, and any other check `plan.md` requires that runs on a plain CI machine. Anything needing hardware or accounts (a phone/ADB device, 125–150 % display scaling, a second monitor, Store credentials) is NOT verifiable in this loop — implement against fakes and add the manual steps to `docs/MANUAL_QA.md`, per `AGENT_PROMPT.md`.
 - **Watch loop (verified working):** poll `https://api.github.com/repos/TITANICBHAI/UIScope-jvm/actions/runs?branch=main`, then `actions/runs/{id}/jobs` for per-leg conclusions; runs finish in ~2–5 min (queue + ~1–2 min runtime). Job logs and report artifacts need a Bearer token: get the stored credential silently via `"protocol=https`nhost=github.com`n`n" | & 'C:\Program Files\Git\cmd\git.exe' credential fill` and use its `password=` line. Keep the token in memory only; never print or store it.
 
+## Multi-agent protocol — MANDATORY before every push (other agents may work on this same PC/repo)
+
+**Check where you are heading before you push, every time:**
+
+1. `git fetch origin` — if `origin/main` has moved beyond local `main` (`git rev-list --left-right --count main...origin/main`), assume another agent did it: `git pull --rebase origin main` FIRST, then re-check whether your task is still needed (their commit may already be your fix) and whether your edit still applies cleanly.
+2. `git status -sb` — the working tree must contain ONLY your own changes. Anything staged/modified that you did not edit is another agent's work: do NOT commit it, do NOT discard it — leave it and commit only your own files by explicit path (`git add <your files>`, never `git add .` / `-A`).
+3. Before assuming a CI result is yours, match the run's `head_sha` to YOUR commit — another agent's push may have started a run minutes before/after yours.
+4. If `git push` is rejected (non-fast-forward), do NOT force-push. Fetch, rebase, re-check the task is still needed, and push again.
+5. To avoid colliding on the same task: check the newest `git log origin/main` and `docs/PROGRESS.md` before starting a task — if another agent is visibly mid-task on it, take a different task.
+6. This local folder may be shared with another agent's clone/process; between your own steps, re-verify `git status` is still exactly what you left it before committing.
+
 ## Environment notes (Windows PC, verified 2026-10-30)
 
 - Shell is Windows cmd (no `ls`, `grep`, `head` — use `dir`, `findstr`, or PowerShell). PowerShell is available for JSON parsing.
