@@ -133,13 +133,15 @@ fun TreePane(
     onCollapseSubtree: (ElementPath) -> Unit,
     duplicateIds: (ElementNode) -> Boolean,
     modifier: Modifier = Modifier,
+    searchFocusRequester: FocusRequester? = null,
 ) {
     var query by remember { mutableStateOf("") }
     var matchCursor by remember { mutableStateOf(0) }
     val rows = remember(index, expanded) { index?.let { visibleRows(it, expanded) } ?: emptyList() }
     val matches = remember(index, query) { index?.let { searchTree(it, query) } ?: emptyList() }
     val listState = rememberLazyListState()
-    val focusRequester = remember { FocusRequester() }
+    val paneFocus = remember { FocusRequester() }
+    val focusRequester = searchFocusRequester ?: paneFocus
 
     // Keep the selected row on screen after a capture restored the selection (§4.5).
     LaunchedEffect(selected, index) {
@@ -178,6 +180,9 @@ fun TreePane(
         Column(Modifier.fillMaxSize().focusRequester(focusRequester).focusable().onPreviewKeyEvent { event ->
             if (event.type != KeyEventType.KeyUp) return@onPreviewKeyEvent false
             when {
+                event.key == Key.DirectionUp && event.keyboardModifiers.isAltPressed -> {
+                    index?.parentOf(selected)?.let { onSelect(it.path) }; true
+                }
                 event.key == Key.DirectionDown -> {
                     select(1); true
                 }
@@ -204,7 +209,28 @@ fun TreePane(
                     placeholder = { Text("Search", style = MaterialTheme.typography.bodySmall) },
                     singleLine = true,
                     textStyle = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.weight(1f).height(52.dp),
+                    modifier = Modifier.weight(1f).height(52.dp).focusRequester(focusRequester).onPreviewKeyEvent { event ->
+                        // Enter / Shift+Enter walk the matches; Esc clears (plan 4.5).
+                        if (event.type != KeyEventType.KeyUp || matches.isEmpty()) return@onPreviewKeyEvent false
+                        when {
+                            event.key == Key.Enter && !event.keyboardModifiers.isShiftPressed -> {
+                                matchCursor = (matchCursor + 1) % matches.size
+                                onSelect(matches[matchCursor.coerceIn(matches.indices)])
+                                true
+                            }
+                            event.key == Key.Enter && event.keyboardModifiers.isShiftPressed -> {
+                                matchCursor = (matchCursor - 1 + matches.size) % matches.size
+                                onSelect(matches[matchCursor.coerceIn(matches.indices)])
+                                true
+                            }
+                            event.key == Key.Escape -> {
+                                query = ""
+                                matchCursor = 0
+                                true
+                            }
+                            else -> false
+                        }
+                    },
                     leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null, modifier = Modifier.size(18.dp)) },
                 )
                 if (matches.isNotEmpty()) {

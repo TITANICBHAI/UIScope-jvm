@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.focusable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.AssistChip
@@ -40,8 +41,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextAlign
@@ -53,6 +60,7 @@ import com.titanicbhai.uiscope.error.CodedError
 import com.titanicbhai.uiscope.error.ErrorCodes
 import com.titanicbhai.uiscope.model.ElementNode
 import com.titanicbhai.uiscope.model.ElementPath
+import com.titanicbhai.uiscope.selector.SelectorEngine
 import com.titanicbhai.uiscope.settings.InspectTarget
 import com.titanicbhai.uiscope.state.AndroidInspectUi
 import com.titanicbhai.uiscope.state.AndroidState
@@ -107,7 +115,44 @@ fun InspectScreen(
     modifier: Modifier = Modifier,
 ) {
     var selectedTarget by remember { mutableStateOf(target) }
-    Column(modifier.fillMaxSize()) {
+    val searchFocus = remember { FocusRequester() }
+    val clipboard = LocalClipboardManager.current
+    Column(
+        modifier
+            .fillMaxSize()
+            .testTag("uiscope.inspect")
+            .focusable()
+            .onPreviewKeyEvent { event ->
+                // The app-level shortcuts of 4.11 (no single-letter shortcuts). Enter-in-search and Alt+Up live in the tree pane.
+                if (event.type != KeyEventType.KeyUp) return@onPreviewKeyEvent false
+                when {
+                    event.key == Key.F5 -> {
+                        callbacks.onCapture(); true
+                    }
+                    event.key == Key.R && event.keyboardModifiers.isCtrlPressed -> {
+                        callbacks.onCapture(); true
+                    }
+                    event.key == Key.L && event.keyboardModifiers.isCtrlPressed -> {
+                        callbacks.onSetLive(!ui.live.enabled); true
+                    }
+                    event.key == Key.F && event.keyboardModifiers.isCtrlPressed -> {
+                        searchFocus.requestFocus(); true
+                    }
+                    event.key == Key.C && event.keyboardModifiers.isCtrlPressed && event.keyboardModifiers.isShiftPressed -> {
+                        val index = ui.index
+                        val node = ui.selected?.let { index?.byPath?.get(it) }
+                        if (index != null && node != null) {
+                            clipboard.setText(AnnotatedString(SelectorEngine.suggest(index, node).best.expression))
+                        }
+                        true
+                    }
+                    event.key == Key.Escape && ui.state is AndroidState.Capturing -> {
+                        callbacks.onCancelCapture(); true
+                    }
+                    else -> false
+                }
+            },
+    ) {
         TargetBar(
             target = selectedTarget,
             windowsPcAvailable = windowsPcAvailable,
@@ -130,7 +175,7 @@ fun InspectScreen(
                 is AndroidState.Offline -> AppErrorView(CodedError(ErrorCodes.DEVICE_OFFLINE), ErrorVariant.FULL_SCREEN, onAction = { callbacks.onStart() })
                 is AndroidState.NoPermissions -> AppErrorView(CodedError(ErrorCodes.NO_PERMISSIONS), ErrorVariant.FULL_SCREEN)
                 is AndroidState.Starting -> StartingPane()
-                else -> Workspace(ui, callbacks, treePaneWidth, detailsPaneWidth)
+                else -> Workspace(ui, callbacks, treePaneWidth, detailsPaneWidth, searchFocus)
             }
         }
     }
@@ -243,6 +288,7 @@ private fun Workspace(
     callbacks: InspectCallbacks,
     treePaneWidth: Int?,
     detailsPaneWidth: Int?,
+    searchFocus: FocusRequester,
 ) {
     val treeWidth = remember { mutableStateOf(treePaneWidth?.dp ?: DEFAULT_TREE_PANE) }
     val detailsWidth = remember { mutableStateOf(detailsPaneWidth?.dp ?: DEFAULT_DETAILS_PANE) }
@@ -263,6 +309,7 @@ private fun Workspace(
             onExpandSubtree = callbacks.onExpandSubtree,
             onCollapseSubtree = callbacks.onCollapseSubtree,
             duplicateIds = { node -> ui.index?.hasDuplicateIdentifier(node) == true },
+            searchFocusRequester = searchFocus,
             modifier = Modifier.width(treeWidth.value).fillMaxHeight(),
         )
         Splitter(onDrag = { delta -> treeWidth.value = (treeWidth.value + delta).coerceIn(160.dp, 900.dp) }, onDragEnd = { callbacks.onSetTreePaneWidth(treeWidth.value.value.toInt()) })
