@@ -5,11 +5,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.ClipboardManager
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.ScrollDirection
 import com.titanicbhai.uiscope.AppInfo
 import com.titanicbhai.uiscope.settings.InMemorySettingsStore
 import com.titanicbhai.uiscope.settings.Settings
@@ -25,7 +27,13 @@ class SettingsScreenTest {
 
     // The Advanced section sits below the fold on a default window; a tall test window keeps every control clickable.
     @get:Rule
-    val rule = createComposeRule(width = 1280.dp, height = 2400.dp)
+    val rule = createComposeRule()
+
+    /** The Advanced section sits below the fold; scroll the screen's column until the control is in view, then click. */
+    private fun scrollTo(text: String) {
+        rule.onNode(hasScrollAction(ScrollDirection.Forward)).performScrollToNode(hasText(text))
+        rule.waitForIdle()
+    }
 
     private class FakeClipboard : ClipboardManager {
         var last: String? = null
@@ -97,6 +105,7 @@ class SettingsScreenTest {
     fun `copy diagnostics puts the version on the clipboard`() {
         val clipboard = FakeClipboard()
         setContent(InMemorySettingsStore(), info = appInfo(false), clipboard = clipboard)
+        scrollTo("Copy diagnostics")
         rule.onNodeWithText("Copy diagnostics").performClick()
         rule.waitForIdle()
         val copied = clipboard.last
@@ -108,6 +117,7 @@ class SettingsScreenTest {
         val store = InMemorySettingsStore()
         store.update { it.copy(theme = ThemeMode.DARK, liveIntervalSeconds = 9, autoSaveSnapshots = true) }
         setContent(store)
+        scrollTo("Reset all settings")
         rule.onNodeWithText("Reset all settings").performClick()
         rule.waitForIdle()
         rule.onNodeWithText("Reset").performClick()
@@ -120,6 +130,7 @@ class SettingsScreenTest {
         val store = InMemorySettingsStore()
         store.update { it.copy(theme = ThemeMode.DARK) }
         setContent(store)
+        scrollTo("Reset all settings")
         rule.onNodeWithText("Reset all settings").performClick()
         rule.waitForIdle()
         rule.onNodeWithText("Cancel").performClick()
