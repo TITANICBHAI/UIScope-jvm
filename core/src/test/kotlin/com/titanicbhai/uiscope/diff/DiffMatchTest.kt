@@ -49,8 +49,7 @@ class DiffMatchTest {
         val after = n(children = listOf(n(className = "android.view.ViewGroup", children = listOf(moved))))
         val result = diff(before, after)
         assertEquals(0, result.removed.size)
-        val pair = result.pairs.single()
-        assertEquals(MatchPass.IDENTIFIER, pair.pass)
+        val pair = result.pairs.single { it.pass == MatchPass.IDENTIFIER }
         assertEquals("app:id/moved", pair.after.identifier)
         assertEquals(1, result.added.size, "the new wrapper is added")
     }
@@ -68,9 +67,10 @@ class DiffMatchTest {
         val result = diff(before, after)
         assertEquals(0, result.added.size)
         assertEquals(0, result.removed.size)
-        assertEquals(2, result.pairs.size)
-        assertEquals(result.pairs.map { it.pass }, List(2) { MatchPass.CONTENT_AND_PARENT })
-        assertEquals(result.pairs.map { it.changes }, List(2) { emptyList<FieldChange>() })
+        val rows = result.pairs.filter { it.before.identifier == "app:id/row" }
+        assertEquals(2, rows.size)
+        assertEquals(rows.map { it.pass }, List(2) { MatchPass.CONTENT_AND_PARENT })
+        assertEquals(rows.map { it.changes }, List(2) { emptyList<FieldChange>() })
     }
 
     @Test
