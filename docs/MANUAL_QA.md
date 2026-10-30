@@ -16,7 +16,7 @@ Rounds are seeded from Appendix K of the plan. Every acceptance box tagged `need
 | P0-7 | Round 0 fixture capture done on your phone | **pending — your turn** |
 | P2-4 | `scripts/update-platform-tools.sh <revision>` (or `.ps1`) pins the platform-tools download; tell me if the archive URL pattern is wrong | **pending — needs internet access** |
 | P2-1…P2-6 | The Android engine works against a real phone (device list, dump, screenshot, wireless pairing) | **not yet verified** — only fakes and fixtures were available; Round 1 covers it once the UI exists |
-| P2-5 | Early check 1a (Android capture from the developer window) | **pending — needs a display for `./gradlew :app:run`** |
+| P2-5 | Early check 1a (Android capture from the Inspect screen) | **pending — needs a display for `./gradlew :app:run`**; the real Inspect screen (P4-3) has replaced the temporary developer window: same *Capture now* button, the adb line, the device list and the element count in the status bar |
 | P1-5 | One generated snippet per framework you use actually runs (Maestro especially: `id:` with the full `pkg:id/name`) | **not yet verified** — nothing could be run against the real frameworks where this was written |
 
 ## Round 0 — Fixture capture (at the very start, about 10 minutes)
