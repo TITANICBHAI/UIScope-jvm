@@ -109,7 +109,8 @@ class SettingsScreenTest {
         rule.onNodeWithText("Copy diagnostics").performClick()
         rule.waitForIdle()
         val copied = clipboard.last
-        assertTrue(copied != null && copied.contains("1.0.0") && copied.contains("Data folder:"), "diagnostics carry version and paths: $copied")
+        // The shell passes the real diagnostics builder; the test's stub returns a version-carrying string.
+        assertEquals("DIAGNOSTICS-1.0.0", copied, "copy diagnostics puts the builder's output on the clipboard")
     }
 
     @Test
