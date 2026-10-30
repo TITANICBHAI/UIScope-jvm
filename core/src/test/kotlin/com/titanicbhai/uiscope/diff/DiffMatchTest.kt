@@ -2,6 +2,7 @@ package com.titanicbhai.uiscope.diff
 
 import com.titanicbhai.uiscope.model.Bounds
 import com.titanicbhai.uiscope.model.ElementFlags
+import com.titanicbhai.uiscope.testing.N
 import com.titanicbhai.uiscope.testing.TestTrees
 import com.titanicbhai.uiscope.testing.TestTrees.capture
 import com.titanicbhai.uiscope.testing.TestTrees.n
@@ -13,7 +14,7 @@ import kotlin.time.measureTime
 /** G12 (plan Appendix E/G, regression B5): the old Diff saw **0 nodes** in a normal tree; the rebuilt engine must match them. */
 class DiffMatchTest {
 
-    private fun diff(before: TestTrees.N, after: TestTrees.N) = DiffMatch.diff(capture(before, id = "a"), capture(after, id = "b"))
+    private fun diff(before: N, after: N) = DiffMatch.diff(capture(listOf(before), id = "a"), capture(listOf(after), id = "b"))
 
     @Test
     fun `a normal tree with and without identifiers is fully matched, not seen as zero nodes`() {
@@ -148,11 +149,11 @@ class DiffMatchTest {
     @Test
     fun `3k vs 3k nodes diff in under 500 ms`() {
         val after = shift(TestTrees.balanced(3000), 5, 5)
-        val elapsed = measureTime { DiffMatch.diff(capture(TestTrees.balanced(3000), id = "a"), capture(after, id = "b")) }
+        val elapsed = measureTime { DiffMatch.diff(capture(listOf(TestTrees.balanced(3000)), id = "a"), capture(listOf(after), id = "b")) }
         assertTrue(elapsed.inWholeMilliseconds < 500, "diff took $elapsed")
     }
 
-    private fun shift(node: TestTrees.N, dx: Int, dy: Int): TestTrees.N = TestTrees.N(
+    private fun shift(node: N, dx: Int, dy: Int): N = N(
         node.className, node.identifier, node.text, node.description, node.name,
         node.bounds.translate(dx, dy), node.flags, node.properties, node.children.map { shift(it, dx, dy) },
     )
