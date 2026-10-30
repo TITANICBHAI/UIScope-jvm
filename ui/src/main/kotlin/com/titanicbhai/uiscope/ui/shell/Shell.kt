@@ -141,7 +141,9 @@ fun AppShell(
                 ToastHost(toasts, Modifier.align(Alignment.BottomCenter).padding(UiScopeTokens.spaceM))
             }
         }
-        StatusBar(status, onWarningClick = { warning -> status.warning?.let { w -> dialogs.show(ShellDialog(w.code, w.detail ?: "", "Close", onConfirm = {})) } })
+        StatusBar(status, onWarningClick = {
+            status.warning?.let { w -> dialogs.show(ShellDialog(w.code, w.detail ?: "", "Close", onConfirm = {})) }
+        })
         dialogs.current?.let { dialog -> ShellDialogHost(dialog, dialogs::dismiss) }
     }
 }
