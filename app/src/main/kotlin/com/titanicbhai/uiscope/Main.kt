@@ -1,5 +1,7 @@
 package com.titanicbhai.uiscope
 
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
@@ -87,7 +89,8 @@ fun main() {
             },
             title = "${appInfo.name}: developer harness",
         ) {
-            DevHarness(android, appInfo, paths, snapshotsReady, updater)
+            val settingsState by settings.settings.collectAsState()
+            DevHarness(android, appInfo, paths, snapshotsReady, updater, mode = settingsState.theme)
         }
     }
 }

@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
@@ -20,11 +19,13 @@ import androidx.compose.ui.unit.dp
 import com.titanicbhai.uiscope.error.Outcome
 import com.titanicbhai.uiscope.logging.LogSafe
 import com.titanicbhai.uiscope.model.Capture
+import com.titanicbhai.uiscope.settings.ThemeMode
 import com.titanicbhai.uiscope.snapshot.SnapshotMeta
 import com.titanicbhai.uiscope.state.AndroidInspectState
 import com.titanicbhai.uiscope.state.AndroidState
 import com.titanicbhai.uiscope.storage.DataPaths
 import com.titanicbhai.uiscope.storage.SnapshotStoreImpl
+import com.titanicbhai.uiscope.ui.theme.UiScopeTheme
 import com.titanicbhai.uiscope.update.UpdateCheck
 import com.titanicbhai.uiscope.update.UpdateChecker
 import java.io.IOException
@@ -43,14 +44,14 @@ import kotlinx.coroutines.withContext
  * Nothing here is user-facing design.
  */
 @Composable
-fun DevHarness(state: AndroidInspectState, info: AppInfo, paths: DataPaths, snapshots: MutableState<SnapshotStoreImpl?>, updater: UpdateChecker) {
+fun DevHarness(state: AndroidInspectState, info: AppInfo, paths: DataPaths, snapshots: MutableState<SnapshotStoreImpl?>, updater: UpdateChecker, mode: ThemeMode) {
     val ui by state.ui.collectAsState()
     var saved by remember { mutableStateOf<String?>(null) }
     var updateStatus by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
     val capture = ui.capture
     val store = snapshots.value
-    MaterialTheme {
+    UiScopeTheme(mode) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("${info.name} ${info.version}: developer harness (temporary, Android capture check)")
             Text("adb: " + (ui.adb?.let { "${it.path}  (version ${it.version}, found via ${it.source})" } ?: "not found"))
