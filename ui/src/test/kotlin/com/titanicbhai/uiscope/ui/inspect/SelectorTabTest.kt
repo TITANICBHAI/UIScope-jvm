@@ -62,8 +62,10 @@ class SelectorTabTest {
     @Test
     fun `the verdict card shows the tier and the summary for a unique id`() {
         setContent()
-        rule.onNodeWithText("Reliable").assertIsDisplayed()
-        rule.onNodeWithText("matches 1", substring = true).assertIsDisplayed()
+        // "Reliable" appears twice: the verdict chip and the candidate row's tier label.
+        assertTrue(rule.onAllNodesWithText("Reliable").fetchSemanticsNodes().isNotEmpty())
+        assertTrue(rule.onAllNodesWithText("matches 1", substring = true).fetchSemanticsNodes().isNotEmpty())
+        assertTrue(rule.onAllNodesWithText("login_button", substring = true).fetchSemanticsNodes().isNotEmpty())
     }
 
     @Test
