@@ -1,5 +1,6 @@
 package com.titanicbhai.uiscope.ui.settings
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.Text
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.ClipboardManager
