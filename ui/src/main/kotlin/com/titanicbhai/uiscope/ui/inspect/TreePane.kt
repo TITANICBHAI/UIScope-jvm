@@ -105,7 +105,7 @@ fun moveSelection(rows: List<TreeRow>, current: ElementPath?, delta: Int): Eleme
 }
 
 private fun kindIcon(className: String): ImageVector = when {
-    className.contains("Button", ignoreCase = true) -> Icons.Filled.Button
+    className.contains("Button", ignoreCase = true) -> Icons.Filled.TouchApp
     className.contains("Text", ignoreCase = true) || className.contains("Edit", ignoreCase = true) -> Icons.Filled.TextFields
     className.contains("Image", ignoreCase = true) -> Icons.Filled.Image
     else -> Icons.Filled.CropSquare
@@ -257,20 +257,24 @@ private fun TreeRow(
     onClick: () -> Unit,
 ) {
     val clipboard = LocalClipboardManager.current
-    ContextMenuArea(
-        items = {
-            listOf(
-                ContextMenuItem("Copy path") { clipboard.setText(AnnotatedString(node.path.toString())) },
-                ContextMenuItem("Copy bounds") { clipboard.setText(AnnotatedString("${node.bounds.x},${node.bounds.y} ${node.bounds.width}x${node.bounds.height}")) },
-                ContextMenuItem("Expand subtree") { onToggle() },
-            )
-        },
-    ) {
+    var menuOpen by remember { mutableStateOf(false) }
+    Box {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(if (selected) MaterialTheme.colorScheme.secondaryContainer else highlighted)
                 .clickable(onClick = onClick)
+                .pointerInput(Unit) {
+                    awaitPointerEventScope {
+                        while (true) {
+                            val event = awaitPointerEvent()
+                            if (event.type == PointerEventType.Press && event.buttons.isSecondaryPressed) {
+                                menuOpen = true
+                                event.changes.first().consume()
+                            }
+                        }
+                    }
+                }
                 .padding(start = (row.depth * 16).dp, end = UiScopeTokens.spaceS, top = 2.dp, bottom = 2.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -297,6 +301,20 @@ private fun TreeRow(
             Badge(node.flags.offscreen, "offscreen")
             Badge(duplicateId, "duplicate id")
             Badge(node.flags.password, "password")
+        }
+        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+            DropdownMenuItem(text = { Text("Copy path") }, onClick = {
+                clipboard.setText(AnnotatedString(node.path.toString()))
+                menuOpen = false
+            })
+            DropdownMenuItem(text = { Text("Copy bounds") }, onClick = {
+                clipboard.setText(AnnotatedString("${node.bounds.x},${node.bounds.y} ${node.bounds.width}x${node.bounds.height}"))
+                menuOpen = false
+            })
+            DropdownMenuItem(text = { Text("Expand subtree") }, onClick = {
+                onToggle()
+                menuOpen = false
+            })
         }
     }
 }
