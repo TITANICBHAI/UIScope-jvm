@@ -25,7 +25,14 @@ jobs:
 
       - name: ./gradlew check
         shell: bash
-        run: ./gradlew check --stacktrace
+        # Compose UI tests need a display: Linux runners get xvfb, Windows runners have a desktop session.
+        run: |
+          if [ "$RUNNER_OS" == "Linux" ]; then
+            sudo apt-get update && sudo apt-get install -y xvfb
+            xvfb-run -a ./gradlew check --stacktrace
+          else
+            ./gradlew check --stacktrace
+          fi
 
       # Test and detekt reports are published for every run, green or red (P0-6).
       - name: Upload test and detekt reports
