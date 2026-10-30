@@ -14,6 +14,23 @@ Evidence tags used throughout:
 
 ---
 
+## Implementation status (updated after Round 5; the plan below is unchanged except where a line says "Status")
+
+| Phase | Done (code + tests, verified with kotlinc/JUnit, **not** with Gradle) | Still to do |
+|---|---|---|
+| 0 | P0-1 … P0-7 | — |
+| 1 | P1-1 … P1-7 (P1-2 `CaptureJson`; P1-7 snapshot DB + store, via plain JDBC instead of SQLDelight) | — |
+| 2 | P2-1 … P2-6 (P2-5 UI half is P4) | Real-device confirmation (`docs/MANUAL_QA.md`, early check 1a) |
+| 3 | P3-9 guardrails | P3-0 spike (needs a Windows PC), P3-1 helper project, P3-2 … P3-8 (Kotlin sides can use fakes) |
+| 4 | — | Whole phase (needs Compose to compile and a display to judge) |
+| 5 | P5-1 core+engine (bundle codec, export/import service), P5-3 retention logic | P5-1 screen, P5-2 export dialog, P5-3 storage meter |
+| 6 | — | P6-1 (pure, can start any time), P6-2 |
+| 7 | P7-5 logic (`SemVer`, `UpdateChecker`) | P7-1 … P7-4, P7-5 UI link, P7-6 |
+| 8–9 | — | All |
+
+Status of decisions changed by implementation (PROGRESS.md, Round 5): SQLDelight -> plain JDBC (`SnapshotStore` is the seam); no
+kotlinx.serialization (one in-repo JSON stack); pinned snapshots are fully exempt from retention limits. Test totals: core 180 + engine 171.
+
 ## Contents
 
 0. How to work with this plan (rules for the agent)

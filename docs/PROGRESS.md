@@ -102,11 +102,84 @@ Not done: **P2-5** (the Android state holder; it needs the settings types of P1-
 7. Extraction limits: 5000 entries, 500 MB. Download timeout: 10 minutes.
 8. New error codes beyond Appendix A: `ADB_DOWNLOAD_UNAVAILABLE`, `ADB_DOWNLOAD_CHECKSUM`, `ADB_DOWNLOAD_INVALID_ARCHIVE`.
 
+## Round 4 — P1-6 settings and P2-5 Android state holder
+
+| Task | Status | What changed | How verified |
+|---|---|---|---|
+| P1-6 Settings v2 | code-complete (UI half of G10 is P4-8) | One typed `Settings` with every default defined once and `sanitized()` clamping; `SettingsStore` (a `StateFlow`, every update visible to the next read at once, no lost concurrent updates); `FileSettingsStore` (`<data>/settings.json`, debounced, atomic temp-file + move, `flush()` for exit, a damaged file is kept as `settings.json.corrupt` and defaults are used); forgiving `SettingsJson` (unknown/legacy keys ignored, wrong types and unknown enum names fall back per setting); `SettingsAdbPathStore` so the chosen adb lives in settings | G10 core half: every field round-trips; "System" follows the OS (it behaved as Dark: B12); a theme change is readable immediately and before anything is written; 8 threads × 500 updates lose nothing; 20 quick updates are written once with the last value; restart sees every value; damaged and wrong-type files; hostile text in free-text settings; **Red:** re-injecting "System = dark" fails its test |
+| P2-5 AndroidInspectState | code-complete | The §4.3 state machine in `core`: adb missing/found, device tracking with auto-select and remembered last serial, one automatic capture when a device first becomes Ready, unauthorized/offline/no-permissions states, single-flight capture with a cue, cancel, Live (interval read from settings at every wait, paused while hidden, stops after three failures in a row and resumes on request, never saves anything), Disconnected/Reconnected, selection and expansion restored by element identity after each capture with a "selection lost" cue; `AdbPort` (the only door to the outside), `EngineAdbPort` (real engine behind it) | 19 tests with a fake port; one thread named `ui-main` plays the main thread and **no port call ever ran on it** (all ran on the I/O dispatcher); three consecutive green runs after fixing a flaky test; **Red:** re-injecting the lost single-flight rule and selection-by-path-only fail their tests |
+| P2-5 dev harness | code written, **Compose not compiled** | The temporary shell now wires the real engine (data folder, logging, settings, runner, adb locator, state holder) and shows a developer window: adb found, devices, state, *Capture now*, element count, warnings, screenshot size, *Save screenshot* (to `<data>/dev-captures`) | Everything except the Compose calls was compiled against small stand-in declarations of the Compose functions used; `describe()` covers every state. The real Compose build can still reveal a signature mismatch |
+
+### Decisions and caveats in Round 4
+
+1. **Which settings exist, and their defaults, are my reading of the plan** (it never lists them in one place): theme, update check, default export
+   format, last folder, last inspect target, adb path, last serial, last wireless host, Live interval (default 2 s, 1–10), pick hotkey (on, `Ctrl+Alt+P`),
+   hide window while picking, auto-save snapshots (off), retention (200 snapshots / 1 GB), renderer, log level, window size/position/maximized.
+   **`checkForUpdates` defaults to on; if you want it opt-in, flip one default in `Settings.kt`.**
+2. **The settings file uses a small JSON reader/writer of its own** (`Json.kt`, strict, no dependencies) rather than kotlinx.serialization, because
+   kotlinx.serialization could not be compiled where this was written and settings are a flat record. The capture format of P1-2 is still expected
+   to use kotlinx.serialization; `SettingsJson` can move to it if you prefer one JSON stack.
+3. **States added to the plan's list:** `Starting` (before adb is located) and `ChooseDevice` (several usable devices and none remembered).
+4. After a device comes back, the last capture is shown and "Reconnected" is announced; **Live stays paused until Resume** (the plan says to pause on
+   disconnect and to show Reconnected, not to resume).
+5. Turning Live on captures immediately and then waits the interval; the automatic first capture only happens when there is no capture yet for that device.
+6. The generation guard in `startCapture` (ignore an answer that arrives after a cancel) is defence in depth: coroutine cancellation already stops such
+   an answer in every case I could construct, so no test fails if the guard is removed. It covers a very narrow race.
+7. A flaky test (cancel while the port call had not started yet) was a mistake in the test, found by running the suite repeatedly, and fixed.
+8. The local runs use an older coroutines jar that lacks `MutableStateFlow.update`; the store uses a compare-and-set loop that behaves the same on your 1.8.1.
+9. `FileAdbPathStore` (the one-line text file from Round 3) is no longer used by the shell and can be deleted when convenient.
+
 ### Test totals (local run: kotlinc + JUnit 4 against the compiler's bundled coroutines 1.5)
 
 After Round 1: core 54 + engine 38 = 92, three complete from-scratch runs all green.
 After Round 2: core 105 + engine 38 = 143.
-After Round 3: core **105** + engine **103** = **208** tests, all passing in the last complete from-scratch run.
+After Round 3: core 105 + engine 103 = 208.
+After Round 4: core **130** + engine **123** = **253** tests, all passing in the last complete from-scratch run.
+
+## Round 5 — persistence, sharing, retention, update check, guardrails (P1-2, P1-7, P5-1 core+engine, P5-3, P7-5, P3-9)
+
+Everything here is pure `core`/`engine` code with tests; **no UI, no Gradle**. The SQL was run against a **real SQLite** (Ubuntu's
+`libxerial-sqlite-jdbc`, driver 3.44.1 / SQLite 3.45.1), which Round 4 did not have.
+
+| Task | Status | What changed | How verified |
+|---|---|---|---|
+| P1-2 Capture JSON | code-complete | `CaptureJson` (core): schema v1 per Appendix D, strict reader. Unknown keys ignored, higher `schemaVersion` -> `CAPTURE_SCHEMA_UNSUPPORTED`, everything else `PARSE_FAILED`; errors never repeat document text; element paths in a file are **ignored and recomputed**, so a hand-edited file cannot make `ElementIndex` throw; exports omit the serial, local snapshots keep it. The JSON reader/writer moved from `engine` to `core` (`json/Json.kt`) with a configurable depth limit. | `CaptureJsonTest` (18): hostile strings in every text field, 5,000-node round trip equals the original and runs well under 1.5 s, serial present/absent, sentinel scan of a redacted export, Appendix-D shape, golden file (reviewed by eye), limits, errors not echoing a secret, and a fuzz test (every truncation, 1,500 random damages, random garbage) that never throws. |
+| P1-7 Storage v2 | code-complete | `SnapshotDatabase` (plain `java.sql`; WAL, `busy_timeout=5000`, `foreign_keys=ON`; forward-only migrations numbered 1..n, each in one transaction, version in `PRAGMA user_version`; a database from a newer version is reported and left alone; a damaged file is moved to `snapshots.db.corrupt`). `SnapshotStoreImpl`: metadata in the DB, `capture.json` + `screenshot.png` per snapshot folder, written in `.tmp-<id>` and renamed (atomic), then the row is inserted. Start-up recovery: delete `.tmp-*`/`.trash-*`, drop rows without a folder, **adopt** folders without a row. Delete renames to `.trash-<id>` first so a deleted snapshot can never be adopted back. Listing reads rows only. Ids are validated (`[A-Za-z0-9-]{1,64}`) and the screenshot name always comes from our own row, never from the file. | `SnapshotStoreTest` (26) on real SQLite: round trip, search/sort (Unicode), rename/note/pin, retention deletes the files, byte limit, **listing opens no capture file (counted reads; still lists with every capture file destroyed)**, cut-off write invisible and cleaned, crash-after-move adopted, row-without-folder dropped, 8 writers + 1 reader concurrently (80 snapshots, no error), delete not resurrected, traversal ids refused, **tampered DB row cannot reach outside the folder**, hand-edited screenshot name ignored, missing screenshot -> warning, damaged capture -> typed error, WAL/pragmas, stub v2 migration keeps data, failing migration leaves nothing behind, newer DB left alone, gaps in migration numbers refused, damaged DB quarantined and snapshots re-adopted. |
+| P5-3 Retention | code-complete (UI meter is P4-8) | `RetentionPolicy`, `RetentionPlanner` (pure), `RetainingSnapshotStore` (enforces after every save, never deletes the snapshot just saved, reports cleanup failures through a callback instead of failing the save, `enforceNow()` for start-up). `Settings.retentionPolicy()`. | `RetentionPlannerTest` (8), `RetentionStoreTest` (4): **B7: 300 auto-saves two seconds apart stay under both caps after every save and the folders on disk match the list**; pinned survive; lowering the limit applies at start-up and to the next save. |
+| P5-1 Bundles (core + engine halves) | code-complete (screen is P4/P5) | `BundleCodec` (core): `.uiscope` = zip of `manifest.json`, `capture.json`, optional `screenshot.png`. Reading refuses: no `capture.json`, wrong/newer schema, > 100 MB compressed or after inflating (zip bombs), traversal-style names, duplicates, > 32 entries, undecodable names. Nothing is ever extracted by name. A bad PNG is dropped with a warning and the tree kept; PNG size is read from its header. `SnapshotBundles` (engine): export via `<target>.part` + move, import stages the screenshot in a temp file and saves through the store. | `BundleCodecTest` (14) incl. serial never in a bundle, a 150 MB zip bomb refused in < 5 s, an oversized stream, fuzz (every 5th truncation, 300 random damages); `SnapshotBundlesTest` (4) export -> import into a second store. **The fuzz found a real bug** (`IllegalArgumentException` from the JDK on a damaged file name escaped `read`), fixed. |
+| Legacy data | code-complete | `LegacyData`: moves `~/.uiscope/platform-tools` once, only if the new folder holds no adb; `leftoverBytes()`, `deleteLeftovers()` (only after the user agrees; the prompt is UI). Old sessions are not migrated (plan). | `LegacyDataTest` (3). |
+| P7-5 Update check v2 | code-complete (UI link is P4-8) | `SemVer` (core) and `UpdateChecker` (engine): off in the Store build and when the setting is off (no network call), `latest > current` only, drafts and pre-releases ignored for stable users, URLs from `AppInfo`, real JSON, never downloads, failures logged not shown. The "What's new" link is only used when it is https on the repository's host, else the repository's releases page. | `SemVerTest` (5), `UpdateCheckerTest` (6). |
+| P3-9 Guardrails | code-complete | `Guardrails` scanner + `GuardrailsTest` in `engine/src/test` (so it runs in `check`); rules and exceptions in `docs/guardrails.md`. | `GuardrailsTest` (10): one test per rule, comment/string handling, line numbers, "add a pattern to a temp repo -> scan fails, remove it -> passes", and the repository passes. The first run flagged the code generator's user-facing PowerShell text; that folder is allowed for that one rule. |
+
+### Mutation checks (bugs re-injected into a copy of the repo, tests re-run)
+
+Caught: listing reads capture files; delete leaves files behind; leftover temp folders not cleaned; orphan folders not adopted; pinned
+snapshots not exempt; no retention on save (3 tests); bundle accepts traversal names; bundle size cap off. **Not caught at first:**
+"ids are not validated", because the database lookup also refuses such ids. A test with a tampered database row was added and then
+caught it. Not run as mutations: disk-full mapping (cannot be provoked here), `MAX_NODES` in `CaptureJson` (a 250,001-node file was not built).
+
+### Decisions and caveats in Round 5
+
+1. **SQLDelight was removed; storage is plain JDBC.** Reason: SQLDelight's generator could not run here, so none of its generated API could be
+   compiled, while plain JDBC could be tested on real SQLite. The two old `.sq` files, the plugin, the `sqldelight {}` block and the catalog
+   entries are gone; `engine` has `runtimeOnly("org.xerial:sqlite-jdbc:3.46.1.3")`. **The Gradle edits had only a syntax check and the version
+   number was never resolved.** `SnapshotStore` is a port, so SQLDelight can come back behind it if you want it.
+2. **No kotlinx.serialization; captures use the same small strict JSON code as settings.** One JSON stack, fully tested without Gradle.
+   Output escapes non-ASCII as `\uXXXX` (valid JSON, safe for any encoding; not pretty for humans).
+3. **Pinned snapshots are exempt from the count and byte limits entirely** (not counted, never deleted). The storage meter should show them separately (`StorageUsage.pinnedCount/pinnedBytes`).
+4. **Retention order is by save time (`createdAt`); the list shows capture time (`capturedAt`).** The just-saved snapshot is never removed by its own save even if it alone exceeds the byte limit.
+5. Extra JSON keys beyond Appendix D (all optional): `id`, `screen.rotation`, `screenshotWidth/Height`, flags `longClickable/checkable/focusable/selected`, `window.hwnd`.
+6. New error codes beyond Appendix A: `SNAPSHOT_SAVE_FAILED`, `SNAPSHOT_IMPORT_INVALID`, `SNAPSHOT_NOT_FOUND`, `SNAPSHOT_DELETE_FAILED`, `SNAPSHOT_STORE_UNAVAILABLE`, `EXPORT_FAILED`, `CAPTURE_SCHEMA_UNSUPPORTED`. P4-10's "every code has copy" test must include them (and the Round 3/4 additions).
+7. Each operation opens its own short-lived SQLite connection (no shared connection across threads). `SnapshotStoreImpl.close()` checkpoints the WAL; call it on exit.
+8. `SnapshotStoreImpl.open()` is **blocking** (migrations + recovery): call it from an I/O thread at start-up, then `RetainingSnapshotStore.enforceNow()`.
+9. Guardrails scan `src/main` only (tests may start processes to test the runner), so the Round 1 note about exempting `FakeProcessMain.kt` is moot.
+10. `SnapshotSort.TITLE` uses the user's locale collator (so "Ä" sorts with "A"); the tests pin `Locale.ROOT`.
+11. Not wired into `Main.kt`/`DevHarness.kt` (Compose cannot be compiled here): creating `SnapshotDatabase(paths.database/"snapshots.db", sqliteTmpDir = paths.tmp)`, `SnapshotStoreImpl`, `RetainingSnapshotStore`, `SnapshotBundles`, `LegacyData` and `UpdateChecker` at start-up is a small job for the agent who can compile the app (see HANDOFF section 8).
+12. `scripts/local-check.sh` now also needs the SQLite driver jars (setup notes updated).
+
+### Test totals (local run: kotlinc + JUnit 4)
+
+After Round 5: core **180** + engine **171** = **351** tests, all passing in a complete from-scratch run of `scripts/local-check.sh` (the new storage/update/guardrail classes were also run three more times in a row without a failure).
 
 ## Deviations from the plan, and why
 
@@ -120,7 +193,7 @@ After Round 3: core **105** + engine **103** = **208** tests, all passing in the
 4. **detekt:** the plan asks for a baseline so old code passes. The old code is in `legacy/`, outside the build, so no baseline exists
    and the two rules are strict for everything. `TimeoutCancellationException` is exempt from `SwallowedException` (it is a coroutine
    control-flow signal, not an error).
-5. **`.sq` files:** the two cut-feature tables were deleted; `Sessions.sq` and `AppSettings.sq` stay until P1-7 redefines the schema.
+5. **`.sq` files:** deleted in Round 5 together with SQLDelight (see Round 5, decision 1).
 6. **Extra error codes** (`PROCESS_*`, `NETWORK_*`, `DATA_DIR_UNAVAILABLE`, `DISK_FULL`) are not in Appendix A; P4-10's "every code has copy"
    test must include them.
 7. `ElementIndex` also counts `NAME` (Windows UI Automation Name) beyond the plan's list, because Windows selectors need it.
@@ -129,8 +202,8 @@ After Round 3: core **105** + engine **103** = **208** tests, all passing in the
 
 ## Notes for later tasks
 
-- **P1-2:** `ElementIndex` throws on duplicate paths. The decoder must validate (or rebuild) paths before an index is built from a loaded file.
-- **P3-9:** the "no `ProcessBuilder` outside `engine/process`" guardrail must exempt `core/src/testFixtures/.../FakeProcessMain.kt`.
+- **P1-2:** done in Round 5 (`CaptureJson` recomputes paths).
+- **P3-9:** done in Round 5 (test code is not scanned).
 - **P2-4:** call `JdkNetworkGateway.enableSystemProxies()` once at startup.
 - **P4:** add `junit-vintage-engine` (or write UI tests on JUnit 4) when the first Compose UI test appears; `uiTestJUnit4` is declared already.
 - **P8-1:** the `description`/JVM args in `app/build.gradle.kts` are still the old ones apart from vendor/description; hardening is that task.

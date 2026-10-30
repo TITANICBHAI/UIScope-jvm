@@ -3,8 +3,8 @@
 **UIScope: Desktop & Android UI Inspector** — by TBTechs (developer: TITANICBHAI).
 
 > **Status: under rebuild toward 1.0.** The previous implementation was set aside (it is kept, unused, in `legacy/`). The application
-> window is currently a placeholder that says "rebuild in progress": **you cannot inspect anything with it yet.** This README
-> describes what is true of the code today.
+> window is a temporary **developer harness**: it can capture an Android phone's UI tree and screenshot and show the element count, but
+> there is no inspector, selector or code panel yet. This README describes what is true of the code today.
 
 ## What is planned for 1.0 (not implemented yet)
 
@@ -16,7 +16,7 @@ selector workbench and code generation. The full plan is in `plan.md`; progress 
 - Multi-module Gradle build (`core`, `engine`, `ui`, `app`) on Kotlin 2.0 / Compose Multiplatform Desktop.
 - `core`: the capture data model (element tree, stable structural ids, element lookup index, viewport math), XML/outline export with
   redaction, the selector engine and code generation for ten test frameworks, error and result types, app identity/version information.
-  None of this is visible in the app yet (the window is a placeholder).
+  None of this is visible in the app yet (the window is a temporary developer harness).
 - `engine`: the Android layer (finding adb, devices, UI-tree capture, wireless debugging, verified platform-tools download), a process runner (kills the whole process tree on timeout/cancel), a long-lived process wrapper, the single HTTP gateway,
   data-folder locations and rotating logs.
 - Test harness: fakes for processes and HTTP, golden-file and fixture helpers, synthetic Android dump samples.
@@ -31,7 +31,7 @@ selector workbench and code generation. The full plan is in `plan.md`; progress 
 
 ```bash
 ./gradlew check        # compile, run all tests, run detekt
-./gradlew :app:run     # opens the placeholder window
+./gradlew :app:run     # opens the temporary developer window (Android capture check)
 ```
 
 On Windows use `gradlew.bat` instead of `./gradlew`.

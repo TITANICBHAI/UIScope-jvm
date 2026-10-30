@@ -111,6 +111,18 @@ class AdbLocatorTest {
     }
 
     @Test
+    fun `the chosen path lives in the settings`() = blocking {
+        withTempDir { dir ->
+            val chosen = touch(dir.resolve("mytools/adb"))
+            val settings = com.titanicbhai.uiscope.settings.InMemorySettingsStore()
+            val runner = fakeAdb(chosen)
+            locator(dir, runner, SettingsAdbPathStore(settings)).select(chosen).assertSuccess()
+            assertEquals(chosen.toString(), settings.settings.value.adbPath)
+            assertEquals(AdbSource.SAVED, locator(dir, runner, SettingsAdbPathStore(settings)).locate().assertSuccess().source)
+        }
+    }
+
+    @Test
     fun `windows looks for adb exe under LOCALAPPDATA`() = blocking {
         withTempDir { dir ->
             val sdk = touch(dir.resolve("local/Android/Sdk/platform-tools/adb.exe"))

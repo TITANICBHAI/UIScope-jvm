@@ -3,7 +3,6 @@ import java.time.LocalDate
 
 plugins {
     alias(libs.plugins.kotlin.jvm)
-    alias(libs.plugins.sqldelight)
     `java-test-fixtures`
 }
 
@@ -77,19 +76,8 @@ kotlin {
     }
 }
 
-sqldelight {
-    databases {
-        create("UiScopeDatabase") {
-            packageName.set("com.titanicbhai.uiscope.db")
-            srcDirs("src/main/sqldelight")
-        }
-    }
-}
-
 dependencies {
     implementation(libs.kotlin.stdlib)
-    implementation(libs.sqldelight.driver.sqlite)
-    implementation(libs.sqldelight.coroutines)
     implementation(libs.coroutines.core)
 
     // Shared test harness (plan P0-6): fakes, fixture loader, golden files. Used by core, engine and ui tests.

@@ -6,6 +6,7 @@ import com.titanicbhai.uiscope.error.ErrorCodes
 import com.titanicbhai.uiscope.error.Outcome
 import com.titanicbhai.uiscope.model.AdbDevice
 import com.titanicbhai.uiscope.model.DeviceState
+import com.titanicbhai.uiscope.ports.TrackerEvent
 import com.titanicbhai.uiscope.testing.FakeAdbServer
 import com.titanicbhai.uiscope.testing.blocking
 import java.net.ServerSocket

@@ -19,6 +19,8 @@ dependencies {
     implementation(libs.coroutines.core)
     implementation(libs.jna)
     implementation(libs.jna.platform)
+    // Snapshot database (P1-7). Only the driver: the storage code uses plain java.sql, so this is a runtime-only dependency.
+    runtimeOnly(libs.sqlite.jdbc)
 
     testImplementation(testFixtures(project(":core")))
     testImplementation(libs.kotlin.test)

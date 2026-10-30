@@ -1,9 +1,9 @@
 package com.titanicbhai.uiscope.adb
 
 import com.titanicbhai.uiscope.DispatcherProvider
-import com.titanicbhai.uiscope.error.AppError
 import com.titanicbhai.uiscope.error.Outcome
 import com.titanicbhai.uiscope.model.AdbDevice
+import com.titanicbhai.uiscope.ports.TrackerEvent
 import java.io.DataInputStream
 import java.io.IOException
 import java.net.InetSocketAddress
@@ -19,12 +19,6 @@ import kotlinx.coroutines.isActive
 import kotlin.coroutines.coroutineContext
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-
-sealed interface TrackerEvent {
-    data class Devices(val devices: List<AdbDevice>) : TrackerEvent
-
-    data class Problem(val error: AppError) : TrackerEvent
-}
 
 /**
  * Watches the device list. Preferred: the adb server's `host:track-devices` service (length-prefixed messages over a local socket),

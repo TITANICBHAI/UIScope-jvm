@@ -26,7 +26,7 @@ exact values Partner Center shows under *Product identity* before a Store build.
 ```bash
 ./gradlew :app:packageMsi   # Windows, needs the WiX toolset on PATH
 ./gradlew :app:packageExe   # Windows
-./gradlew :app:run          # run the placeholder window
+./gradlew :app:run          # run the temporary developer window
 ```
 
 These packaging tasks are configured but **have not been verified** in this rebuild; task P8-1 hardens and verifies them.

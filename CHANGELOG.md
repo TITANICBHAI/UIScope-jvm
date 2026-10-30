@@ -18,8 +18,11 @@ Nothing has been released yet. Entries below describe only what exists in the co
 - Android engine (not connected to the user interface yet): finds adb, lists devices and watches for changes, captures the UI tree and screenshot with
   fallbacks and retries, wireless-debugging commands, and a checksum-verified download of Google's platform-tools.
 
+- Typed settings with a file-backed store, and the Android inspector's state machine (device tracking, capture, Live, disconnect/reconnect,
+  selection restore) behind a port, ready for the interface.
+
 ### Changed
-- The application window is a placeholder while the user interface is rebuilt.
+- The application window is a temporary developer harness (Android capture check) while the user interface is rebuilt.
 
 ### Removed
 - Features that were not going to ship in 1.0 were removed from the build.

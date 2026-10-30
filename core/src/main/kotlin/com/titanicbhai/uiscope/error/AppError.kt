@@ -79,6 +79,17 @@ object ErrorCodes {
     const val ADB_DOWNLOAD_UNAVAILABLE = "ADB_DOWNLOAD_UNAVAILABLE"
     const val ADB_DOWNLOAD_CHECKSUM = "ADB_DOWNLOAD_CHECKSUM"
     const val ADB_DOWNLOAD_INVALID_ARCHIVE = "ADB_DOWNLOAD_INVALID_ARCHIVE"
+
+    // Snapshots and export (Appendix A "General"; the first two are Round 5 additions)
+    const val SNAPSHOT_SAVE_FAILED = "SNAPSHOT_SAVE_FAILED"
+    const val SNAPSHOT_IMPORT_INVALID = "SNAPSHOT_IMPORT_INVALID"
+    const val SNAPSHOT_DELETE_FAILED = "SNAPSHOT_DELETE_FAILED"
+    const val SNAPSHOT_NOT_FOUND = "SNAPSHOT_NOT_FOUND"
+    const val SNAPSHOT_STORE_UNAVAILABLE = "SNAPSHOT_STORE_UNAVAILABLE"
+    const val EXPORT_FAILED = "EXPORT_FAILED"
+
+    /** A capture document written by a newer UIScope than this one (not in Appendix A: the UI shows the detail text). */
+    const val CAPTURE_SCHEMA_UNSUPPORTED = "CAPTURE_SCHEMA_UNSUPPORTED"
 }
 
 /** Result of an engine call: a value or an [AppError]. Engines return this instead of throwing. */

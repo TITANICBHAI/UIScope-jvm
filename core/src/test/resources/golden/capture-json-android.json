@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "app": { "name": "UIScope", "version": "1.0.0" },
+  "id": "capture-1",
+  "capturedAt": "2026-01-01T00:00:00Z",
+  "target": { "type": "android", "device": { "model": "Test phone", "androidVersion": "14", "sdk": 34 }, "foregroundPackage": "com.example" },
+  "screen": { "width": 1080, "height": 2400, "originX": 0, "originY": 0, "rotation": 0 },
+  "screenshot": "screenshot.png",
+  "screenshotWidth": 1080,
+  "screenshotHeight": 2400,
+  "warnings": [{ "code": "SECURE_WINDOW", "detail": null }],
+  "roots": [
+    { "path": "0", "className": "android.widget.FrameLayout", "name": null, "identifier": null, "text": null, "contentDescription": null, "bounds": { "x": 0, "y": 0, "width": 1080, "height": 2400 }, "flags": { "enabled": true, "clickable": false, "longClickable": false, "checkable": false, "checked": null, "focusable": false, "focused": false, "scrollable": false, "selected": false, "offscreen": false, "password": false }, "properties": {"package": "com.example.app"}, "children": [
+      { "path": "0/0", "className": "android.widget.TextView", "name": null, "identifier": "com.example.app:id/title", "text": "Say \"hi\"\n\u65e5\u672c\u8a9e", "contentDescription": null, "bounds": { "x": 10, "y": 20, "width": 300, "height": 40 }, "flags": { "enabled": true, "clickable": false, "longClickable": false, "checkable": false, "checked": null, "focusable": false, "focused": false, "scrollable": false, "selected": false, "offscreen": false, "password": false }, "properties": {}, "children": [] },
+      { "path": "0/1", "className": "android.widget.Button", "name": null, "identifier": null, "text": null, "contentDescription": "Close", "bounds": { "x": 0, "y": 0, "width": 100, "height": 100 }, "flags": { "enabled": true, "clickable": true, "longClickable": false, "checkable": true, "checked": false, "focusable": false, "focused": false, "scrollable": false, "selected": false, "offscreen": false, "password": false }, "properties": {}, "children": [] }
+    ] }
+  ]
+}

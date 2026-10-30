@@ -12,10 +12,11 @@ Rounds are seeded from Appendix K of the plan. Every acceptance box tagged `need
 |---|---|---|
 | P0-1 | `./gradlew check` is green on a clean clone on **Windows and Linux** (CI) and Gradle fetches JDK 21 by itself | **not yet verified** — Gradle could not be run where this code was written |
 | P0-1 | detekt runs inside `check` with Kotlin 2.0 (workaround for detekt 1.23 is in `build.gradle.kts`) | **not yet verified** |
-| P0-2 | Application placeholder window opens (`./gradlew :app:run`) | **not yet verified** |
+| P0-2 | `./gradlew :app:run` opens a window (now the developer harness described under Round 1) | **not yet verified** |
 | P0-7 | Round 0 fixture capture done on your phone | **pending — your turn** |
 | P2-4 | `scripts/update-platform-tools.sh <revision>` (or `.ps1`) pins the platform-tools download; tell me if the archive URL pattern is wrong | **pending — needs internet access** |
 | P2-1…P2-6 | The Android engine works against a real phone (device list, dump, screenshot, wireless pairing) | **not yet verified** — only fakes and fixtures were available; Round 1 covers it once the UI exists |
+| P2-5 | Early check 1a (Android capture from the developer window) | **pending — your turn once `./gradlew check` is green** |
 | P1-5 | One generated snippet per framework you use actually runs (Maestro especially: `id:` with the full `pkg:id/name`) | **not yet verified** — nothing could be run against the real frameworks where this was written |
 
 ## Round 0 — Fixture capture (at the very start, about 10 minutes)
@@ -27,8 +28,12 @@ record what is on screen, so use screens without personal data. Hand the output 
 
 ## Round 1 — Android (after Phase 4, the first time the real UI exists)
 
-Needs: your Android phone and a USB data cable. *Optional early check 1a, after Phase 2:* press *Capture now* in the temporary shell —
-**pass if** it reports a non-zero element count for your phone's current screen and saves a screenshot.
+Needs: your Android phone and a USB data cable.
+
+**Early check 1a (available now, before the real UI exists):** connect the phone with USB debugging on, run `./gradlew :app:run`, accept the
+*Allow USB debugging?* prompt on the phone, then press *Capture now* in the developer window. **Pass if** the window names the adb it found,
+lists your phone, reports a non-zero element count for the phone's current screen, and *Save screenshot* writes a PNG that looks like the
+phone's screen. If it fails, copy the window's text and the newest file in the `logs` folder of the data folder.
 
 1. On the phone: Settings → About phone → tap *Build number* 7 times → Developer options → turn on *USB debugging*. Plug in and tap *Allow* on the phone.
 2. Start UIScope. **Pass if** your phone's model appears within about 5 seconds and one capture happens by itself.
@@ -62,3 +67,13 @@ hugs the element, a click is *not* delivered to the app underneath, and the pick
 5. Shrink the window to its smallest size. **Pass if** nothing is cut off and the toolbar has an overflow menu.
 6. Install the MSIX (sideload) on a clean user account or VM, run the core loop, then uninstall. **Pass if** there are no errors and nothing is left behind.
 7. In Windows *Installed apps*, check the entry. **Pass if** the name is "UIScope" and the publisher is "TBTechs".
+
+## Round 5 additions — storage, bundles, update check (needs the app wired, or a developer console)
+
+1. **SQLite driver on Windows (first start):** start the app on a clean user account. **Pass if** the first snapshot saves without an error and `%LOCALAPPDATA%\UIScope\db\snapshots.db` exists. (The driver unpacks a native library into `<data>\tmp`; antivirus can interfere.)
+2. **Delete while the preview is open (Windows):** open a snapshot's screenshot, then delete that snapshot. **Pass if** it disappears and `%LOCALAPPDATA%\UIScope\snapshots` has no folder for it afterwards (a locked folder is retried at the next start).
+3. **Data folder on another drive or a network share:** point nothing there; just confirm saving works when `%LOCALAPPDATA%` is redirected (some company PCs). **Pass if** no `ATOMIC_MOVE` error appears in the log.
+4. **Kill during save:** while Live with auto-save is running, end the process in Task Manager, start again. **Pass if** the list opens, no half snapshot is shown, and `snapshots\` holds no `.tmp-*` folder after start-up.
+5. **Import a bundle made on another machine** (export one from the Linux dev box or from a second install). **Pass if** tree, screenshot, title and note come back and the device serial is empty.
+6. **Update check with no internet** (unplug): **Pass if** nothing is shown and the log has one INFO line "update check failed".
+7. **Update check against the real repository** once the repo URL in `app.properties` is real: **Pass if** a newer release shows "What's new" linking to the release page, and an older or equal one shows nothing.
