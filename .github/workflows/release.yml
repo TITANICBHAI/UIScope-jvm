@@ -46,7 +46,7 @@ jobs:
         shell: pwsh
         run: |
           Add-Type -AssemblyName System.IO.Compression.FileSystem
-          $jar = Get-ChildItem "app/build/compose/binaries/main/app/UIScope/app" -Filter "*.jar" | Where-Object { $_.Name -notmatch "sources" } | Select-Object -First 1
+          $jar = Get-ChildItem "app/build/compose/binaries/main/app/UIScope/app" -Filter "app-*.jar" | Select-Object -First 1
           if ($null -eq $jar) { throw "the app jar was not found in the app image" }
           $zip = [System.IO.Compression.ZipFile]::OpenRead($jar.FullName)
           $helper = $zip.Entries | Where-Object { $_.FullName -eq "helper/UIScope.Helper.exe" }
