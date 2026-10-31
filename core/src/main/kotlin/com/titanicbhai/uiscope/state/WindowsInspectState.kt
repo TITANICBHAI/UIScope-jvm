@@ -144,7 +144,7 @@ class WindowsInspectState(
                     val pickedPath = picked?.let { relocatePicked(index, it) }
                     val restored = pickedPath
                         ?: previousSelected?.let { path ->
-                            previousIndex?.byPath?.get(path)?.let { node -> index.relocate(previousIndex.identityOf(node)) }
+                            previousIndex?.byPath?.get(path)?.let { node -> index.relocate(previousIndex.identityOf(node))?.path }
                         }
                     val keptSelected: ElementPath? = previousSelected?.takeIf { index.byPath.containsKey(it) }
                     mutate {
