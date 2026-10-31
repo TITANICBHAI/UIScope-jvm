@@ -430,15 +430,15 @@ private fun DiffCanvas(
     }
 }
 
-/** The diff as JSON (machine-readable export, plan P6-2). */
+/** The diff as JSON (machine-readable export, plan P6-2); JsonWriter.string already returns quoted values. */
 internal fun diffAsJson(result: DiffResult): ByteArray = buildString {
     append("{\"pairs\":[")
     result.pairs.joinTo(this, ",") { pair ->
-        "{\"before\":\"" + JsonWriter.string(pair.before.path.toString()) + "\"" +
-            ",\"after\":\"" + JsonWriter.string(pair.after.path.toString()) + "\"" +
+        "{\"before\":" + JsonWriter.string(pair.before.path.toString()) +
+            ",\"after\":" + JsonWriter.string(pair.after.path.toString()) +
             ",\"pass\":\"" + pair.pass.name + "\"" +
             ",\"changes\":[" + pair.changes.joinToString(",") { change ->
-                "{\"field\":\"" + JsonWriter.string(change.field) + "\",\"before\":" +
+                "{\"field\":" + JsonWriter.string(change.field) + ",\"before\":" +
                     (change.before?.let { JsonWriter.string(it) } ?: "null") + ",\"after\":" +
                     (change.after?.let { JsonWriter.string(it) } ?: "null") + "}"
             } + "]}"
