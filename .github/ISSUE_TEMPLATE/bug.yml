@@ -1,0 +1,45 @@
+name: Bug report
+description: Something in UIScope is broken or wrong.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time. Please paste the **Copy diagnostics** output from Settings → Advanced —
+        it contains no personal data (no element text, no window titles, no serials by design).
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, what did you see instead?
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Copy diagnostics output
+      render: text
+  - type: input
+    id: version
+    attributes:
+      label: UIScope version
+      placeholder: 1.0.0
+    validations:
+      required: true
+  - type: dropdown
+    id: target
+    attributes:
+      label: Which target?
+      options:
+        - Windows app inspection
+        - Android inspection
+        - Snapshots / export
+        - Install / launch
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Log lines
+      description: The last lines of %LOCALAPPDATA%\UIScope\logs, if relevant. Please remove anything personal.

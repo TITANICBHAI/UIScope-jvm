@@ -21,6 +21,17 @@ Nothing has been released yet. Entries below describe only what exists in the co
 - Typed settings with a file-backed store, and the Android inspector's state machine (device tracking, capture, Live, disconnect/reconnect,
   selection restore) behind a port, ready for the interface.
 
+- The full Compose user interface: the Inspect screen for both targets (tree | screenshot canvas | details with
+  selector, properties and path tabs, pane splashes and keyboard shortcuts), the Snapshots screen (search, sort,
+  pin, notes, offline replay, `.uiscope` export/import), the export dialog (JSON/XML/Outline/PNG with redaction),
+  Settings, first-run and Help screens, and the storage meter.
+- Windows app inspection: the bundled helper process (UI Automation tree, screenshots, pick overlay with hover,
+  click-swallowing and Esc-cancel, the `Ctrl+Alt+P` hotkey), typed errors per Appendix A (elevated targets,
+  limited accessibility, truncation), and the origin-corrected canvas.
+- Snapshots with retention (count/byte caps, pinned exempt, files deleted with rows) and a storage meter.
+- Reliability: single-instance lock (a second launch focuses the first window), a crash dialog with
+  Copy-diagnostics/Restart, automatic helper restarts, and the security guardrails + dependency scanning in CI.
+
 ### Changed
 - The application window is a temporary developer harness (Android capture check) while the user interface is rebuilt.
 

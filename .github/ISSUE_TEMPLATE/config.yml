@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation
+    url: https://github.com/TITANICBHAI/UIScope-jvm/tree/main/docs
+    about: Troubleshooting, the plan, progress and the manual QA checklist.
+  - name: Security policy
+    url: https://github.com/TITANICBHAI/UIScope-jvm/blob/main/SECURITY.md
+    about: How to report a vulnerability and what UIScope can and cannot do by design.
