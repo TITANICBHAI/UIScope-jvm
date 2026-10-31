@@ -105,11 +105,13 @@ private fun echoLines() {
 
 /** The fake Windows helper: speaks Appendix J over stdio for the client tests (identical behaviour on every OS). */
 private fun fakeHelper(flags: Set<String>) {
+    val idRegex = Regex("\"id\"\\s*:\\s*(\\d+)")
+    val typeRegex = Regex("\"type\"\\s*:\\s*\"([a-zA-Z]+)\"")
     val reader = System.`in`.bufferedReader()
     while (true) {
         val line = reader.readLine() ?: return // stdin closed: the helper exits, like the real one
-        val id = Regex("\"id\":(\\d+)").find(line)?.groupValues?.get(1) ?: continue
-        val type = Regex("\"type\":\"([a-zA-Z]+)\"").find(line)?.groupValues?.get(1) ?: continue
+        val id = idRegex.find(line)?.groupValues?.get(1) ?: continue
+        val type = typeRegex.find(line)?.groupValues?.get(1) ?: continue
         if (flags.contains("malformed")) println("{ this line is not json")
         when (type) {
             "crash" -> exitProcess(7)
