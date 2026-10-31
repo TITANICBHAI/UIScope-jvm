@@ -92,7 +92,7 @@ namespace UIScope.Helper
                 uint pid;
                 Native.GetWindowThreadProcessId(hWnd, out pid);
                 string processName = "";
-                try { processName = Process.GetProcessById((int)pid).ProcessName; }
+                try { processName = System.Diagnostics.Process.GetProcessById((int)pid).ProcessName; }
                 catch { /* the process may have exited */ }
                 Native.RECT rect;
                 Native.GetWindowRect(hWnd, out rect);
@@ -148,7 +148,7 @@ namespace UIScope.Helper
         private static string ProcessNameOf(IntPtr hwnd)
         {
             uint pid = PidOf(hwnd);
-            try { return Process.GetProcessById((int)pid).ProcessName; }
+            try { return System.Diagnostics.Process.GetProcessById((int)pid).ProcessName; }
             catch { return ""; }
         }
 

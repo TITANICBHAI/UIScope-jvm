@@ -110,7 +110,7 @@ namespace UIScope.Helper
             sb.Append(",\"runtimeId\":").Append(Q(RuntimeId(e)));
             sb.Append(",\"rect\":{\"x\":").Append(rect.Left).Append(",\"y\":").Append(rect.Top)
                .Append(",\"width\":").Append(rect.Width).Append(",\"height\":").Append(rect.Height).Append("}");
-            sb.Append(",\"isPassword\":").Append(SafeBool(() => e.Current.IsPasswordElementProperty) ? "true" : "false");
+            sb.Append(",\"isPassword\":").Append(SafeBool(() => e.Current.IsPassword) ? "true" : "false");
             sb.Append(",\"isEnabled\":").Append(SafeBool(() => !e.Current.IsEnabled) ? "false" : "true");
             sb.Append(",\"isOffscreen\":").Append(SafeBool(() => e.Current.IsOffscreen) ? "true" : "false");
 
@@ -121,7 +121,7 @@ namespace UIScope.Helper
                 try
                 {
                     var child = walker.GetFirstChild(e);
-                    while (child != AutomationElement.None && child != null)
+                    while (child != null)
                     {
                         var childSb = new StringBuilder();
                         int before = nodeCount;
