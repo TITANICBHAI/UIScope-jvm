@@ -127,11 +127,13 @@ val buildWindowsHelper by tasks.registering {
             commandLine(msbuild, csproj.absolutePath, "/p:Configuration=Release", "/nologo", "/v:q")
         }
         val out = layout.buildDirectory.dir("helper").get().asFile
-        out.mkdirs()
+        // The exe must sit under helper/ inside this folder: a resources srcDir maps its contents to the jar
+        // root, and WindowsHelperExe.extract looks for the resource path /helper/UIScope.Helper.exe exactly.
+        File(out, "helper").mkdirs()
         copy {
             from(File(csproj.parentFile, "bin"))
             include("UIScope.Helper.exe", "*.config")
-            into(out)
+            into(File(out, "helper"))
         }
     }
 }

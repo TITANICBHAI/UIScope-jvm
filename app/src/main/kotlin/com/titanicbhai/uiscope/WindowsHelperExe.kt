@@ -18,7 +18,12 @@ object WindowsHelperExe {
 
     /** The data-folder exe path after staging; null when the helper is not on the classpath or cannot be written. */
     fun extract(paths: DataPaths): Path? {
-        val source = WindowsHelperExe::class.java.getResourceAsStream(RESOURCE) ?: return null
+        val source = WindowsHelperExe::class.java.getResourceAsStream(RESOURCE)
+        if (source == null) {
+            // Never silent: a missing resource means every Windows inspection attempt will fail downstream.
+            logger.warning("the helper resource $RESOURCE is not on the classpath; Windows inspection will be unavailable")
+            return null
+        }
         val target = paths.root.resolve("helper").resolve("UIScope.Helper.exe")
         return try {
             Files.createDirectories(target.parent)
