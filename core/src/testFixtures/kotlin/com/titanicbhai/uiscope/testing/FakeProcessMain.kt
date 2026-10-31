@@ -107,13 +107,14 @@ private fun echoLines() {
 private fun fakeHelper(flags: Set<String>) {
     val idRegex = Regex("\"id\"\\s*:\\s*(\\d+)")
     val typeRegex = Regex("\"type\"\\s*:\\s*\"([a-zA-Z]+)\"")
+    val registeredHotkeys = mutableSetOf<String>()
     val reader = System.`in`.bufferedReader()
     while (true) {
         val line = reader.readLine() ?: return // stdin closed: the helper exits, like the real one
         val id = idRegex.find(line)?.groupValues?.get(1) ?: continue
         val type = typeRegex.find(line)?.groupValues?.get(1) ?: continue
         try {
-            dispatchHelperRequest(flags, id, type)
+            dispatchHelperRequest(flags, id, type, line, registeredHotkeys)
         } catch (e: Throwable) {
             // Throwable on purpose: an Error here (image decoding, AWT init) must not silently kill the helper.
             val message = (e.message ?: e.javaClass.name).replace("\\", "\\\\").replace("\"", "\\\"")
@@ -123,7 +124,13 @@ private fun fakeHelper(flags: Set<String>) {
     }
 }
 
-private fun dispatchHelperRequest(flags: Set<String>, id: String, type: String) {
+private fun dispatchHelperRequest(
+    flags: Set<String>,
+    id: String,
+    type: String,
+    line: String,
+    registeredHotkeys: MutableSet<String>,
+) {
     if (flags.contains("malformed")) println("{ this line is not json")
     when (type) {
         "crash" -> exitProcess(7)
@@ -148,21 +155,24 @@ private fun dispatchHelperRequest(flags: Set<String>, id: String, type: String) 
             println("{\"id\":$id,\"ok\":true}")
             System.out.flush()
         }
-            "registerHotkey" -> {
-                if (flags.contains("hotkey-in-use")) {
-                    println("{\"id\":$id,\"ok\":false,\"error\":{\"code\":\"HOTKEY_IN_USE\",\"message\":\"that shortcut is taken\"}}")
-                    System.out.flush()
-                } else {
-                    println("{\"id\":$id,\"ok\":true}")
-                    System.out.flush()
-                    println("{\"event\":\"hotkey\"}")
-                    System.out.flush()
-                }
-            }
-            "unregisterHotkey" -> {
+        // Stateful like the real helper: the same combination cannot be registered twice (plan P3-6).
+        "registerHotkey" -> {
+            val modifiers = Regex("\"modifiers\"\\s*:\\s*\"([^\"]*)\"").find(line)?.groupValues?.get(1) ?: ""
+            val key = Regex("\"key\"\\s*:\\s*\"([^\"]*)\"").find(line)?.groupValues?.get(1) ?: ""
+            if ("$modifiers+$key" in registeredHotkeys) {
+                println("{\"id\":$id,\"ok\":false,\"error\":{\"code\":\"HOTKEY_IN_USE\",\"message\":\"that shortcut is taken\"}}")
+                System.out.flush()
+            } else {
+                registeredHotkeys += "$modifiers+$key"
                 println("{\"id\":$id,\"ok\":true}")
                 System.out.flush()
             }
+        }
+        "unregisterHotkey" -> {
+            registeredHotkeys.clear()
+            println("{\"id\":$id,\"ok\":true}")
+            System.out.flush()
+        }
             "listWindows" -> {
             println("{\"id\":$id,\"ok\":true,\"windows\":[" +
                 "{\"hwnd\":\"0x00120A3C\",\"title\":\"Untitled - Notepad\",\"processName\":\"notepad.exe\",\"pid\":1234,\"isElevated\":false}," +
