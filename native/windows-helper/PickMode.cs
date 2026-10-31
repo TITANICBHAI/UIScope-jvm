@@ -13,6 +13,16 @@ namespace UIScope.Helper
     /// while picking and swallows the pick click. Esc is polled (no keyboard hooks, ever).
     /// Runs on the caller's STA thread: Start blocks on an internal message pump until Stop.
     /// </summary>
+    /// <summary>The data of one picked element, as the protocol carries it (Appendix J pickResult).</summary>
+    internal class PickedElementInfo
+    {
+        public string RuntimeId = "";
+        public string AutomationId = "";
+        public string Name = "";
+        public string ControlType = "";
+        public System.Drawing.Rectangle Rect = System.Drawing.Rectangle.Empty;
+    }
+
     internal sealed class PickSession
     {
         private const int WH_MOUSE_LL = 14;
@@ -25,23 +35,23 @@ namespace UIScope.Helper
         private const int WS_EX_NOACTIVATE = 0x08000000;
         private const uint WDA_EXCLUDEFROMCAPTURE = 0x11;
 
-        private readonly Action<PickedElement, IntPtr> onPicked;
+        private readonly Action<PickedElementInfo, IntPtr> onPicked;
         private readonly Action onCancelled;
 
         private Form anchor;                           // message-pump anchor; closing it ends the session
         private Form overlay;                          // click-through full-screen layer
         private Form outline;                          // the 2 px accent outline
         private IntPtr mouseHook;
-        private readonly HookProc hookProc;
+        private readonly MouseHookProc hookProc;
         private Timer hoverTimer;
         private AutomationElement lastHovered;
         private bool finished;
 
-        public PickSession(Action<PickedElement, IntPtr> onPicked, Action onCancelled)
+        public PickSession(Action<PickedElementInfo, IntPtr> onPicked, Action onCancelled)
         {
             this.onPicked = onPicked;
             this.onCancelled = onCancelled;
-            hookProc = HookProc;
+            hookProc = HookCallback;
         }
 
         public void Start(bool hideFromCapture)
@@ -135,7 +145,7 @@ namespace UIScope.Helper
                 ",\"rect\":{\"x\":" + rect.Left + ",\"y\":" + rect.Top + ",\"width\":" + rect.Width + ",\"height\":" + rect.Height + "}}}");
         }
 
-        private IntPtr HookProc(int code, IntPtr wParam, IntPtr lParam)
+        private IntPtr HookCallback(int code, IntPtr wParam, IntPtr lParam)
         {
             if (code >= 0 && !finished)
             {
@@ -173,9 +183,13 @@ namespace UIScope.Helper
                 ",\"controlType\":" + JsonQ(controlType) +
                 ",\"rect\":{\"x\":" + rect.Left + ",\"y\":" + rect.Top +
                 ",\"width\":" + rect.Width + ",\"height\":" + rect.Height + "}}}");
-            if (onPicked != null) onPicked(
-                new PickedElement(runtimeId, automationId, name, controlType,
-                    new Bounds(rect.Left, rect.Top, rect.Width, rect.Height)), hwnd);
+            var info = new PickedElementInfo();
+            info.RuntimeId = runtimeId;
+            info.AutomationId = automationId;
+            info.Name = name;
+            info.ControlType = controlType;
+            info.Rect = rect;
+            if (onPicked != null) onPicked(info, hwnd);
             Stop();
         }
 
