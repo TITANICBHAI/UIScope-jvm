@@ -54,6 +54,11 @@ class WindowsHelperClient(
     private var process: ManagedProcess? = null
     private var stopped = false
 
+    // Wire diagnostics for the give-up error (never screen content: protocol lines only).
+    @Volatile private var lastSent = ""
+    @Volatile private var lastReceived = ""
+    @Volatile private var receivedCount = 0L
+
     /** The helper's most recent stderr lines, for diagnostics when it misbehaves (never shown to the user). */
     private val stderrTail = ArrayDeque<String>()
 
@@ -89,7 +94,7 @@ class WindowsHelperClient(
             val deferred = CompletableDeferred<Line.Response>()
             pending[id] = deferred
             val written = mutex.withLock {
-                logger.info("helper sent: ${HelperProtocol.request(id, type, params).take(160)}")
+                lastSent = HelperProtocol.request(id, type, params).take(120)
                 process?.writeLine(HelperProtocol.request(id, type, params))
             }
             if (written is Outcome.Failure) {
@@ -159,7 +164,8 @@ class WindowsHelperClient(
 
     private suspend fun readLoop(managed: ManagedProcess) {
         managed.stdoutLines.collect { line ->
-            logger.info("helper recv: ${line.take(160)}")
+            receivedCount++
+            lastReceived = line.take(120)
             when (val decoded = HelperProtocol.decode(line)) {
                 is Line.Response -> pending.remove(decoded.id)?.complete(decoded)
                     ?: logger.log(Level.FINE, "a response for an unknown id arrived and was dropped")
@@ -228,7 +234,12 @@ class WindowsHelperClient(
     }
 
     private fun helperGaveUp(detail: String): Outcome<Map<String, Any?>> =
-        Outcome.Failure(CodedError(ErrorCodes.UIA_UNAVAILABLE, detail))
+        Outcome.Failure(
+            CodedError(
+                ErrorCodes.UIA_UNAVAILABLE,
+                "$detail [sent=${lastSent.take(80)} received=$receivedCount last-recv=${lastReceived.take(80)}]",
+            ),
+        )
 
     private fun protocolFailure(detail: String): CodedError = CodedError(ErrorCodes.UIA_UNAVAILABLE, detail)
 
