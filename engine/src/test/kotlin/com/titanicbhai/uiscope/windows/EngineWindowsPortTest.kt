@@ -2,6 +2,8 @@ package com.titanicbhai.uiscope.windows
 
 import com.titanicbhai.uiscope.DispatcherProvider
 import com.titanicbhai.uiscope.StandardDispatcherProvider
+import com.titanicbhai.uiscope.error.ErrorCodes
+import com.titanicbhai.uiscope.error.Outcome
 import com.titanicbhai.uiscope.model.Bounds
 import com.titanicbhai.uiscope.model.CaptureViewport
 import com.titanicbhai.uiscope.model.Target
