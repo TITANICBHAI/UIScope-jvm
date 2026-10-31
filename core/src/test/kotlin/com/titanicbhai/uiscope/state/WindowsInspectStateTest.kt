@@ -5,6 +5,7 @@ import com.titanicbhai.uiscope.error.CodedError
 import com.titanicbhai.uiscope.error.ErrorCodes
 import com.titanicbhai.uiscope.error.Outcome
 import com.titanicbhai.uiscope.model.Bounds
+import com.titanicbhai.uiscope.model.Capture
 import com.titanicbhai.uiscope.model.ElementPath
 import com.titanicbhai.uiscope.ports.PickEvent
 import com.titanicbhai.uiscope.ports.PickedElement
@@ -15,6 +16,10 @@ import com.titanicbhai.uiscope.testing.TestTrees.n
 import com.titanicbhai.uiscope.testing.awaitTrue
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicInteger
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
