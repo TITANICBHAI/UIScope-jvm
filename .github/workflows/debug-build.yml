@@ -1,0 +1,35 @@
+# Manual debug build (owner request): build the Windows EXE installer on demand — no tag, no release.
+# Run it from the Actions tab: Run workflow → pick main → download the EXE from the run's artifacts.
+# For tagged releases use the Release workflow instead.
+name: Debug build
+
+on:
+  workflow_dispatch:
+
+jobs:
+  exe:
+    name: build debug exe
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # The Windows helper is built by :app:processResources (buildWindowsHelper) on every Windows JVM run.
+      - name: Package the EXE
+        shell: bash
+        run: ./gradlew :app:packageExe --stacktrace
+
+      - name: Upload the EXE
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: UIScope-debug-exe
+          path: app/build/compose/binaries/main/exe/*.exe
+          if-no-files-found: error
+          retention-days: 14

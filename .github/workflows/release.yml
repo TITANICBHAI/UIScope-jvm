@@ -1,10 +1,13 @@
 # Release CI (plan P8-3): tagging v* builds the helper, the MSI/EXE installers and the unsigned MSIX,
 # computes SHA256SUMS and creates a draft GitHub Release with the CHANGELOG section for the version.
+# Can also be run manually from the Actions tab (workflow_dispatch): a manual run builds the same
+# artifacts and uploads them as workflow artifacts, but never creates a release — that stays tag-only.
 name: Release
 
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -50,7 +53,16 @@ jobs:
           }
           Get-Content dist\SHA256SUMS
 
+      - name: Upload the artifacts (also for manual runs)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: UIScope-dist
+          path: dist/*
+          if-no-files-found: error
+
       - name: Draft the GitHub release
+        if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
           draft: true
