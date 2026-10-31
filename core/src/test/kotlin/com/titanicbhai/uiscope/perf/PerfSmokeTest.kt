@@ -4,6 +4,7 @@ import com.titanicbhai.uiscope.export.CaptureJson
 import com.titanicbhai.uiscope.export.XmlExporter
 import com.titanicbhai.uiscope.model.Bounds
 import com.titanicbhai.uiscope.model.ElementIndex
+import com.titanicbhai.uiscope.model.ElementNode
 import com.titanicbhai.uiscope.model.ScreenInfo
 import com.titanicbhai.uiscope.testing.N
 import com.titanicbhai.uiscope.testing.TestTrees
@@ -68,5 +69,5 @@ class PerfSmokeTest {
         assertTrue(xmlMillis < 30_000, "the XML export regressed pathologically: ${xmlMillis}ms")
     }
 
-    private fun count(node: N): Int = 1 + node.children.sumOf { count(it) }
+    private fun count(node: ElementNode): Int = 1 + node.children.sumOf { count(it) }
 }
