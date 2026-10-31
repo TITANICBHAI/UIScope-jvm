@@ -154,14 +154,15 @@ private fun dispatchHelperRequest(flags: Set<String>, id: String, type: String) 
         }
         "captureWindow" -> {
             // A real (tiny) PNG plus a 2-node Appendix B tree; the origin is the window's top-left.
+            // No core imports here: the helper JVM's classpath is testFixtures + stdlib only.
             val png = java.io.File.createTempFile("uiscope-fake-helper", ".png")
             val image = java.awt.image.BufferedImage(800, 600, java.awt.image.BufferedImage.TYPE_INT_RGB)
             javax.imageio.ImageIO.write(image, "png", png)
-            val path = com.titanicbhai.uiscope.json.JsonWriter.string(png.absolutePath)
+            val escapedPath = png.absolutePath.replace("\\", "\\\\").replace("\"", "\\\"")
             println("{\"id\":$id,\"ok\":true,\"window\":{\"hwnd\":\"0x00120a3c\",\"title\":\"Untitled - Notepad\"," +
                 "\"processName\":\"notepad.exe\",\"pid\":1234,\"isElevated\":false," +
                 "\"rect\":{\"x\":100,\"y\":50,\"width\":800,\"height\":600}}," +
-                "\"screenshot\":{\"path\":$path,\"width\":800,\"height\":600,\"originX\":100,\"originY\":50}," +
+                "\"screenshot\":{\"path\":\"$escapedPath\",\"width\":800,\"height\":600,\"originX\":100,\"originY\":50}," +
                 "\"roots\":[{\"automationId\":\"app:id/root\",\"name\":\"Root\",\"controlType\":\"Window\"," +
                 "\"className\":\"Window\",\"runtimeId\":\"1 42 1\"," +
                 "\"rect\":{\"x\":100,\"y\":50,\"width\":800,\"height\":600},\"children\":[" +
