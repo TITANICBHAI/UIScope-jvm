@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The MSIX manifest template for UIScope (plan P8-2). scripts/build-msix.ps1 injects the version
+  (the 4th segment is forced to 0 — the Store requires it) and copies this into the package layout.
+
+  Identity Name/Publisher are placeholders for the values Partner Center reserves when the owner
+  (P8-5) registers the product. Once reserved, do NOT change them here or in the script defaults —
+  the Store signs the package under exactly this identity.
+-->
+<Package
+    xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+    xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+    xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities">
+
+  <Identity
+      Name="UIScope"
+      Publisher="CN=TBTechs"
+      Version="@VERSION@"
+      ProcessorArchitecture="x64" />
+
+  <Properties>
+    <DisplayName>UIScope</DisplayName>
+    <PublisherDisplayName>TBTechs</PublisherDisplayName>
+    <Logo>assets\Tile150x150.png</Logo>
+  </Properties>
+
+  <Dependencies>
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.17763.0" MaxVersionTested="10.0.22621.0" />
+  </Dependencies>
+
+  <Resources>
+    <Resource Language="en-us" />
+  </Resources>
+
+  <Applications>
+    <Application Id="UIScope"
+                 Executable="UIScope.exe"
+                 EntryPoint="Windows.FullTrustApplication">
+      <uap:VisualElements
+          DisplayName="UIScope"
+          Description="Desktop &amp; Android UI Inspector: capture a UI tree and screenshot, inspect elements, build selectors."
+          BackgroundColor="transparent"
+          Square150x150Logo="assets\Tile150x150.png"
+          Square44x44Logo="assets\Tile71x71.png">
+        <uap:SplashScreen Image="assets\Tile300x300.png" />
+      </uap:VisualElements>
+    </Application>
+  </Applications>
+
+  <!-- The only capability: desktop apps inspect other processes; nothing else is requested. -->
+  <Capabilities>
+    <rescap:Capability Name="runFullTrust" />
+  </Capabilities>
+</Package>
