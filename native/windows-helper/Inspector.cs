@@ -3,14 +3,16 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
+using System.Text;
 using System.Windows.Automation;
 
 namespace UIScope.Helper
 {
     /// <summary>
-    /// UI Automation capture (plan P3-3): a cached-ish depth-first walk of one top-level window with depth/node limits,
+    /// UI Automation capture (plan P3-3): a depth-first walk of one top-level window with depth/node limits,
     /// Appendix B properties per node, and a physical-resolution screenshot via a window-rect blit. One failing
-    /// property never drops a subtree: every property read is guarded.
+    /// property never drops a subtree: every property read is guarded. Written in C# 5 so the Framework MSBuild
+    /// compiles it with its own compiler (no Roslyn, no NuGet).
     /// </summary>
     internal static class Inspector
     {
@@ -50,7 +52,7 @@ namespace UIScope.Helper
         private static string Escape(string s)
         {
             if (s == null) return "";
-            var sb = new System.Text.StringBuilder();
+            var sb = new StringBuilder();
             foreach (char c in s)
             {
                 switch (c)
@@ -78,17 +80,17 @@ namespace UIScope.Helper
             var automation = AutomationElement.FromHandle(hwnd);
             windowRect = SafeRect(automation);
             int nodeCount = 0;
-            var sb = new System.Text.StringBuilder();
-            int written = Walk(automation, 0, sb, ref nodeCount);
-            truncated = written >= MaxNodes;
+            var sb = new StringBuilder();
+            Walk(automation, 0, sb, ref nodeCount);
+            truncated = nodeCount >= MaxNodes;
             return sb.ToString();
         }
 
-        /// <summary>Depth-first walk; returns 1 when this node was emitted (plus its subtree).</summary>
-        private static int Walk(AutomationElement e, int depth, System.Text.StringBuilder sb, ref int nodeCount)
+        /// <summary>Depth-first walk; emits this node and its (expanded) subtree into sb.</summary>
+        private static void Walk(AutomationElement e, int depth, StringBuilder sb, ref int nodeCount)
         {
-            if (depth > MaxDepth) return 0;
-            if (nodeCount >= MaxNodes) return 0;
+            if (depth > MaxDepth) return;
+            if (nodeCount >= MaxNodes) return;
             nodeCount++;
 
             var rect = SafeRect(e);
@@ -113,8 +115,10 @@ namespace UIScope.Helper
                     var child = walker.GetFirstChild(e);
                     while (child != AutomationElement.None && child != null)
                     {
-                        string json = Walk(child, depth + 1, sb, ref nodeCount);
-                        if (json.Length > 0) children.Add(json);
+                        var childSb = new StringBuilder();
+                        int before = nodeCount;
+                        Walk(child, depth + 1, childSb, ref nodeCount);
+                        if (nodeCount > before) children.Add(childSb.ToString());
                         child = walker.GetNextSibling(child);
                     }
                 }
@@ -123,7 +127,6 @@ namespace UIScope.Helper
 
             if (children.Count > 0) sb.Append(",\"children\":[").Append(string.Join(",", children)).Append("]");
             sb.Append("}");
-            return 1;
         }
 
         /// <summary>The visible, titled top-level windows (Appendix J listWindows), shell and hung ones skipped.</summary>
@@ -131,7 +134,7 @@ namespace UIScope.Helper
         {
             var result = new List<IntPtr>();
             IntPtr shell = Native.GetShellWindow();
-            Native.EnumWindows((hWnd, _) =>
+            Native.EnumWindows(delegate(IntPtr hWnd, IntPtr _) 
             {
                 if (hWnd == shell) return true;
                 if (!Native.IsWindowVisible(hWnd)) return true;

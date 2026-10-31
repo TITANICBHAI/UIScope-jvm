@@ -60,10 +60,13 @@ namespace UIScope.Helper
             if (process == IntPtr.Zero) return true; // cannot even look: assume elevated
             try
             {
-                if (!OpenProcessToken(process, TOKEN_QUERY, out IntPtr token)) return true;
+                IntPtr token;
+                if (!OpenProcessToken(process, TOKEN_QUERY, out token)) return true;
                 try
                 {
-                    return GetTokenInformation(token, TokenElevation, out uint elevation, 4, out _) && elevation != 0;
+                    uint elevation;
+                    bool ok = GetTokenInformation(token, TokenElevation, out elevation, 4, out _);
+                    return ok && elevation != 0;
                 }
                 finally { CloseHandle(token); }
             }

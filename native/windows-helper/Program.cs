@@ -1,6 +1,5 @@
 using System;
 using System.Diagnostics;
-using System.Drawing;
 using System.IO;
 using System.Text;
 
@@ -10,6 +9,7 @@ namespace UIScope.Helper
     /// The UIScope Windows helper (plan P3-1, architecture decision D-WIN-1): a persistent process that owns everything
     /// touching Win32/UIA. Speaks the version-1 protocol (Appendix J): one JSON object per line on stdin, responses and
     /// events on stdout, diagnostics on stderr. Exits when stdin closes. The overlay and mouse hook arrive with P3-4.
+    /// Written in C# 5 so the Framework MSBuild compiles it with its own compiler.
     /// </summary>
     internal static class Program
     {
@@ -24,8 +24,7 @@ namespace UIScope.Helper
             while ((line = reader.ReadLine()) != null)
             {
                 string trimmed = line.Trim();
-                if (trimmed.Length == 0) continue;
-                Handle(trimmed);
+                if (trimmed.Length > 0) Handle(trimmed);
             }
             // stdin closed: exit, like the real helper must.
         }
@@ -79,11 +78,9 @@ namespace UIScope.Helper
 
         private static bool IsCurrentProcessElevated()
         {
-            using (var identity = System.Security.Principal.WindowsIdentity.GetCurrent())
-            {
-                var principal = new System.Security.Principal.WindowsPrincipal(identity);
-                return principal.IsInRole(System.Security.Principal.WindowsBuiltInRole.Administrator);
-            }
+            var identity = System.Security.Principal.WindowsIdentity.GetCurrent();
+            var principal = new System.Security.Principal.WindowsPrincipal(identity);
+            return principal.IsInRole(System.Security.Principal.WindowsBuiltInRole.Administrator);
         }
 
         private static string ListWindowsJson()
@@ -227,6 +224,10 @@ namespace UIScope.Helper
             Console.Out.Flush();
         }
 
-        private static string Q(string s) => "\"" + (s ?? "").Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\n", "\\n").Replace("\r", "\\r").Replace("\t", "\\t") + "\"";
+        private static string Q(string s)
+        {
+            if (s == null) s = "";
+            return "\"" + s.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\n", "\\n").Replace("\r", "\\r").Replace("\t", "\\t") + "\"";
+        }
     }
 }
