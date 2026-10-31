@@ -180,12 +180,17 @@ private fun dispatchHelperRequest(
             System.out.flush()
         }
         "captureWindow" -> {
-            // A real (tiny) PNG plus a 2-node Appendix B tree; the origin is the window's top-left.
+            // A real (tiny) PNG plus a 5-node Appendix B tree (root + 4 children, so the default fixture is
+            // not "sparse"); the origin is the window's top-left. P3-7's sparse-tree flag trims to 2 nodes.
             // No core imports here: the helper JVM's classpath is testFixtures + stdlib only.
             val png = java.io.File.createTempFile("uiscope-fake-helper", ".png")
             val image = java.awt.image.BufferedImage(800, 600, java.awt.image.BufferedImage.TYPE_INT_RGB)
             javax.imageio.ImageIO.write(image, "png", png)
             val escapedPath = png.absolutePath.replace("\\", "\\\\").replace("\"", "\\\"")
+            fun node(automationId: String, name: String, controlType: String, runtimeId: String, x: Int, y: Int, w: Int, h: Int) =
+                "{\"automationId\":\"$automationId\",\"name\":\"$name\",\"controlType\":\"$controlType\"," +
+                    "\"className\":\"$controlType\",\"runtimeId\":\"$runtimeId\"," +
+                    "\"rect\":{\"x\":$x,\"y\":$y,\"width\":$w,\"height\":$h}}"
             println("{\"id\":$id,\"ok\":true,\"window\":{\"hwnd\":\"0x00120a3c\",\"title\":\"Untitled - Notepad\"," +
                 "\"processName\":\"notepad.exe\",\"pid\":1234,\"isElevated\":false," +
                 "\"rect\":{\"x\":100,\"y\":50,\"width\":800,\"height\":600}}," +
@@ -193,8 +198,11 @@ private fun dispatchHelperRequest(
                 "\"roots\":[{\"automationId\":\"app:id/root\",\"name\":\"Root\",\"controlType\":\"Window\"," +
                 "\"className\":\"Window\",\"runtimeId\":\"1 42 1\"," +
                 "\"rect\":{\"x\":100,\"y\":50,\"width\":800,\"height\":600},\"children\":[" +
-                "{\"automationId\":\"app:id/ok\",\"name\":\"OK\",\"controlType\":\"Button\",\"className\":\"Button\"," +
-                "\"runtimeId\":\"1 42 2\",\"rect\":{\"x\":500,\"y\":450,\"width\":200,\"height\":60}}]}],\"truncated\":false}")
+                node("app:id/ok", "OK", "Button", "1 42 2", 500, 450, 200, 60) + "," +
+                node("app:id/cancel", "Cancel", "Button", "1 42 3", 500, 520, 200, 60) + "," +
+                node("app:id/status", "Ready", "Text", "1 42 4", 120, 60, 300, 24) + "," +
+                node("app:id/input", "Name", "Edit", "1 42 5", 120, 90, 400, 120) +
+                "]}],\"truncated\":false}")
             System.out.flush()
         }
         "hello" -> {

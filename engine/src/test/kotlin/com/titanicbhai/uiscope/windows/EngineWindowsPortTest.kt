@@ -74,8 +74,8 @@ class EngineWindowsPortTest {
         val shot = capture.screenshot
         assertTrue(shot != null && Files.exists(java.nio.file.Path.of(shot.file)),
             "the screenshot temp file exists")
-        assertEquals(2, capture.roots.sumOf { 1 + it.children.size }, "root + mapped child")
-        val child = capture.roots.single().children.single()
+        assertEquals(5, capture.roots.sumOf { 1 + it.children.size }, "root + 4 children")
+        val child = capture.roots.single().children.first { it.identifier == "app:id/ok" }
         assertEquals("app:id/ok", child.identifier)
         assertEquals("Button", child.properties["ControlType"])
         assertEquals(Bounds(500, 450, 200, 60), child.bounds)
@@ -89,13 +89,19 @@ class EngineWindowsPortTest {
         val capture = p.captureWindow("0x00120A3C").assertSuccess()
         val viewport = CaptureViewport.fit(capture.screen, 400.0, 300.0)
         // The button's capture-space centre must land on the canvas inside the fitted viewport.
-        val button = capture.roots.single().children.single()
+        val button = capture.roots.single().children.first { it.identifier == "app:id/ok" }
         val canvas = viewport.toCanvas(button.bounds)
         assertTrue(canvas.left >= 0 && canvas.right <= 400, "button fits on the canvas: $canvas")
         // And back: un-mapping the canvas centre of the button returns its capture-space centre (600, 480).
         val centre = viewport.toCapture((canvas.left + canvas.right) / 2, (canvas.top + canvas.bottom) / 2)
         assertEquals(600.0, centre.x, 0.5)
         assertEquals(480.0, centre.y, 0.5)
+        // B3 pinned absolutely — a round-trip is origin-symmetric and would not catch its loss: with the
+        // window at (100,50) and scale 1.5 the button's top-left draws at (600,600), not (750,675).
+        val pinned = CaptureViewport(originX = 100.0, originY = 50.0, scale = 1.5)
+        val absolute = pinned.toCanvas(button.bounds)
+        assertEquals(600.0, absolute.left, 0.5)
+        assertEquals(600.0, absolute.top, 0.5)
         job.cancelChildren()
     }
 
