@@ -23,6 +23,16 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
+      - name: Set up .NET (Windows helper, P3-1)
+        if: runner.os == 'Windows'
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Build Windows helper
+        if: runner.os == 'Windows'
+        run: dotnet build native/windows-helper/UIScope.Helper.csproj -c Release -o native/windows-helper/bin
+
       - name: ./gradlew check
         shell: bash
         # Compose UI tests need a display: Linux runners get xvfb, Windows runners have a desktop session.
