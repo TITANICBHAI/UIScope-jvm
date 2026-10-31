@@ -5,6 +5,7 @@ import com.titanicbhai.uiscope.StandardDispatcherProvider
 import com.titanicbhai.uiscope.model.Bounds
 import com.titanicbhai.uiscope.model.CaptureViewport
 import com.titanicbhai.uiscope.model.Target
+import com.titanicbhai.uiscope.ports.PickEvent
 import com.titanicbhai.uiscope.process.SystemProcessLauncher
 import com.titanicbhai.uiscope.testing.FakeProcess
 import com.titanicbhai.uiscope.testing.assertSuccess
@@ -26,7 +27,8 @@ import kotlinx.coroutines.withTimeout
 class EngineWindowsPortTest {
 
     private val dispatchers: DispatcherProvider = StandardDispatcherProvider(kotlinx.coroutines.Dispatchers.Default)
-    private val scope = CoroutineScope(SupervisorJob() + kotlinx.coroutines.Dispatchers.Default)
+    private val job = SupervisorJob()
+    private val scope = CoroutineScope(job + kotlinx.coroutines.Dispatchers.Default)
 
     private fun port(): EngineWindowsPort {
         val client = WindowsHelperClient(
@@ -49,7 +51,7 @@ class EngineWindowsPortTest {
         assertEquals(false, windows[0].isElevated)
         assertEquals("Taskmgr.exe", windows[1].processName)
         assertEquals(true, windows[1].isElevated)
-        scope.cancelChildren()
+        job.cancelChildren()
     }
 
     @Test
@@ -65,14 +67,15 @@ class EngineWindowsPortTest {
         assertEquals(50, capture.screen.originY)
         assertEquals(800, capture.screen.width)
         assertEquals(600, capture.screen.height)
-        assertTrue(capture.screenshot != null && Files.exists(java.nio.file.Path.of(capture.screenshot.file)),
+        val shot = capture.screenshot
+        assertTrue(shot != null && Files.exists(java.nio.file.Path.of(shot.file)),
             "the screenshot temp file exists")
         assertEquals(2, capture.roots.sumOf { 1 + it.children.size }, "root + mapped child")
         val child = capture.roots.single().children.single()
         assertEquals("app:id/ok", child.identifier)
         assertEquals("Button", child.properties["ControlType"])
         assertEquals(Bounds(500, 450, 200, 60), child.bounds)
-        scope.cancelChildren()
+        job.cancelChildren()
     }
 
     @Test
@@ -89,7 +92,7 @@ class EngineWindowsPortTest {
         val centre = viewport.toCapture((canvas.left + canvas.right) / 2, (canvas.top + canvas.bottom) / 2)
         assertEquals(500.0, centre.x, 0.5)
         assertEquals(500.0, centre.y, 0.5)
-        scope.cancelChildren()
+        job.cancelChildren()
     }
 
     @Test
@@ -111,7 +114,7 @@ class EngineWindowsPortTest {
         assertTrue(pickResult.element.automationId == "app:id/ok")
         collector.cancel()
         collector2.cancel()
-        scope.cancelChildren()
+        job.cancelChildren()
     }
 
     @Test
@@ -120,6 +123,6 @@ class EngineWindowsPortTest {
         p.connect().assertSuccess()
         val capture = p.captureWindow("0x00120A3C").assertSuccess()
         assertTrue(capture.warnings.isEmpty(), "the fixture is not truncated")
-        scope.cancelChildren()
+        job.cancelChildren()
     }
 }
