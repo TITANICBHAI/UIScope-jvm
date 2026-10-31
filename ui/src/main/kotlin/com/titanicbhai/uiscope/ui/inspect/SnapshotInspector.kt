@@ -17,6 +17,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -30,6 +31,8 @@ import com.titanicbhai.uiscope.snapshot.LoadedSnapshot
 import com.titanicbhai.uiscope.ui.theme.UiScopeTokens
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /** Every container path in the node's own subtree (the SnapshotInspector's expand-subtree set). */
 private fun subtreeOf(index: ElementIndex, path: ElementPath): Set<ElementPath> {
@@ -61,7 +64,10 @@ fun SnapshotInspector(
     modifier: Modifier = Modifier,
 ) {
     val capture = loaded.capture
-    val index = remember(capture) { ElementIndex(capture) }
+    // P7-4: the index is computed once, off the UI thread — never during composition.
+    val index by produceState<ElementIndex?>(initialValue = null, capture) {
+        value = withContext(Dispatchers.Default) { ElementIndex(capture) }
+    }
     var selected by remember(capture) { mutableStateOf<ElementPath?>(null) }
     var expanded by remember(capture) { mutableStateOf(setOf(ElementPath.root(0))) }
     var testHighlight by remember(capture) { mutableStateOf<TestHighlight?>(null) }
@@ -91,11 +97,11 @@ fun SnapshotInspector(
                 selected = selected,
                 onToggleExpanded = { path -> expanded = if (path in expanded) expanded - path else expanded + path },
                 onSelect = { path -> selected = path },
-                onExpandAll = { expanded = index.nodes.filter { it.children.isNotEmpty() }.map { it.path }.toSet() },
+                onExpandAll = { expanded = index?.nodes?.filter { it.children.isNotEmpty() }?.map { it.path }?.toSet() ?: expanded },
                 onCollapseAll = { expanded = emptySet() },
-                onExpandSubtree = { path -> expanded = expanded + subtreeOf(index, path) },
-                onCollapseSubtree = { path -> expanded = expanded - subtreeOf(index, path) },
-                duplicateIds = { index.hasDuplicateIdentifier(it) },
+                onExpandSubtree = { path -> expanded = expanded + (index?.let { subtreeOf(it, path) } ?: emptySet()) },
+                onCollapseSubtree = { path -> expanded = expanded - (index?.let { subtreeOf(it, path) } ?: emptySet()) },
+                duplicateIds = { node -> index?.hasDuplicateIdentifier(node) == true },
                 searchFocusRequester = searchFocus,
                 modifier = Modifier.width(320.dp).fillMaxHeight(),
             )
@@ -110,7 +116,7 @@ fun SnapshotInspector(
                 )
             }
             DetailsPane(
-                node = selected?.let { path -> index.byPath[path] },
+                node = selected?.let { path -> index?.byPath?.get(path) },
                 path = selected,
                 index = index,
                 onTestHighlight = { testHighlight = it },

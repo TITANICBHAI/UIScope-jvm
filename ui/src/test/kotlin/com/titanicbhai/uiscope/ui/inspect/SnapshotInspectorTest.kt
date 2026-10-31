@@ -1,7 +1,9 @@
 package com.titanicbhai.uiscope.ui.inspect
 
+import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.titanicbhai.uiscope.model.Bounds
@@ -18,7 +20,9 @@ import org.junit.Rule
 import org.junit.Test
 import kotlin.test.assertEquals
 
-/** P5-1: opening a snapshot reproduces the tree offline under the "not live" banner. */
+/** P5-1: opening a snapshot reproduces the tree offline under the "not live" banner. The index is built off the
+ *  UI thread (P7-4), so the tree content is awaited instead of asserted immediately. */
+@OptIn(ExperimentalTestApi::class)
 class SnapshotInspectorTest {
 
     @get:Rule
@@ -71,6 +75,7 @@ class SnapshotInspectorTest {
         }
         rule.onNodeWithText("not live", substring = true).assertIsDisplayed()
         rule.onNodeWithText("Notepad - the save", substring = true).assertIsDisplayed()
+        rule.waitUntil(5_000) { rule.onAllNodesWithText("OK").fetchSemanticsNodes().isNotEmpty() }
         rule.onNodeWithText("OK").assertIsDisplayed()
         rule.onNodeWithText("Close snapshot").performClick()
         rule.waitForIdle()

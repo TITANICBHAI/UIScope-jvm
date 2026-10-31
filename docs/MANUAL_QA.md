@@ -75,6 +75,7 @@ hugs the element, a click is *not* delivered to the app underneath, and the pick
 6. Install the MSIX (sideload) on a clean user account or VM, run the core loop, then uninstall. **Pass if** there are no errors and nothing is left behind.
 7. In Windows *Installed apps*, check the entry. **Pass if** the name is "UIScope" and the publisher is "TBTechs".
 8. If the crash dialog ever appears (P7-2): **Pass if** *Copy diagnostics* puts the build info and the stack trace on the clipboard, and *Restart* brings up a fresh UIScope window.
+9. Performance pass (P7-4, Appendix F budgets): on your machine, open a 3k-node and a 10k-node capture; check scroll/selection/zoom smoothness and the cold-start time, then record the numbers in `docs/perf.md` with the hardware noted.
 
 ## Round 5 additions — storage, bundles, update check (needs the app wired, or a developer console)
 
