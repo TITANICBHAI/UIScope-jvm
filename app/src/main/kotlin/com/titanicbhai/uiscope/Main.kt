@@ -30,9 +30,14 @@ import com.titanicbhai.uiscope.adb.EngineAdbPort
 import com.titanicbhai.uiscope.adb.PlatformToolsManifestData
 import com.titanicbhai.uiscope.adb.SettingsAdbPathStore
 import com.titanicbhai.uiscope.error.AppError
+import com.titanicbhai.uiscope.error.CodedError
+import com.titanicbhai.uiscope.error.ErrorCodes
 import com.titanicbhai.uiscope.error.Outcome
 import com.titanicbhai.uiscope.error.map
 import com.titanicbhai.uiscope.logging.LoggingSetup
+import com.titanicbhai.uiscope.model.Capture
+import com.titanicbhai.uiscope.model.ElementIndex
+import com.titanicbhai.uiscope.model.ElementPath
 import com.titanicbhai.uiscope.process.JdkNetworkGateway
 import com.titanicbhai.uiscope.process.SystemProcessLauncher
 import com.titanicbhai.uiscope.process.SystemProcessRunner
@@ -41,9 +46,14 @@ import com.titanicbhai.uiscope.ui.firstrun.AdbDownloadActions
 import com.titanicbhai.uiscope.ui.firstrun.FirstRunCallbacks
 import com.titanicbhai.uiscope.ui.firstrun.FirstRunScreen
 import com.titanicbhai.uiscope.ui.help.HelpScreen
+import com.titanicbhai.uiscope.ui.inspect.ExportActions
+import com.titanicbhai.uiscope.ui.inspect.ExportDialog
 import com.titanicbhai.uiscope.ui.inspect.InspectCallbacks
 import com.titanicbhai.uiscope.ui.inspect.InspectScreen
+import com.titanicbhai.uiscope.ui.inspect.SnapshotInspector
 import com.titanicbhai.uiscope.ui.inspect.WindowsCallbacks
+import com.titanicbhai.uiscope.ui.snapshots.SnapshotCallbacks
+import com.titanicbhai.uiscope.ui.snapshots.SnapshotsScreen
 import com.titanicbhai.uiscope.ui.settings.SettingsScreen
 import com.titanicbhai.uiscope.ui.shell.AppShell
 import com.titanicbhai.uiscope.update.UpdateCheck
@@ -56,6 +66,7 @@ import com.titanicbhai.uiscope.ui.shell.ToastState
 import com.titanicbhai.uiscope.ui.shell.WindowPlacementMath
 import com.titanicbhai.uiscope.ui.shell.rememberShellDialogState
 import com.titanicbhai.uiscope.ui.shell.rememberToastState
+import com.titanicbhai.uiscope.snapshot.LoadedSnapshot
 import com.titanicbhai.uiscope.snapshot.RetainingSnapshotStore
 import com.titanicbhai.uiscope.snapshot.retentionPolicy
 import com.titanicbhai.uiscope.state.AndroidInspectState
@@ -100,6 +111,49 @@ private fun browseForAdb(window: java.awt.Frame, settings: com.titanicbhai.uisco
 /** Reported by [RetainingSnapshotStore] when the post-save cleanup fails; logged with context, never swallowed. */
 private fun logRetentionError(error: AppError) {
     shellLogger.log(Level.WARNING, "retention cleanup failed: code={0}, detail={1}", arrayOf(error.code, error.detail))
+}
+
+private val exportLogger = Logger.getLogger("uiscope.export")
+
+/** The native Save dialog on the event thread (same pattern as the adb browser); null means the user cancelled. */
+private fun chooseSaveFile(window: java.awt.Frame, suggestedName: String): Path? {
+    val dialog = java.awt.FileDialog(window, "Export", java.awt.FileDialog.SAVE)
+    dialog.file = suggestedName
+    dialog.isVisible = true
+    return dialog.file?.let { Path.of(dialog.directory, it) }
+}
+
+private fun chooseOpenFile(window: java.awt.Frame): Path? {
+    val dialog = java.awt.FileDialog(window, "Import a .uiscope bundle", java.awt.FileDialog.LOAD)
+    dialog.isVisible = true
+    return dialog.file?.let { Path.of(dialog.directory, it) }
+}
+
+/** The PNG export (4.8): the screenshot with the selected element outlined, origin subtracted (P3-5). */
+private suspend fun renderPngWithOutline(capture: Capture, index: ElementIndex?, selected: ElementPath?): ByteArray? = withContext(Dispatchers.IO) {
+    val shot = capture.screenshot ?: return@withContext null
+    val image = try {
+        javax.imageio.ImageIO.read(java.io.File(shot.file))
+    } catch (t: Throwable) {
+        exportLogger.warning("the screenshot could not be read for the PNG export: " + t.javaClass.simpleName)
+        return@withContext null
+    }
+    val node = selected?.let { index?.byPath?.get(it) }
+    if (node != null) {
+        val graphics = image.createGraphics()
+        graphics.color = java.awt.Color(230, 57, 70)
+        graphics.stroke = java.awt.BasicStroke(3f)
+        graphics.drawRect(
+            node.bounds.x - capture.screen.originX,
+            node.bounds.y - capture.screen.originY,
+            node.bounds.width,
+            node.bounds.height,
+        )
+        graphics.dispose()
+    }
+    val out = java.io.ByteArrayOutputStream()
+    javax.imageio.ImageIO.write(image, "png", out)
+    out.toByteArray()
 }
 
 /** One line for the status bar's left slot (plan §4.1): what the Android side is doing right now. */
@@ -313,6 +367,8 @@ fun main() {
                 }
             }
             var screen by remember { mutableStateOf(ShellScreen.INSPECT) }
+            var exportOpen by remember { mutableStateOf(false) }
+            val openSnapshot = remember { mutableStateOf<LoadedSnapshot?>(null) }
             val status = if (settingsState.lastTarget == InspectTarget.WINDOWS && windowsInspect != null) {
                 ShellStatus(
                     target = windowsStatusLine(windowsInspect),
@@ -337,7 +393,12 @@ fun main() {
                     dialogs = dialogs,
                 ) {
                     when (screen) {
-                        ShellScreen.INSPECT -> InspectScreen(
+                        ShellScreen.INSPECT -> {
+                            val snap = openSnapshot.value
+                            if (snap != null) {
+                                SnapshotInspector(loaded = snap, onClose = { openSnapshot.value = null })
+                            } else {
+                                InspectScreen(
                             ui = inspect,
                             target = settingsState.lastTarget,
                             windowsPcAvailable = FeatureFlags.forHost().windowsPc,
@@ -362,6 +423,21 @@ fun main() {
                                 onSetDetailsPaneWidth = { width ->
                                     settings.update { current -> current.copy(detailsPaneWidth = width) }
                                 },
+                                onSaveSnapshot = {
+                                    scope.launch {
+                                        val cap = if (settingsState.lastTarget == InspectTarget.WINDOWS) windowsInspect?.capture else inspect.capture
+                                        val store = snapshotsReady.value
+                                        if (cap == null || store == null) {
+                                            toasts.showError("Capture something first.")
+                                        } else {
+                                            when (val saved = store.save(cap)) {
+                                                is Outcome.Success -> toasts.show("Snapshot saved.")
+                                                is Outcome.Failure -> toasts.showError("Could not save the snapshot (${saved.error.code}).")
+                                            }
+                                        }
+                                    }
+                                },
+                                onExport = { exportOpen = true },
                             ),
                             windows = windowsInspect,
                             windowsCallbacks = WindowsCallbacks(
@@ -383,10 +459,31 @@ fun main() {
                                     settings.update { current -> current.copy(detailsPaneWidth = width) }
                                 },
                             ),
-                            treePaneWidth = settingsState.treePaneWidth,
-                            detailsPaneWidth = settingsState.detailsPaneWidth,
+                                treePaneWidth = settingsState.treePaneWidth,
+                                detailsPaneWidth = settingsState.detailsPaneWidth,
+                            )
+                            }
+                        }
+                        ShellScreen.SNAPSHOTS -> SnapshotsScreen(
+                            store = snapshotsReady.value,
+                            callbacks = SnapshotCallbacks(
+                                onMessage = { toasts.show(it) },
+                                onOpenInInspector = { loaded ->
+                                    openSnapshot.value = loaded
+                                    screen = ShellScreen.INSPECT
+                                },
+                                exportBundle = { id, target ->
+                                    bundles.value?.export(id, target)
+                                        ?: Outcome.Failure(CodedError(ErrorCodes.UNEXPECTED, "bundles are not ready"))
+                                },
+                                importBundle = { source ->
+                                    bundles.value?.import(source)
+                                        ?: Outcome.Failure(CodedError(ErrorCodes.UNEXPECTED, "bundles are not ready"))
+                                },
+                                pickExportFile = { name -> chooseSaveFile(window, name) },
+                                pickImportFile = { chooseOpenFile(window) },
+                            ),
                         )
-                        ShellScreen.SNAPSHOTS -> PlaceholderScreen("Snapshots", "P5-1")
                         ShellScreen.SETTINGS -> SettingsScreen(
                             settings = settings,
                             appInfo = appInfo,
@@ -421,6 +518,40 @@ fun main() {
                             },
                         )
                         ShellScreen.HELP -> HelpScreen(appInfo = appInfo, onReplayFirstRun = { settings.update { it.copy(firstRunDone = false) } })
+                    }
+                }
+                if (exportOpen) {
+                    val fromWindows = settingsState.lastTarget == InspectTarget.WINDOWS
+                    val cap = if (fromWindows) windowsInspect?.capture else inspect.capture
+                    if (cap != null) {
+                        ExportDialog(
+                            capture = cap,
+                            index = if (fromWindows) windowsInspect?.index else inspect.index,
+                            selected = if (fromWindows) windowsInspect?.selected else inspect.selected,
+                            defaultFormat = settingsState.defaultExportFormat,
+                            appVersion = appInfo.version,
+                            actions = ExportActions(
+                                saveAs = { name, bytes ->
+                                    val target = withContext(Dispatchers.Main) { chooseSaveFile(window, name) }
+                                    if (target == null) {
+                                        Outcome.Success(Unit) // the user cancelled the dialog: neither an error nor a message
+                                    } else {
+                                        withContext(Dispatchers.IO) {
+                                            try {
+                                                java.nio.file.Files.write(target, bytes)
+                                                Outcome.Success(Unit)
+                                            } catch (t: Throwable) {
+                                                exportLogger.warning("the export could not be written: " + t.javaClass.simpleName)
+                                                Outcome.Failure(CodedError(ErrorCodes.UNEXPECTED, t.message))
+                                            }
+                                        }
+                                    }
+                                },
+                                renderPng = { c, sel -> renderPngWithOutline(c, if (fromWindows) windowsInspect?.index else inspect.index, sel) },
+                            ),
+                            onDismiss = { exportOpen = false },
+                            onMessage = { toasts.show(it) },
+                        )
                     }
                 }
             }

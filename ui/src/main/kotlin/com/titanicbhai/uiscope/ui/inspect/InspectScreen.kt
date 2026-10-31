@@ -89,6 +89,8 @@ data class InspectCallbacks(
     val onSetTarget: (InspectTarget) -> Unit = {},
     val onSetTreePaneWidth: (Int) -> Unit = {},
     val onSetDetailsPaneWidth: (Int) -> Unit = {},
+    val onSaveSnapshot: () -> Unit = {},
+    val onExport: () -> Unit = {},
 )
 
 /** The same for the Windows target; the shell wires these to the WindowsInspectState holder. */
@@ -166,6 +168,9 @@ fun InspectScreen(
                     }
                     event.key == Key.F && event.ctrl() -> {
                         searchFocus.requestFocus(); true
+                    }
+                    event.key == Key.S && event.ctrl() -> {
+                        callbacks.onSaveSnapshot(); true
                     }
                     event.key == Key.C && event.ctrl() && event.shift() -> {
                         val index = if (windowsTarget) windows?.index else ui.index
@@ -490,6 +495,11 @@ private fun TargetBar(
                 if (target == InspectTarget.WINDOWS && windows != null) {
                     WindowsControls(windows, windowsCallbacks)
                 }
+                val capturePresent = if (target == InspectTarget.WINDOWS) windows?.capture != null else ui.capture != null
+                if (capturePresent) {
+                    OutlinedButton(onClick = { callbacks.onSaveSnapshot() }) { Text("Save snapshot") }
+                    OutlinedButton(onClick = { callbacks.onExport() }) { Text("Export...") }
+                }
             }
         }
     }
@@ -600,9 +610,9 @@ private fun Splitter(onDrag: (Dp) -> Unit, onDragEnd: () -> Unit) {
     )
 }
 
-/** Selector | Properties | Path (plan 4.5/4.6); the selector and code tab arrives with P4-6. */
+/** Selector | Properties | Path (plan 4.5/4.6); shared with the offline snapshot inspector (P5-1). */
 @Composable
-private fun DetailsPane(
+internal fun DetailsPane(
     node: ElementNode?,
     path: ElementPath?,
     index: com.titanicbhai.uiscope.model.ElementIndex?,
