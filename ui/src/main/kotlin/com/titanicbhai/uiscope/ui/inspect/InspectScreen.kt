@@ -185,10 +185,10 @@ fun InspectScreen(
 /** Builds the AppError the copy layer needs; the detail stays empty - the codes carry the meaning (Appendix A). */
 /** The AWT modifiers of a key event (the desktop KeyEvent has no keyboardModifiers extensions). */
 private fun androidx.compose.ui.input.key.KeyEvent.ctrl(): Boolean =
-    (nativeEvent as? java.awt.event.InputEvent)?.modifiersEx?.and(java.awt.event.InputEvent.CTRL_DOWN_MASK) != 0
+    (nativeKeyEvent as? java.awt.event.InputEvent)?.modifiersEx?.and(java.awt.event.InputEvent.CTRL_DOWN_MASK) != 0
 
 private fun androidx.compose.ui.input.key.KeyEvent.shift(): Boolean =
-    (nativeEvent as? java.awt.event.InputEvent)?.modifiersEx?.and(java.awt.event.InputEvent.SHIFT_DOWN_MASK) != 0
+    (nativeKeyEvent as? java.awt.event.InputEvent)?.modifiersEx?.and(java.awt.event.InputEvent.SHIFT_DOWN_MASK) != 0
 
 private fun AppErrorFor(code: String, detail: String?): AppError = CodedError(code, detail)
 

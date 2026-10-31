@@ -69,10 +69,10 @@ data class TreeRow(val path: ElementPath, val depth: Int, val hasChildren: Boole
 
 /** The AWT modifiers of a key event (the desktop KeyEvent has neither keyboardModifiers nor the pointer isXxxPressed extensions). */
 private fun androidx.compose.ui.input.key.KeyEvent.alt(): Boolean =
-    (nativeEvent as? java.awt.event.InputEvent)?.modifiersEx?.and(java.awt.event.InputEvent.ALT_DOWN_MASK) != 0
+    (nativeKeyEvent as? java.awt.event.InputEvent)?.modifiersEx?.and(java.awt.event.InputEvent.ALT_DOWN_MASK) != 0
 
 private fun androidx.compose.ui.input.key.KeyEvent.shift(): Boolean =
-    (nativeEvent as? java.awt.event.InputEvent)?.modifiersEx?.and(java.awt.event.InputEvent.SHIFT_DOWN_MASK) != 0
+    (nativeKeyEvent as? java.awt.event.InputEvent)?.modifiersEx?.and(java.awt.event.InputEvent.SHIFT_DOWN_MASK) != 0
 
 /** Pre-order walk that only descends into expanded subtrees; parents before children, paint order within a level. */
 fun visibleRows(index: ElementIndex, expanded: Set<ElementPath>): List<TreeRow> {
