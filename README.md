@@ -7,7 +7,7 @@ tree, a screenshot with live element highlighting, per-element properties, selec
 frameworks, and snapshots you can re-open offline or export. The **Compare** screen diffs any two captures —
 live vs snapshot or snapshot vs snapshot — with added/removed/changed/moved browsing and JSON or text export.
 
-> **Status: 1.0.0.** The app was rebuilt from the ground up; the previous implementation is gone
+> **Status: 1.0.1.** The app was rebuilt from the ground up; the previous implementation is gone
 > (`git log` keeps it). Microsoft Store submission and the first tagged release are the remaining owner steps.
 
 ## Install

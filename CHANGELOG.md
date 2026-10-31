@@ -3,7 +3,7 @@
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/); versions follow [Semantic Versioning](https://semver.org/).
 Nothing has been released yet. Entries below describe only what exists in the code today.
 
-## [1.0.0] — unreleased
+## [1.0.1] — unreleased (the first tagged release; 1.0.0 was never published)
 
 ### Added
 - Rebuilt foundations: multi-module build with a JDK 21 toolchain, CI (Windows and Linux), detekt rules against empty and swallowed catch blocks.
