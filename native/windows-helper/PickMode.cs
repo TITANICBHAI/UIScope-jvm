@@ -119,7 +119,7 @@ namespace UIScope.Helper
             mouseHook = IntPtr.Zero;
         }
 
-        private void OnHoverTick()
+        private void OnHoverTick(object sender, EventArgs e)
         {
             if (finished) return;
             // Esc is polled, never hooked (plan: no keyboard hooks).
@@ -130,7 +130,7 @@ namespace UIScope.Helper
             }
             var cursor = Cursor.Position;
             AutomationElement element = null;
-            try { element = AutomationElement.FromPoint(new Point(cursor.X, cursor.Y)); }
+            try { element = AutomationElement.FromPoint(new System.Windows.Point(cursor.X, cursor.Y)); }
             catch { element = null; }
             if (element == null) return;
 

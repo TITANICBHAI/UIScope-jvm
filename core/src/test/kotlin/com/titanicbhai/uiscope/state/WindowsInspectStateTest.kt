@@ -78,6 +78,10 @@ class WindowsInspectStateTest {
 
         override fun pickEvents(): Flow<PickEvent> = pickFeed
 
+        override suspend fun registerHotkey(modifiers: String, key: String): Outcome<Unit> = Outcome.Success(Unit)
+
+        override suspend fun unregisterHotkey(): Outcome<Unit> = Outcome.Success(Unit)
+
         companion object {
             val notepadStatic = WindowInfoType("0x00120A3C", "Untitled - Notepad", "notepad.exe", 1234, false)
             val elevatedStatic = WindowInfoType("0x0000BEEF", "Task Manager", "Taskmgr.exe", 99, true)

@@ -69,7 +69,7 @@ namespace UIScope.Helper
             var thread = new Thread(delegate()
             {
                 var session = new PickSession(
-                    delegate(PickedElement element, IntPtr hwnd)
+                    delegate(PickedElementInfo element, IntPtr hwnd)
                     {
                         EmitLine("--demo-pick: picked from window " + hwnd.ToInt64().ToString("x8"));
                         done.Set();
@@ -84,7 +84,7 @@ namespace UIScope.Helper
             });
             thread.SetApartmentState(ApartmentState.STA);
             thread.Start();
-            done.Wait(60_000);
+            done.Wait(60000);
             thread.Join(2000);
         }
 
@@ -130,7 +130,7 @@ namespace UIScope.Helper
                         {
                             if (pickSession != null) pickSession.Stop();
                             pickSession = new PickSession(
-                                delegate(PickedElement element, IntPtr hwnd) { /* the event line is already emitted */ },
+                                delegate(PickedElementInfo element, IntPtr hwnd) { /* the event line is already emitted */ },
                                 delegate { /* cancelled: the event line is already emitted */ });
                             pickSession.Start(true);
                         }));
