@@ -80,7 +80,9 @@ fun SnapshotInspector(
                 try {
                     searchFocus.requestFocus()
                     return@LaunchedEffect
-                } catch (_: IllegalStateException) {
+                } catch (notAttached: IllegalStateException) {
+                    // Only the not-yet-attached race is tolerated; anything else propagates.
+                    if (notAttached.message?.contains("FocusRequester") != true) throw notAttached
                     kotlinx.coroutines.delay(50)
                 }
             }
