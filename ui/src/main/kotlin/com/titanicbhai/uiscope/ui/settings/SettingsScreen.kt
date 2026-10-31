@@ -14,6 +14,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -44,6 +45,7 @@ import com.titanicbhai.uiscope.settings.Renderer
 import com.titanicbhai.uiscope.settings.SettingsStore
 import com.titanicbhai.uiscope.settings.ThemeMode
 import com.titanicbhai.uiscope.snapshot.SnapshotStore
+import com.titanicbhai.uiscope.snapshot.StorageUsage
 import com.titanicbhai.uiscope.ui.theme.UiScopeTokens
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -77,11 +79,11 @@ fun SettingsScreen(
     var consentNote by remember { mutableStateOf<String?>(null) }
     var downloading by remember { mutableStateOf(false) }
     val ioScope = remember { CoroutineScope(SupervisorJob() + Dispatchers.IO) }
-    val storageUsed = produceState<String?>(initialValue = null, snapshots) {
+    val storageUsage = produceState<StorageUsage?>(initialValue = null, snapshots) {
         if (snapshots != null) {
             when (val usage = snapshots.usage()) {
-                is Outcome.Success -> value = "${usage.value.count} snapshots, ${(usage.value.bytes + 512) / (1024 * 1024)} MB on disk"
-                is Outcome.Failure -> value = "Storage usage is unavailable (${usage.error.code})"
+                is Outcome.Success -> value = usage.value
+                is Outcome.Failure -> value = null
             }
         }
     }
@@ -138,7 +140,25 @@ fun SettingsScreen(
             SettingSlider("Retention size cap (MB)", (current.retentionBytes / (1024.0 * 1024.0)).toFloat(), 50f..4096f, steps = 0, display = { "${it.toInt()} MB" }) { value ->
                 settings.update { it.copy(retentionBytes = value.toInt().toLong() * 1024 * 1024) }
             }
-            storageUsed.value?.let { Text("Storage used: $it", style = MaterialTheme.typography.bodySmall) }
+            val usage = storageUsage.value
+            if (usage != null) {
+                // P5-3: the meter is against the configured byte cap; pinned snapshots are exempt from it (P1-7).
+                val capBytes = current.retentionBytes.coerceAtLeast(1)
+                val usedFraction = (usage.bytes.toDouble() / capBytes).coerceIn(0.0, 1.0)
+                Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(UiScopeTokens.spaceXs)) {
+                    LinearProgressIndicator(
+                        progress = { usedFraction.toFloat() },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Text(
+                        "${usage.count} snapshots - ${(usage.bytes + 512) / (1024 * 1024)} MB of ${current.retentionBytes / (1024 * 1024)} MB" +
+                            if (usage.pinnedCount > 0) " (${usage.pinnedCount} pinned are exempt)" else "",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+            } else {
+                Text("Storage usage is unavailable.", style = MaterialTheme.typography.bodySmall)
+            }
             Row(horizontalArrangement = Arrangement.spacedBy(UiScopeTokens.spaceS)) {
                 OutlinedButton(onClick = onOpenSnapshots) { Text("Open folder") }
                 OutlinedButton(onClick = { snapshots?.let { store -> ioScope.launch { store.clearAll() } } }) { Text("Clear all") }
