@@ -207,19 +207,7 @@ fun SettingsScreen(
             Text("Android is a trademark of Google LLC. Windows is a trademark of Microsoft Corporation. Not affiliated with or endorsed by either.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             var noticesProblem by remember { mutableStateOf<String?>(null) }
             Row(horizontalArrangement = Arrangement.spacedBy(UiScopeTokens.spaceS)) {
-                OutlinedButton(onClick = {
-                    try {
-                        // The notices ship inside the app image; open a copy from the OS temp dir.
-                        val source = SettingsScreen::class.java.getResourceAsStream("/THIRD_PARTY_NOTICES.md")
-                            ?: throw java.io.IOException("not found on the classpath")
-                        val copy = java.io.File.createTempFile("uiscope-notices", ".md")
-                        source.use { input -> copy.outputStream().use { input.copyTo(it) } }
-                        java.awt.Desktop.getDesktop().open(copy)
-                        noticesProblem = null
-                    } catch (t: Throwable) {
-                        noticesProblem = "The notices file could not be opened in this build (" + t.javaClass.simpleName + ")."
-                    }
-                }) { Text("Third-party notices") }
+                OutlinedButton(onClick = { noticesProblem = openThirdPartyNotices() }) { Text("Third-party notices") }
             }
             noticesProblem?.let { problem ->
                 Text(problem, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
@@ -268,6 +256,18 @@ fun SettingsScreen(
 }
 
 @Composable
+/** Copies the shipped notices to a temp file and opens it; returns the failure cause for the About screen (or null). */
+private fun openThirdPartyNotices(): String? = try {
+    val source = SettingsScreen::class.java.getResourceAsStream("/THIRD_PARTY_NOTICES.md")
+        ?: throw java.io.IOException("not found on the classpath")
+    val copy = java.io.File.createTempFile("uiscope-notices", ".md")
+    source.use { input -> copy.outputStream().use { input.copyTo(it) } }
+    java.awt.Desktop.getDesktop().open(copy)
+    null
+} catch (t: Throwable) {
+    "The notices file could not be opened in this build (" + t.javaClass.simpleName + ")."
+}
+
 private fun SettingsSection(title: String, content: @Composable () -> Unit) {
     Surface(color = MaterialTheme.colorScheme.surfaceVariant, modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(UiScopeTokens.spaceM), verticalArrangement = Arrangement.spacedBy(UiScopeTokens.spaceS)) {
