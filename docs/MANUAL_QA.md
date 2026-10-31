@@ -74,6 +74,7 @@ hugs the element, a click is *not* delivered to the app underneath, and the pick
 5. Shrink the window to its smallest size. **Pass if** nothing is cut off and the toolbar has an overflow menu.
 6. Install the MSIX (sideload) on a clean user account or VM, run the core loop, then uninstall. **Pass if** there are no errors and nothing is left behind.
 7. In Windows *Installed apps*, check the entry. **Pass if** the name is "UIScope" and the publisher is "TBTechs".
+8. If the crash dialog ever appears (P7-2): **Pass if** *Copy diagnostics* puts the build info and the stack trace on the clipboard, and *Restart* brings up a fresh UIScope window.
 
 ## Round 5 additions — storage, bundles, update check (needs the app wired, or a developer console)
 
