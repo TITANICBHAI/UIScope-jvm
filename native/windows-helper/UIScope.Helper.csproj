@@ -20,6 +20,7 @@
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
     <Reference Include="UIAutomationClient" />
     <Reference Include="UIAutomationTypes" />
     <Reference Include="WindowsBase" />
@@ -28,6 +29,8 @@
     <Compile Include="Program.cs" />
     <Compile Include="Native.cs" />
     <Compile Include="Inspector.cs" />
+    <Compile Include="Host.cs" />
+    <Compile Include="PickMode.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
 </Project>

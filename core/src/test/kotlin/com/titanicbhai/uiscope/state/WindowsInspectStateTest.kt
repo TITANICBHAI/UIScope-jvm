@@ -222,6 +222,19 @@ class WindowsInspectStateTest {
     }
 
     @Test
+    fun `the hotkey event starts a pick when idle`() = kotlinx.coroutines.runBlocking {
+        val s = state()
+        s.start()
+        s.awaitState("Idle") { it is WindowsState.Idle }
+        port.pickFeed.emit(PickEvent.HotkeyPressed)
+        s.awaitState("Picking via hotkey") { it is WindowsState.Picking }
+        assertTrue(s.ui.value.picking)
+        s.cancelPick()
+        s.stop()
+        job.cancelChildren()
+    }
+
+    @Test
     fun `refresh keeps the selection when the element still exists`() = kotlinx.coroutines.runBlocking {
         val s = state()
         s.start()

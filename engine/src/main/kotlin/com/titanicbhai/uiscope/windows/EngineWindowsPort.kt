@@ -67,6 +67,17 @@ class EngineWindowsPort(
         is Outcome.Success -> Outcome.Success(Unit)
     }
 
+    override suspend fun registerHotkey(modifiers: String, key: String): Outcome<Unit> =
+        when (val r = client.request("registerHotkey", mapOf("modifiers" to modifiers, "key" to key))) {
+            is Outcome.Failure -> r
+            is Outcome.Success -> Outcome.Success(Unit)
+        }
+
+    override suspend fun unregisterHotkey(): Outcome<Unit> = when (val r = client.request("unregisterHotkey")) {
+        is Outcome.Failure -> r
+        is Outcome.Success -> Outcome.Success(Unit)
+    }
+
     override fun pickEvents(): Flow<PickEvent> = client.events.map { event ->
         when (event.name) {
             "pickHover" -> PickEvent.Hover(
@@ -77,6 +88,7 @@ class EngineWindowsPort(
                 hwnd = (event.payload["hwnd"] as? String) ?: "",
                 element = pickedElement(event.payload),
             )
+            "hotkey" -> PickEvent.HotkeyPressed
             else -> PickEvent.Cancelled
         }
     }

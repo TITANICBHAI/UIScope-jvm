@@ -117,6 +117,18 @@ class EngineWindowsPortTest {
     }
 
     @Test
+    fun `registerHotkey succeeds and surfaces HOTKEY_IN_USE when taken`() = blocking {
+        val p = port()
+        p.connect().assertSuccess()
+        p.registerHotkey("ctrl+alt", "p").assertSuccess()
+        val taken = p.registerHotkey("ctrl+alt", "p")
+        assertTrue(taken is Outcome.Failure && taken.error.code == ErrorCodes.HOTKEY_IN_USE, "in-use surfaces: $taken")
+        p.unregisterHotkey().assertSuccess()
+        p.registerHotkey("ctrl+alt", "p").assertSuccess()
+        job.cancelChildren()
+    }
+
+    @Test
     fun `untruncated captures carry no warnings`() = blocking {
         val p = port()
         p.connect().assertSuccess()

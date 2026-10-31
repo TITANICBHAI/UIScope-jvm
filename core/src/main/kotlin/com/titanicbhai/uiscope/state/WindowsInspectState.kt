@@ -76,6 +76,12 @@ class WindowsInspectState(
                     copy(state = WindowsState.Idle, windows = windows.value, problem = null)
                 }
             }
+            // The hotkey event can arrive at any time (plan P3-6): it starts a pick when idle.
+            port.pickEvents().collect { event ->
+                if (event is PickEvent.HotkeyPressed && !capturing.get() && !state.value.picking) {
+                    startPick()
+                }
+            }
         }
     }
 
@@ -221,6 +227,12 @@ class WindowsInspectState(
             mutate { copy(picking = false, hoverLabel = null, state = WindowsState.Idle) }
         }
     }
+
+    /** Registers (or removes) the pick hotkey. The failure carries HOTKEY_IN_USE when the combination is taken (P3-6). */
+    suspend fun setHotkey(enabled: Boolean, modifiers: String, key: String): Outcome<Unit> =
+        withContext(dispatchers.io) {
+            if (enabled) port.registerHotkey(modifiers, key) else port.unregisterHotkey()
+        }
 
     @Volatile private var pendingPickElement: com.titanicbhai.uiscope.ports.PickedElement? = null
 

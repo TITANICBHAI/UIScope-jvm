@@ -30,6 +30,9 @@ sealed interface PickEvent {
     /** The user picked: [hwnd] is the top-level window to capture. */
     data class Result(val hwnd: String, val element: PickedElement) : PickEvent
 
+    /** The pick hotkey was pressed (starts a pick). */
+    data object HotkeyPressed : PickEvent
+
     data object Cancelled : PickEvent
 }
 
@@ -51,6 +54,12 @@ interface WindowsInspectorPort {
     /** Removes the overlay and the mouse hook. */
     suspend fun stopPick(): Outcome<Unit>
 
-    /** Pick events until pick mode ends. Single consumer: the state holder. */
+    /** Registers the pick hotkey (plan P3-6). Fails with HOTKEY_IN_USE when another app owns the combination. */
+    suspend fun registerHotkey(modifiers: String, key: String): Outcome<Unit>
+
+    /** Removes the pick hotkey registration. */
+    suspend fun unregisterHotkey(): Outcome<Unit>
+
+    /** Pick events until pick mode ends. Single consumer: the state holder. The hotkey event arrives any time. */
     fun pickEvents(): Flow<PickEvent>
 }

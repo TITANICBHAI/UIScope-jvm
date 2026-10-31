@@ -148,7 +148,22 @@ private fun dispatchHelperRequest(flags: Set<String>, id: String, type: String) 
             println("{\"id\":$id,\"ok\":true}")
             System.out.flush()
         }
-        "listWindows" -> {
+            "registerHotkey" -> {
+                if (flags.contains("hotkey-in-use")) {
+                    println("{\"id\":$id,\"ok\":false,\"error\":{\"code\":\"HOTKEY_IN_USE\",\"message\":\"that shortcut is taken\"}}")
+                    System.out.flush()
+                } else {
+                    println("{\"id\":$id,\"ok\":true}")
+                    System.out.flush()
+                    println("{\"event\":\"hotkey\"}")
+                    System.out.flush()
+                }
+            }
+            "unregisterHotkey" -> {
+                println("{\"id\":$id,\"ok\":true}")
+                System.out.flush()
+            }
+            "listWindows" -> {
             println("{\"id\":$id,\"ok\":true,\"windows\":[" +
                 "{\"hwnd\":\"0x00120A3C\",\"title\":\"Untitled - Notepad\",\"processName\":\"notepad.exe\",\"pid\":1234,\"isElevated\":false}," +
                 "{\"hwnd\":\"0x0000BEEF\",\"title\":\"Task Manager\",\"processName\":\"Taskmgr.exe\",\"pid\":99,\"isElevated\":true}]}")
