@@ -271,10 +271,10 @@ namespace UIScope.Helper
 
         // ── Win32 ──
 
-        private delegate IntPtr HookProc(int code, IntPtr wParam, IntPtr lParam);
+        private delegate IntPtr MouseHookProc(int code, IntPtr wParam, IntPtr lParam);
 
         [DllImport("user32.dll", SetLastError = true)]
-        private static extern IntPtr SetWindowsHookEx(int idHook, HookProc proc, IntPtr module, uint threadId);
+        private static extern IntPtr SetWindowsHookEx(int idHook, MouseHookProc proc, IntPtr module, uint threadId);
 
         [DllImport("user32.dll", SetLastError = true)]
         private static extern bool UnhookWindowsHookEx(IntPtr hook);

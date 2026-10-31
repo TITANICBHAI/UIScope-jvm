@@ -214,6 +214,8 @@ class WindowsInspectState(
                         mutate { copy(picking = false, hoverLabel = null, state = WindowsState.Idle) }
                         eventFlow.emit(WindowsEvent.PickCancelled)
                     }
+                    // The start() collector starts the pick on the hotkey when idle; mid-pick it is a no-op.
+                    PickEvent.HotkeyPressed -> Unit
                 }
             }
         }
