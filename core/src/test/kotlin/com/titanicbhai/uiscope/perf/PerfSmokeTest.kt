@@ -5,6 +5,7 @@ import com.titanicbhai.uiscope.export.XmlExporter
 import com.titanicbhai.uiscope.model.Bounds
 import com.titanicbhai.uiscope.model.ElementIndex
 import com.titanicbhai.uiscope.model.ScreenInfo
+import com.titanicbhai.uiscope.testing.N
 import com.titanicbhai.uiscope.testing.TestTrees
 import java.util.logging.Logger
 import kotlin.test.Test
@@ -21,7 +22,7 @@ class PerfSmokeTest {
 
     private val logger = Logger.getLogger("uiscope.perf")
 
-    private fun node(depth: Int, fanout: Int): TestTrees.N {
+    private fun node(depth: Int, fanout: Int): N {
         val children = if (depth <= 0) emptyList() else List(fanout) { i ->
             node(depth - 1, fanout).let { child ->
                 // Give each node a distinguishable identifier and text so the index and exporters do real work.
@@ -67,5 +68,5 @@ class PerfSmokeTest {
         assertTrue(xmlMillis < 30_000, "the XML export regressed pathologically: ${xmlMillis}ms")
     }
 
-    private fun count(node: com.titanicbhai.uiscope.testing.TestTrees.N): Int = 1 + node.children.sumOf { count(it) }
+    private fun count(node: N): Int = 1 + node.children.sumOf { count(it) }
 }
