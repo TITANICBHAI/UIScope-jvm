@@ -112,7 +112,9 @@ class WindowsHelperClientTest {
         val helper = client()
         helper.start(scope).assertSuccess()
         helper.request("crash", timeout = 500.milliseconds) // helper exits; the response never arrives
-        awaitTrue(10_000, "the dead helper is replaced") { helper.request("ping", timeout = 2.seconds).isOk() }
+        // The next request notices the dead helper, restarts it and succeeds.
+        val response = helper.request("ping", timeout = 5.seconds).assertSuccess()
+        assertEquals("ping", response["type"])
         helper.stop()
         scope.cancelChildren()
     }
