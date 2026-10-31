@@ -146,12 +146,13 @@ class WindowsInspectState(
                         ?: previousSelected?.let { path ->
                             previousIndex?.byPath?.get(path)?.let { node -> index.relocate(previousIndex.identityOf(node)) }
                         }
+                    val keptSelected: ElementPath? = previousSelected?.takeIf { index.byPath.containsKey(it) }
                     mutate {
                         copy(
                             state = WindowsState.Captured(window ?: fakeWindow(hwnd), capture),
                             capture = capture,
                             index = index,
-                            selected = restored ?: previousSelected?.takeIf { index.byPath.containsKey(it) },
+                            selected = restored ?: keptSelected,
                             expanded = expanded.filter { index.byPath.containsKey(it) }.toSet(),
                         )
                     }
