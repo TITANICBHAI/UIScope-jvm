@@ -18,6 +18,13 @@ import kotlin.system.exitProcess
  *  stdin-len                            read all of stdin, print its byte count
  *  echo-lines                           echo every stdin line as "echo:<line>"; exit 0 on "quit"
  *  emit-lines <n> <code>                print line-1..line-n, exit with <code>
+ *  helper [flags]                       the fake Windows helper (Appendix J over stdio); flags:
+ *                                         bad-version   hello answers protocol 2
+ *                                         no-hello      hello is never answered
+ *                                         slow          every response is delayed 1.5 s
+ *                                         malformed     a malformed line precedes every response
+ *                                       special request types: "crash" exits, "events" emits event-a/b/c then ok,
+ *                                       "never" is never answered.
  */
 fun main(args: Array<String>) {
     when (args.firstOrNull()) {
@@ -43,6 +50,7 @@ fun main(args: Array<String>) {
             System.out.flush()
             exitProcess(args[2].toInt())
         }
+        "helper" -> fakeHelper(args.drop(1).toSet())
         else -> {
             System.err.println("FakeProcessMain: unknown mode ${args.joinToString(" ")}")
             exitProcess(64)
@@ -92,5 +100,39 @@ private fun echoLines() {
         if (line == "quit") return
         println("echo:$line")
         System.out.flush()
+    }
+}
+
+/** The fake Windows helper: speaks Appendix J over stdio for the client tests (identical behaviour on every OS). */
+private fun fakeHelper(flags: Set<String>) {
+    val reader = System.`in`.bufferedReader()
+    while (true) {
+        val line = reader.readLine() ?: return // stdin closed: the helper exits, like the real one
+        val id = Regex("\"id\":(\\d+)").find(line)?.groupValues?.get(1) ?: continue
+        val type = Regex("\"type\":\"([a-zA-Z]+)\"").find(line)?.groupValues?.get(1) ?: continue
+        if (flags.contains("malformed")) println("{ this line is not json")
+        when (type) {
+            "crash" -> exitProcess(7)
+            "never" -> while (true) Thread.sleep(1_000)
+            "events" -> {
+                for (name in listOf("event-a", "event-b", "event-c")) {
+                    println("{\"event\":\"$name\",\"id\":$id}")
+                    System.out.flush()
+                    Thread.sleep(50)
+                }
+                println("{\"id\":$id,\"ok\":true}")
+                System.out.flush()
+            }
+            "hello" -> {
+                val protocol = if (flags.contains("bad-version")) 2 else 1
+                println("{\"id\":$id,\"ok\":true,\"protocol\":$protocol,\"helperVersion\":\"0.1.0\"}")
+                System.out.flush()
+            }
+            else -> {
+                if (flags.contains("slow")) Thread.sleep(1_500)
+                println("{\"id\":$id,\"ok\":true,\"type\":\"$type\"}")
+                System.out.flush()
+            }
+        }
     }
 }

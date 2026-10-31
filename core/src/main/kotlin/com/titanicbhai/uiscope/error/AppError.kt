@@ -90,6 +90,15 @@ object ErrorCodes {
 
     /** A capture document written by a newer UIScope than this one (not in Appendix A: the UI shows the detail text). */
     const val CAPTURE_SCHEMA_UNSUPPORTED = "CAPTURE_SCHEMA_UNSUPPORTED"
+
+    // Windows (Appendix A): the codes arrive as the Phase 3 engine grows; the UI copy already exists.
+    const val UIA_UNAVAILABLE = "UIA_UNAVAILABLE"
+    const val ELEVATED_TARGET = "ELEVATED_TARGET"
+    const val WINDOW_GONE = "WINDOW_GONE"
+    const val WINDOW_MINIMIZED = "WINDOW_MINIMIZED"
+    const val LIMITED_ACCESSIBILITY = "LIMITED_ACCESSIBILITY"
+    const val TREE_TRUNCATED = "TREE_TRUNCATED"
+    const val HOTKEY_IN_USE = "HOTKEY_IN_USE"
 }
 
 /** Result of an engine call: a value or an [AppError]. Engines return this instead of throwing. */
