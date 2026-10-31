@@ -28,7 +28,8 @@ import kotlinx.coroutines.withTimeout
 class WindowsHelperClientTest {
 
     private val dispatchers: DispatcherProvider = StandardDispatcherProvider(kotlinx.coroutines.Dispatchers.Default)
-    private val scope = CoroutineScope(SupervisorJob() + kotlinx.coroutines.Dispatchers.Default)
+    private val job = SupervisorJob()
+    private val scope = CoroutineScope(job + kotlinx.coroutines.Dispatchers.Default)
 
     private fun client(vararg flags: String, timeout: kotlin.time.Duration = 5.seconds) = WindowsHelperClient(
         launcher = SystemProcessLauncher(dispatchers),
@@ -45,7 +46,7 @@ class WindowsHelperClientTest {
         val response = helper.request("ping").assertSuccess()
         assertEquals("ping", response["type"])
         helper.stop()
-        scope.cancelChildren()
+        job.cancelChildren()
     }
 
     @Test
@@ -55,7 +56,7 @@ class WindowsHelperClientTest {
         assertTrue(result is Outcome.Failure, "the handshake must fail")
         assertTrue(result.error.detail.orEmpty().contains("protocol"), "the error names the version mismatch: ${result.error.detail}")
         assertEquals(ErrorCodes.UIA_UNAVAILABLE, result.error.code)
-        scope.cancelChildren()
+        job.cancelChildren()
     }
 
     @Test
@@ -67,7 +68,7 @@ class WindowsHelperClientTest {
         val response = helper.request("ping").assertSuccess()
         assertEquals("ping", response["type"])
         helper.stop()
-        scope.cancelChildren()
+        job.cancelChildren()
     }
 
     @Test
@@ -79,7 +80,7 @@ class WindowsHelperClientTest {
         assertTrue(fourth is Outcome.Failure, "the restart cap gives up")
         assertEquals(ErrorCodes.UIA_UNAVAILABLE, fourth.error.code)
         helper.stop()
-        scope.cancelChildren()
+        job.cancelChildren()
     }
 
     @Test
@@ -88,7 +89,7 @@ class WindowsHelperClientTest {
         helper.start(scope).assertSuccess()
         repeat(3) { helper.request("ping").assertSuccess() }
         helper.stop()
-        scope.cancelChildren()
+        job.cancelChildren()
     }
 
     @Test
@@ -103,7 +104,7 @@ class WindowsHelperClientTest {
         val names = withTimeout(10.seconds) { received.await() }
         assertEquals(listOf("event-a", "event-b", "event-c"), names)
         helper.stop()
-        scope.cancelChildren()
+        job.cancelChildren()
     }
 
     @Test
@@ -115,7 +116,7 @@ class WindowsHelperClientTest {
         val response = helper.request("ping", timeout = 5.seconds).assertSuccess()
         assertEquals("ping", response["type"])
         helper.stop()
-        scope.cancelChildren()
+        job.cancelChildren()
     }
 
     private fun Outcome<Map<String, Any?>>.isOk() = this is Outcome.Success
