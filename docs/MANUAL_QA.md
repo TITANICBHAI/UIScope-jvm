@@ -61,6 +61,8 @@ hugs the element, a click is *not* delivered to the app underneath, and the pick
 5. Start Task Manager as administrator and try to pick it. **Pass if** you get the "runs as administrator" message.
 6. In another app press `R` and `Ctrl+F`. **Pass if** UIScope does nothing.
 7. Pick a Chrome or Edge page and a VS Code window. **Pass if** you see a real tree (or the "limited accessibility" hint), not an empty one.
+8. With UIScope idle in the background, press the pick hotkey (`Ctrl+Alt+P`). **Pass if** pick mode starts even though UIScope has no focus. (Needs the hotkey enabled in Settings — arrives with the Settings wiring.)
+9. Make another app own `Ctrl+Alt+P` first (some screen-capture tools do), then enable the hotkey in UIScope. **Pass if** UIScope shows the "shortcut is taken" message and Pick still works from the button.
 
 ## Round 3 — Everyday use and install (after Phase 5, and again before release)
 
