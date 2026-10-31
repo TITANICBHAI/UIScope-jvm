@@ -39,6 +39,11 @@ namespace UIScope.Helper
             var uiThread = new Thread(delegate()
             {
                 host = new HostForm();
+                // SetVisibleCore(false) keeps the form from ever becoming visible, which also means its native
+                // handle is not created until something forces it. Every request handler marshals onto this
+                // thread with BeginInvoke, which throws until the handle exists - so force it here, on the
+                // thread that owns the control, before the stdin loop is allowed to answer anything.
+                var handleCreated = host.Handle;
                 host.HotkeyPressed += delegate(int hotkeyId)
                 {
                     EmitLine("{\"event\":\"hotkey\",\"id\":" + hotkeyId + "}");

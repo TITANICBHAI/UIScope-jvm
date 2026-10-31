@@ -126,11 +126,14 @@ fun FirstRunScreen(
                         Text("Android", style = MaterialTheme.typography.titleSmall)
                         val adb = ui.adb
                         if (adb != null) {
+                            // adb is already usable: the download/browse/install-myself options are noise (and the
+                            // download is the failure-prone path), so they only appear when adb is actually missing.
                             Text("ADB found: ${adb.path} (version ${adb.version}, via ${adb.source})", style = MaterialTheme.typography.bodySmall)
+                            Text("You are set for Android inspection - press Finish to continue.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         } else {
                             Text("ADB not found", style = MaterialTheme.typography.bodySmall)
                         }
-                        if (!selfInstall) {
+                        if (adb == null && !selfInstall) {
                             Row(horizontalArrangement = Arrangement.spacedBy(UiScopeTokens.spaceS)) {
                                 Button(onClick = {
                                     when (val consent = download.consentText()) {
@@ -161,7 +164,7 @@ fun FirstRunScreen(
                     Surface(color = MaterialTheme.colorScheme.surfaceVariant, modifier = Modifier.fillMaxWidth()) {
                         Column(Modifier.padding(UiScopeTokens.spaceM), verticalArrangement = Arrangement.spacedBy(UiScopeTokens.spaceS)) {
                             Text("Windows", style = MaterialTheme.typography.titleSmall)
-                            Text("UI Automation helper: arrives with the Windows engine (Phase 3).", style = MaterialTheme.typography.bodySmall)
+                            Text("The UI Automation helper stages itself into the data folder the first time Windows inspection runs.", style = MaterialTheme.typography.bodySmall)
                             Text("Elevated windows need UIScope to run as administrator.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }

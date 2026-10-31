@@ -88,10 +88,13 @@ class FirstRunScreenTest {
     }
 
     @Test
-    fun `step 3 shows the real adb status when it is found`() {
+    fun `step 3 shows the real adb status when it is found and offers no download`() {
         setContent(found)
         rule.onNodeWithText("ADB found: adb (version 1.0.41, via PATH)", substring = true).assertIsDisplayed()
         assertEquals(0, rule.onAllNodesWithText("ADB not found").fetchSemanticsNodes().size)
+        // adb already works: the download failure path is noise, so the buttons stay out of the way.
+        assertEquals(0, rule.onAllNodesWithText("Download platform-tools").fetchSemanticsNodes().size)
+        assertEquals(0, rule.onAllNodesWithText("Browse...").fetchSemanticsNodes().size)
     }
 
     @Test

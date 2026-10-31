@@ -68,7 +68,13 @@ class AdbDownloader(
         val zip = dataPaths.tmp.resolve("platform-tools-${manifest.revision}-$id.zip.part")
         val extractDir = dataPaths.tmp.resolve("platform-tools-extract-$id")
         try {
-            gateway.download(e.url, zip, 10.minutes, onProgress).let { if (it is Outcome.Failure) return it }
+            gateway.download(e.url, zip, 10.minutes, onProgress).let {
+                if (it is Outcome.Failure) {
+                    // Never silent: a failed download previously left no trace in the logs at all.
+                    logger.log(Level.WARNING, "the platform-tools download from " + e.url + " failed: " + it.error.code)
+                    return it
+                }
+            }
             withContext(dispatchers.io) {
                 val context = currentCoroutineContext() // lets the extraction notice a cancel between files
                 if (!sha256(zip).equals(e.sha256, ignoreCase = true)) {
