@@ -268,7 +268,10 @@ class WindowsInspectState(
      * AutomationId, then the smallest node whose bounds contain the picked rectangle.
      */
     private fun relocatePicked(index: ElementIndex, picked: com.titanicbhai.uiscope.ports.PickedElement): ElementPath? {
-        index.nodes.firstOrNull { it.properties["RuntimeId"] == picked.runtimeId }?.let { return it.path }
+        // A null criterion must never match nodes that merely LACK the property (that would pick the root).
+        picked.runtimeId?.takeIf { it.isNotBlank() }?.let { runtimeId ->
+            index.nodes.firstOrNull { it.properties["RuntimeId"] == runtimeId }?.let { return it.path }
+        }
         picked.automationId?.takeIf { it.isNotBlank() }?.let { automationId ->
             index.nodes.firstOrNull { it.identifier == automationId }?.let { return it.path }
         }
