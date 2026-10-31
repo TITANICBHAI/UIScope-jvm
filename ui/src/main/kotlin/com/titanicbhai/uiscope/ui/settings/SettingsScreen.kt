@@ -258,7 +258,7 @@ fun SettingsScreen(
 @Composable
 /** Copies the shipped notices to a temp file and opens it; returns the failure cause for the About screen (or null). */
 private fun openThirdPartyNotices(): String? = try {
-    val source = SettingsScreen::class.java.getResourceAsStream("/THIRD_PARTY_NOTICES.md")
+    val source = com.titanicbhai.uiscope.ui.Strings::class.java.getResourceAsStream("/THIRD_PARTY_NOTICES.md")
         ?: throw java.io.IOException("not found on the classpath")
     val copy = java.io.File.createTempFile("uiscope-notices", ".md")
     source.use { input -> copy.outputStream().use { input.copyTo(it) } }
