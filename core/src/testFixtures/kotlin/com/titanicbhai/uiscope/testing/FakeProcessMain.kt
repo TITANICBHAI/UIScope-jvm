@@ -114,10 +114,10 @@ private fun fakeHelper(flags: Set<String>) {
         val type = typeRegex.find(line)?.groupValues?.get(1) ?: continue
         try {
             dispatchHelperRequest(flags, id, type)
-        } catch (e: Exception) {
-            // Self-report: the client's error path shows this, so failures are diagnosable from CI logs.
-            val message = (e.message ?: e.javaClass.simpleName).replace("\\", "\\\\").replace("\"", "\\\"")
-            println("{\"id\":$id,\"ok\":false,\"error\":{\"code\":\"FAKE_HELPER_ERROR\",\"message\":\"$message\"}}")
+        } catch (e: Throwable) {
+            // Throwable on purpose: an Error here (image decoding, AWT init) must not silently kill the helper.
+            val message = (e.message ?: e.javaClass.name).replace("\\", "\\\\").replace("\"", "\\\"")
+            println("{\"id\":$id,\"ok\":false,\"error\":{\"code\":\"FAKE_HELPER_ERROR\",\"message\":\"${e.javaClass.simpleName}: $message\"}}")
             System.out.flush()
         }
     }
