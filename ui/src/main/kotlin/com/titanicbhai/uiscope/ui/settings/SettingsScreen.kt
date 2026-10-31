@@ -205,24 +205,24 @@ fun SettingsScreen(
             Text("${appInfo.publisher} - ${appInfo.developer}", style = MaterialTheme.typography.bodySmall)
             Text("Licensed under the MIT licence.", style = MaterialTheme.typography.bodySmall)
             Text("Android is a trademark of Google LLC. Windows is a trademark of Microsoft Corporation. Not affiliated with or endorsed by either.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            var noticesError by remember { mutableStateOf(false) }
+            var noticesProblem by remember { mutableStateOf<String?>(null) }
             Row(horizontalArrangement = Arrangement.spacedBy(UiScopeTokens.spaceS)) {
                 OutlinedButton(onClick = {
-                    noticesError = try {
+                    try {
                         // The notices ship inside the app image; open a copy from the OS temp dir.
                         val source = SettingsScreen::class.java.getResourceAsStream("/THIRD_PARTY_NOTICES.md")
                             ?: throw java.io.IOException("not found on the classpath")
                         val copy = java.io.File.createTempFile("uiscope-notices", ".md")
                         source.use { input -> copy.outputStream().use { input.copyTo(it) } }
                         java.awt.Desktop.getDesktop().open(copy)
-                        false
+                        noticesProblem = null
                     } catch (t: Throwable) {
-                        true
+                        noticesProblem = "The notices file could not be opened in this build (" + t.javaClass.simpleName + ")."
                     }
                 }) { Text("Third-party notices") }
             }
-            if (noticesError) {
-                Text("The notices file could not be opened in this build.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
+            noticesProblem?.let { problem ->
+                Text(problem, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(UiScopeTokens.spaceS)) {
                 TextButton(onClick = { uriHandler.openUri(appInfo.docsUrl) }) { Text("Documentation") }
