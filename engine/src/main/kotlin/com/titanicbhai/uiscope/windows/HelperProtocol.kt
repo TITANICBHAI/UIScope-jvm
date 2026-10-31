@@ -32,7 +32,8 @@ object HelperProtocol {
         val root = when (val parsed = JsonReader.parse(line)) {
             is Outcome.Failure -> return Line.Malformed
             is Outcome.Success -> parsed.value
-        }        @Suppress("UNCHECKED_CAST")
+        }
+        @Suppress("UNCHECKED_CAST")
         val obj = root as? Map<String, Any?> ?: return Line.Malformed
         val event = obj["event"]
         if (event is String) return Line.Event(event, obj)

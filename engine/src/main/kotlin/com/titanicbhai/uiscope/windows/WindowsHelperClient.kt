@@ -7,6 +7,7 @@ import com.titanicbhai.uiscope.error.Outcome
 import com.titanicbhai.uiscope.process.ManagedProcess
 import com.titanicbhai.uiscope.process.ProcessLauncher
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicLong
 import java.util.logging.Level
 import java.util.logging.Logger
 import kotlin.time.Duration
@@ -22,6 +23,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * The client side of the helper protocol (plan P3-2, Appendix J). Owns the helper process: spawns it, performs the
@@ -43,17 +45,17 @@ class WindowsHelperClient(
 
     private val eventFlow = MutableSharedFlow<HelperLine.Event>(extraBufferCapacity = 64)
     private val pending = ConcurrentHashMap<Long, CompletableDeferred<HelperLine.Response>>()
-    private val idCounter = java.util.concurrent.atomic.AtomicLong(0)
+    private val idCounter = AtomicLong(0)
     private val restartTimes = ArrayDeque<Long>()
     private val mutex = Mutex()
+    private val clientScope = CoroutineScope(SupervisorJob() + dispatchers.io)
     private var worker: Job? = null
     private var process: ManagedProcess? = null
     private var stopped = false
 
-    /** Starts the helper process and performs the handshake. Safe to call once per client lifetime. */
+    /** Starts the helper process and performs the handshake. Idempotent. */
     suspend fun start(scope: CoroutineScope): Outcome<Unit> = mutex.withLock {
         if (process != null) return Outcome.Success(Unit)
-        stopped = false
         spawnAndHandshake(scope)
     }
 
@@ -63,16 +65,16 @@ class WindowsHelperClient(
      */
     suspend fun request(type: String, params: Map<String, Any?> = emptyMap(), timeout: Duration = requestTimeout): Outcome<Map<String, Any?>> {
         val id = idCounter.incrementAndGet()
-        repeat(2) { attempt ->
-            val started = ensureStarted()
-            if (started is Outcome.Failure) return started
+        var attempts = 0
+        while (attempts < 2) {
+            attempts++
+            ensureStarted().onFailure { return it }
             val deferred = CompletableDeferred<HelperLine.Response>()
             pending[id] = deferred
-            val line = HelperProtocol.request(id, type, params)
-            val written = mutex.withLock { process?.writeLine(line) }
+            val written = mutex.withLock { process?.writeLine(HelperProtocol.request(id, type, params)) }
             if (written is Outcome.Failure) {
                 pending.remove(id)
-                restartWithPolicy() ?: return Failure(id, "the helper is not running (${written.errorOrAbort()})")
+                if (restartWithPolicy() == null) return Failure("the helper is not running (${written.errorOrAbort()})")
                 continue
             }
             val response = try {
@@ -80,15 +82,15 @@ class WindowsHelperClient(
             } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
                 pending.remove(id)
                 logger.log(Level.WARNING, "helper request $type timed out after $timeout; restarting the helper")
-                restartWithPolicy() ?: return Failure(id, "the helper was restarted too often; giving up")
-                return@repeat
+                if (restartWithPolicy() == null) return Failure("the helper was restarted too often; giving up")
+                continue
             }
             if (!response.ok) {
                 return Outcome.Failure(CodedError(response.errorCode ?: ErrorCodes.UNEXPECTED, response.errorMessage))
             }
             return Outcome.Success(response.value)
         }
-        return Failure(id, "the helper could not be reached after a restart")
+        return Failure("the helper could not be reached after a restart")
     }
 
     /** Sends `shutdown` and stops reading. The process tree is killed regardless. */
@@ -96,7 +98,7 @@ class WindowsHelperClient(
         mutex.withLock {
             stopped = true
             try {
-                withTimeout(SHUTDOWN_TIMEOUT) {
+                withTimeoutOrNull(SHUTDOWN_TIMEOUT) {
                     process?.writeLine(HelperProtocol.request(idCounter.incrementAndGet(), "shutdown"))
                 }
             } catch (e: Exception) {
@@ -121,6 +123,7 @@ class WindowsHelperClient(
             is Outcome.Success -> started.value
         }
         process = managed
+        worker?.cancelAndJoin()
         worker = scope.launch { readLoop(managed) }
         return handshake()
     }
@@ -189,14 +192,12 @@ class WindowsHelperClient(
         managed
     }
 
-    private fun Failure(id: Long, detail: String): Outcome<Map<String, Any?>> =
+    private fun Failure(detail: String): Outcome<Map<String, Any?>> =
         Outcome.Failure(CodedError(ErrorCodes.UIA_UNAVAILABLE, detail))
 
     private fun protocolFailure(detail: String): CodedError = CodedError(ErrorCodes.UIA_UNAVAILABLE, detail)
 
     private fun Outcome.Failure.errorOrAbort(): String = error.code
-
-    private val clientScope = CoroutineScope(SupervisorJob() + dispatchers.io)
 
     companion object {
         val DEFAULT_TIMEOUT: Duration = 5.seconds
