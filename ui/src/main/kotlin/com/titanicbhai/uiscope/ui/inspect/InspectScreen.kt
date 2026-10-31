@@ -130,16 +130,16 @@ fun InspectScreen(
                     event.key == Key.F5 -> {
                         callbacks.onCapture(); true
                     }
-                    event.key == Key.R && event.isCtrlPressed -> {
+                    event.key == Key.R && event.ctrl() -> {
                         callbacks.onCapture(); true
                     }
-                    event.key == Key.L && event.isCtrlPressed -> {
+                    event.key == Key.L && event.ctrl() -> {
                         callbacks.onSetLive(!ui.live.enabled); true
                     }
-                    event.key == Key.F && event.isCtrlPressed -> {
+                    event.key == Key.F && event.ctrl() -> {
                         searchFocus.requestFocus(); true
                     }
-                    event.key == Key.C && event.isCtrlPressed && event.isShiftPressed -> {
+                    event.key == Key.C && event.ctrl() && event.shift() -> {
                         val index = ui.index
                         val node = ui.selected?.let { index?.byPath?.get(it) }
                         if (index != null && node != null) {
@@ -183,6 +183,13 @@ fun InspectScreen(
 }
 
 /** Builds the AppError the copy layer needs; the detail stays empty - the codes carry the meaning (Appendix A). */
+/** The AWT modifiers of a key event (the desktop KeyEvent has no keyboardModifiers extensions). */
+private fun androidx.compose.ui.input.key.KeyEvent.ctrl(): Boolean =
+    (nativeEvent as? java.awt.event.InputEvent)?.modifiersEx?.and(java.awt.event.InputEvent.CTRL_DOWN_MASK) != 0
+
+private fun androidx.compose.ui.input.key.KeyEvent.shift(): Boolean =
+    (nativeEvent as? java.awt.event.InputEvent)?.modifiersEx?.and(java.awt.event.InputEvent.SHIFT_DOWN_MASK) != 0
+
 private fun AppErrorFor(code: String, detail: String?): AppError = CodedError(code, detail)
 
 @Composable
