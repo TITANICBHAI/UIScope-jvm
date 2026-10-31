@@ -102,7 +102,10 @@ fun SnapshotsScreen(
     val preview = produceState<LoadedSnapshot?>(null, store, selectedId, revision) {
         value = when {
             selectedId == null -> null
-            else -> store?.load(selectedId!!)?.getOrNull()
+            else -> when (val loaded = store?.load(selectedId!!)) {
+                is Outcome.Success -> loaded.value
+                else -> null
+            }
         }
     }
 
