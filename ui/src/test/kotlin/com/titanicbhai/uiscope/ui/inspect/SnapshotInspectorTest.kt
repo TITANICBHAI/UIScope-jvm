@@ -70,7 +70,7 @@ class SnapshotInspectorTest {
             }
         }
         rule.onNodeWithText("not live", substring = true).assertIsDisplayed()
-        rule.onNodeWithText("Notepad - the save").assertIsDisplayed()
+        rule.onNodeWithText("Notepad - the save", substring = true).assertIsDisplayed()
         rule.onNodeWithText("OK").assertIsDisplayed()
         rule.onNodeWithText("Close snapshot").performClick()
         rule.waitForIdle()

@@ -120,7 +120,7 @@ class SnapshotsScreenTest {
         setContent(store)
         rule.onNodeWithText("Login page").assertIsDisplayed()
         rule.onNodeWithText("Settings screen").assertIsDisplayed()
-        rule.onNodeWithText("Pixel 7 - com.example", substring = true).assertIsDisplayed()
+        rule.onAllNodesWithText("Pixel 7 - com.example", substring = true).assertCountEquals(2)
     }
 
     @Test
@@ -142,7 +142,8 @@ class SnapshotsScreenTest {
         assertEquals(1, store.updated)
         rule.onNodeWithText("Login page").performClick()
         rule.waitForIdle()
-        rule.onNodeWithText("12 elements", substring = true).assertIsDisplayed()
+        // The row subtitle and the preview both carry it.
+        rule.onAllNodesWithText("12 elements", substring = true).assertCountEquals(2)
         rule.onNodeWithText("Open in Inspector").performClick()
         rule.waitForIdle()
         assertEquals("s1", r.opened?.id)
