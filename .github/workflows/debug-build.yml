@@ -1,9 +1,11 @@
-# Manual debug build (owner request): build the Windows EXE installer on demand — no tag, no release.
-# Run it from the Actions tab: Run workflow → pick main → download the EXE from the run's artifacts.
-# For tagged releases use the Release workflow instead.
+# Debug build (owner request): build the Windows EXE installer on every push to main and on demand —
+# no tag, no release. The EXE lands on each run as the UIScope-debug-exe artifact.
+# Run it from the Actions tab: Run workflow → pick main. For tagged releases use the Release workflow instead.
 name: Debug build
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 
 jobs:
