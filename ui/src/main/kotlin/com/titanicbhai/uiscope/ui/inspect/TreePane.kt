@@ -188,7 +188,9 @@ fun TreePane(
             if (event.type != KeyEventType.KeyUp) return@onPreviewKeyEvent false
             when {
                 event.key == Key.DirectionUp && event.alt() -> {
-                    index?.parentOf(selected)?.let { onSelect(it.path) }; true
+                    val current = selected
+                    if (current != null) index?.parentOf(current)?.let { onSelect(it.path) }
+                    true
                 }
                 event.key == Key.DirectionDown -> {
                     select(1); true
