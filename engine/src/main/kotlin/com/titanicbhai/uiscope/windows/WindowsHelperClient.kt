@@ -54,6 +54,22 @@ class WindowsHelperClient(
     private var process: ManagedProcess? = null
     private var stopped = false
 
+    /** The helper's most recent stderr lines, for diagnostics when it misbehaves (never shown to the user). */
+    private val stderrTail = ArrayDeque<String>()
+
+    private fun watchStderr(managed: ManagedProcess) {
+        clientScope.launch {
+            managed.stderrLines.collect { line ->
+                synchronized(stderrTail) {
+                    stderrTail.addLast(line)
+                    while (stderrTail.size > 5) stderrTail.removeFirst()
+                }
+            }
+        }
+    }
+
+    private fun stderrSnapshot(): String = synchronized(stderrTail) { stderrTail.joinToString(" | ").take(300) }
+
     /** Starts the helper process and performs the handshake. Idempotent. */
     suspend fun start(scope: CoroutineScope): Outcome<Unit> = mutex.withLock {
         if (process != null) return Outcome.Success(Unit)
@@ -132,6 +148,7 @@ class WindowsHelperClient(
             is Outcome.Success -> started.value
         }
         process = managed
+        watchStderr(managed)
         worker?.cancelAndJoin()
         worker = scope.launch { readLoop(managed) }
         return handshake()
@@ -155,7 +172,9 @@ class WindowsHelperClient(
             pending[id] = deferred
             mutex.withLock { process?.writeLine(HelperProtocol.request(id, "hello")) }
             deferred.await()
-        } ?: return Outcome.Failure(protocolFailure("the helper did not answer the hello handshake"))
+        } ?: return Outcome.Failure(
+            protocolFailure("the helper did not answer the hello handshake; its stderr: [${stderrSnapshot()}]"),
+        )
         if (!response.ok) {
             return Outcome.Failure(protocolFailure("the helper refused the handshake (${response.errorMessage ?: "unknown"})"))
         }
@@ -189,6 +208,7 @@ class WindowsHelperClient(
             is Outcome.Success -> started.value
         }
         process = managed
+        watchStderr(managed)
         worker?.cancelAndJoin()
         worker = clientScope.launch { readLoop(managed) }
         val handshake = handshake()
