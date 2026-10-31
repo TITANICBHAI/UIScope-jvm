@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.ui.test.ExperimentalTestApi::class)
+
 package com.titanicbhai.uiscope.ui.inspect
 
 import androidx.compose.ui.input.key.Key
@@ -8,6 +10,7 @@ import androidx.compose.ui.test.pressKey
 import com.titanicbhai.uiscope.model.AdbDevice
 import com.titanicbhai.uiscope.model.DeviceState
 import com.titanicbhai.uiscope.model.ElementIndex
+import com.titanicbhai.uiscope.model.ElementPath
 import com.titanicbhai.uiscope.ports.AdbStatus
 import com.titanicbhai.uiscope.settings.ThemeMode
 import com.titanicbhai.uiscope.state.AndroidInspectUi
