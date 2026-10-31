@@ -49,6 +49,7 @@ class KeyboardShortcutTest {
             capture = cap,
             index = ElementIndex(cap),
             expanded = setOf(ElementPath.root(0)),
+            selected = ElementPath.root(0).child(0),
             live = com.titanicbhai.uiscope.state.LiveState(enabled = true),
         )
     }
