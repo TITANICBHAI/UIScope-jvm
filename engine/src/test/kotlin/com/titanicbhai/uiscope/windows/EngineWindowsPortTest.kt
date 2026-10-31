@@ -107,7 +107,8 @@ class EngineWindowsPortTest {
         val collector = scope.launch { p.pickEvents().take(2).toList().let { received.addAll(it) } }
         p.startPick().assertSuccess()
         withTimeout(10.seconds) { awaitTrue(10_000, "hover + result received") { received.size >= 2 } }
-        assertTrue(received[0] is PickEvent.Hover && received[0].element.controlType == "Button", "hover translated: ${received[0]}")
+        val hover = received[0]
+        assertTrue(hover is PickEvent.Hover && hover.element.controlType == "Button", "hover translated: $hover")
         val result = received[1] as PickEvent.Result
         assertEquals("0x00120a3c", result.hwnd)
         assertEquals("app:id/ok", result.element.automationId)
