@@ -138,12 +138,14 @@ private fun dispatchHelperRequest(flags: Set<String>, id: String, type: String) 
             System.out.flush()
         }
         "startPick" -> {
-            // Pick-shaped events for the EngineWindowsPort translation test: hover, then the result.
+            // Pick-shaped events for the EngineWindowsPort translation test: hover, then the result, then the ok.
             println("{\"event\":\"pickHover\",\"element\":{\"controlType\":\"Button\",\"name\":\"OK\",\"rect\":{\"x\":1,\"y\":2,\"width\":3,\"height\":4}}}")
             System.out.flush()
             println("{\"event\":\"pickResult\",\"hwnd\":\"0x00120a3c\",\"element\":{\"automationId\":\"app:id/ok\"," +
                 "\"runtimeId\":\"1 42 2\",\"name\":\"OK\",\"controlType\":\"Button\"," +
                 "\"rect\":{\"x\":500,\"y\":450,\"width\":200,\"height\":60}}}")
+            System.out.flush()
+            println("{\"id\":$id,\"ok\":true}")
             System.out.flush()
         }
         "listWindows" -> {
