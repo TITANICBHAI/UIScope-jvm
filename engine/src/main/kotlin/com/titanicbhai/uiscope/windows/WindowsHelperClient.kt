@@ -88,7 +88,10 @@ class WindowsHelperClient(
             if (started is Outcome.Failure) return started
             val deferred = CompletableDeferred<Line.Response>()
             pending[id] = deferred
-            val written = mutex.withLock { process?.writeLine(HelperProtocol.request(id, type, params)) }
+            val written = mutex.withLock {
+                logger.info("helper sent: ${HelperProtocol.request(id, type, params).take(160)}")
+                process?.writeLine(HelperProtocol.request(id, type, params))
+            }
             if (written is Outcome.Failure) {
                 pending.remove(id)
                 if (restartWithPolicy() == null) return helperGaveUp("the helper is not running (${written.errorOrAbort()})")
@@ -156,6 +159,7 @@ class WindowsHelperClient(
 
     private suspend fun readLoop(managed: ManagedProcess) {
         managed.stdoutLines.collect { line ->
+            logger.info("helper recv: ${line.take(160)}")
             when (val decoded = HelperProtocol.decode(line)) {
                 is Line.Response -> pending.remove(decoded.id)?.complete(decoded)
                     ?: logger.log(Level.FINE, "a response for an unknown id arrived and was dropped")
