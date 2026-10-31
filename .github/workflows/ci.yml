@@ -45,3 +45,15 @@ jobs:
             **/build/test-results/
             **/build/reports/detekt/
           if-no-files-found: ignore
+
+  # P7-3: dependency vulnerability review on pull requests (pushes rely on the Dependabot alerts
+  # configured in .github/dependabot.yml, since the review action is PR-only by design).
+  dependency-review:
+    name: dependency review
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: moderate

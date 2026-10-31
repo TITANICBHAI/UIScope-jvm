@@ -47,6 +47,18 @@ class GuardrailsTest {
     }
 
     @Test
+    fun `rule host-shell`() {
+        for (text in listOf(
+            "val cmd = \"sh -c ls\"", "run(\"bash\", \"-c\", script)", "exec(\"cmd /c dir\")", "val shell = \"cmd.exe /c %S\"",
+        )) {
+            assertEquals(listOf("host-shell"), ids(engine, text), text)
+        }
+        // adb's own device-side "shell" subcommand is not a host shell and stays fine.
+        assertEquals(emptyList(), ids(engine, "adb(\"shell\", \"pm\", \"dump\", pkg)"))
+        assertEquals(emptyList(), ids(engine, "listOf(\"adb\", \"-s\", serial, \"shell\", \"wm\", \"size\")"))
+    }
+
+    @Test
     fun `rule global-input-hooks`() {
         assertEquals(listOf("global-input-hooks"), ids(engine, "import com.github.kwhat.jnativehook.GlobalScreen"))
         assertEquals(listOf("global-input-hooks"), ids("engine/build.gradle.kts", "implementation(\"com.github.kwhat:jnativehook:2.2.2\")"))

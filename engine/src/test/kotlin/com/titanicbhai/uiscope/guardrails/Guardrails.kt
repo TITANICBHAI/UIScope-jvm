@@ -52,6 +52,10 @@ object Guardrails {
             Regex("""\bURL\s*\(|\bHttpClient\b|\bopenConnection\b|\bHttpURLConnection\b"""), Scope.CODE,
             allowed = listOf(PROCESS_DIR + "NetworkGateway.kt", PROCESS_DIR + "JdkNetworkGateway.kt"),
         ),
+        Rule(
+            "host-shell", "processes start with argument lists only - never through a host shell (P7-3; the adb path is user-supplied)",
+            Regex("""(?i)\bsh\s+-c\b|\bbash\s+-c\b|\bcmd(\.exe)?\s+/c\b|\bcommand\s+/c\b"""), Scope.CODE_AND_STRINGS,
+        ),
     )
 
     /** Violations of [rules] in one file's [text]. [path] uses `/` separators and is relative to the repository root. */

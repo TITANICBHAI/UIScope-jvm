@@ -1,0 +1,11 @@
+# P7-3: weekly dependency alerts surface in the repository's Security tab.
+version: 2
+updates:
+  - package-ecosystem: gradle
+    directory: /
+    schedule:
+      interval: weekly
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
