@@ -125,6 +125,38 @@ private fun fakeHelper(flags: Set<String>) {
                 println("{\"id\":$id,\"ok\":true}")
                 System.out.flush()
             }
+            "startPick" -> {
+                // Pick-shaped events for the EngineWindowsPort translation test: hover, then the result.
+                println("{\"event\":\"pickHover\",\"element\":{\"controlType\":\"Button\",\"name\":\"OK\",\"rect\":{\"x\":1,\"y\":2,\"width\":3,\"height\":4}}}")
+                System.out.flush()
+                println("{\"event\":\"pickResult\",\"hwnd\":\"0x00120a3c\",\"element\":{\"automationId\":\"app:id/ok\"," +
+                    "\"runtimeId\":\"1 42 2\",\"name\":\"OK\",\"controlType\":\"Button\"," +
+                    "\"rect\":{\"x\":500,\"y\":450,\"width\":200,\"height\":60}}}")
+                System.out.flush()
+            }
+            "listWindows" -> {
+                println("{\"id\":$id,\"ok\":true,\"windows\":[" +
+                    "{\"hwnd\":\"0x00120A3C\",\"title\":\"Untitled - Notepad\",\"processName\":\"notepad.exe\",\"pid\":1234,\"isElevated\":false}," +
+                    "{\"hwnd\":\"0x0000BEEF\",\"title\":\"Task Manager\",\"processName\":\"Taskmgr.exe\",\"pid\":99,\"isElevated\":true}]}")
+                System.out.flush()
+            }
+            "captureWindow" -> {
+                // A real (tiny) PNG plus a 2-node Appendix B tree; the origin is the window's top-left.
+                val png = java.io.File.createTempFile("uiscope-fake-helper", ".png")
+                val image = java.awt.image.BufferedImage(800, 600, java.awt.image.BufferedImage.TYPE_INT_RGB)
+                javax.imageio.ImageIO.write(image, "png", png)
+                val path = com.titanicbhai.uiscope.json.JsonWriter.string(png.absolutePath)
+                println("{\"id\":$id,\"ok\":true,\"window\":{\"hwnd\":\"0x00120a3c\",\"title\":\"Untitled - Notepad\"," +
+                    "\"processName\":\"notepad.exe\",\"pid\":1234,\"isElevated\":false," +
+                    "\"rect\":{\"x\":100,\"y\":50,\"width\":800,\"height\":600}}," +
+                    "\"screenshot\":{\"path\":$path,\"width\":800,\"height\":600,\"originX\":100,\"originY\":50}," +
+                    "\"roots\":[{\"automationId\":\"app:id/root\",\"name\":\"Root\",\"controlType\":\"Window\"," +
+                    "\"className\":\"Window\",\"runtimeId\":\"1 42 1\"," +
+                    "\"rect\":{\"x\":100,\"y\":50,\"width\":800,\"height\":600},\"children\":[" +
+                    "{\"automationId\":\"app:id/ok\",\"name\":\"OK\",\"controlType\":\"Button\",\"className\":\"Button\"," +
+                    "\"runtimeId\":\"1 42 2\",\"rect\":{\"x\":500,\"y\":450,\"width\":200,\"height\":60}}]}],\"truncated\":false}")
+                System.out.flush()
+            }
             "hello" -> {
                 val protocol = if (flags.contains("bad-version")) 2 else 1
                 println("{\"id\":$id,\"ok\":true,\"protocol\":$protocol,\"helperVersion\":\"0.1.0\"}")

@@ -100,6 +100,40 @@ compose.desktop {
     }
 }
 
+// ── Windows helper (P3-1) ─────────────────────────────────────────────────────────
+// Builds the C# net472 UIA helper with dotnet on Windows only and puts exe+dll on the app
+// classpath under helper/, so Main can extract them next to the data folder at start-up.
+val buildWindowsHelper by tasks.registering {
+    onlyIf { org.gradle.internal.os.OperatingSystem.current().isWindows }
+    doLast {
+        val csproj = rootProject.file("native/windows-helper/UIScope.Helper.csproj")
+        exec {
+            commandLine("dotnet", "build", csproj.absolutePath, "-c", "Release")
+            workingDir = csproj.parentFile
+        }
+        val out = layout.buildDirectory.dir("helper").get().asFile
+        out.mkdirs()
+        copy {
+            from(File(csproj.parentFile, "bin/Release/net48"))
+            include("UIScope.Helper.exe", "UIScope.Helper.dll", "*.config")
+            into(out)
+        }
+    }
+}
+
+afterEvaluate {
+    tasks.named("processResources") { dependsOn(buildWindowsHelper) }
+}
+
+sourceSets {
+    main {
+        resources {
+            // helper/ lands here via buildWindowsHelper; extracted at run time by Main.
+            srcDir(layout.buildDirectory.dir("helper"))
+        }
+    }
+}
+
 dependencies {
     implementation(project(":core"))
     implementation(project(":engine"))
