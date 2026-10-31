@@ -40,6 +40,20 @@ jobs:
         shell: pwsh
         run: scripts/build-msix.ps1 -AppImage "app\build\compose\binaries\main\app\UIScope" -Version "${{ steps.version.outputs.version }}" -Out "dist\UIScope-${{ steps.version.outputs.version }}-x64.msix"
 
+      # Permanent guardrail for the staging regression: the app image's jar must carry
+      # helper/UIScope.Helper.exe (the exact resource path WindowsHelperExe.extract reads at start-up).
+      - name: Verify the helper is staged in the app image
+        shell: pwsh
+        run: |
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $jar = Get-ChildItem "app/build/compose/binaries/main/app/UIScope/app" -Filter "*.jar" | Where-Object { $_.Name -notmatch "sources" } | Select-Object -First 1
+          if ($null -eq $jar) { throw "the app jar was not found in the app image" }
+          $zip = [System.IO.Compression.ZipFile]::OpenRead($jar.FullName)
+          $helper = $zip.Entries | Where-Object { $_.FullName -eq "helper/UIScope.Helper.exe" }
+          $zip.Dispose()
+          if ($null -eq $helper) { throw "helper/UIScope.Helper.exe is missing from $($jar.Name) - the staging path broke" }
+          Write-Host "staged: $($helper.FullName) ($($helper.Length) bytes)"
+
       - name: Collect artifacts and SHA256SUMS
         shell: pwsh
         run: |
