@@ -67,6 +67,13 @@ import com.titanicbhai.uiscope.ui.theme.UiScopeTokens
 /** One visible row: the node plus its depth for the indent. Pure data so the navigation math stays unit-testable. */
 data class TreeRow(val path: ElementPath, val depth: Int, val hasChildren: Boolean, val label: String, val secondary: String?)
 
+/** The AWT modifiers of a key event (the desktop KeyEvent has neither keyboardModifiers nor the pointer isXxxPressed extensions). */
+private fun androidx.compose.ui.input.key.KeyEvent.alt(): Boolean =
+    (nativeEvent as? java.awt.event.InputEvent)?.modifiersEx?.and(java.awt.event.InputEvent.ALT_DOWN_MASK) != 0
+
+private fun androidx.compose.ui.input.key.KeyEvent.shift(): Boolean =
+    (nativeEvent as? java.awt.event.InputEvent)?.modifiersEx?.and(java.awt.event.InputEvent.SHIFT_DOWN_MASK) != 0
+
 /** Pre-order walk that only descends into expanded subtrees; parents before children, paint order within a level. */
 fun visibleRows(index: ElementIndex, expanded: Set<ElementPath>): List<TreeRow> {
     val out = ArrayList<TreeRow>()
@@ -180,7 +187,7 @@ fun TreePane(
         Column(Modifier.fillMaxSize().focusRequester(focusRequester).focusable().onPreviewKeyEvent { event ->
             if (event.type != KeyEventType.KeyUp) return@onPreviewKeyEvent false
             when {
-                event.key == Key.DirectionUp && event.isAltPressed -> {
+                event.key == Key.DirectionUp && event.alt() -> {
                     index?.parentOf(selected)?.let { onSelect(it.path) }; true
                 }
                 event.key == Key.DirectionDown -> {
@@ -213,12 +220,12 @@ fun TreePane(
                         // Enter / Shift+Enter walk the matches; Esc clears (plan 4.5).
                         if (event.type != KeyEventType.KeyUp || matches.isEmpty()) return@onPreviewKeyEvent false
                         when {
-                            event.key == Key.Enter && !event.isShiftPressed -> {
+                            event.key == Key.Enter && !event.shift() -> {
                                 matchCursor = (matchCursor + 1) % matches.size
                                 onSelect(matches[matchCursor.coerceIn(matches.indices)])
                                 true
                             }
-                            event.key == Key.Enter && event.isShiftPressed -> {
+                            event.key == Key.Enter && event.shift() -> {
                                 matchCursor = (matchCursor - 1 + matches.size) % matches.size
                                 onSelect(matches[matchCursor.coerceIn(matches.indices)])
                                 true
