@@ -27,6 +27,7 @@ import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 
 /** P3-8: one test per transition of 4.4 (Windows), on a fake port. The "main" dispatcher is a thread named ui-main; no port call may ever run on it. */
@@ -39,7 +40,8 @@ class WindowsInspectStateTest {
         override val io = Executors.newCachedThreadPool { r -> Thread(r, "ui-io").apply { isDaemon = true } }.asCoroutineDispatcher()
         override val default = named("ui-default")
     }
-    private val scope = CoroutineScope(SupervisorJob() + dispatchers.main)
+    private val job = SupervisorJob()
+    private val scope = CoroutineScope(job + dispatchers.main)
 
     private val notepad = WindowInfoType("0x00120A3C", "Untitled - Notepad", "notepad.exe", 1234, false)
     private val elevated = WindowInfoType("0x0000BEEF", "Task Manager", "Taskmgr.exe", 99, true)
@@ -105,7 +107,7 @@ class WindowsInspectStateTest {
         s.start()
         s.awaitState("HelperMissing") { it is WindowsState.HelperMissing }
         s.stop()
-        scope.cancelChildren()
+        job.cancelChildren()
     }
 
     @Test
@@ -115,7 +117,7 @@ class WindowsInspectStateTest {
         s.awaitState("Idle") { it is WindowsState.Idle }
         assertEquals(listOf(notepad, elevated), s.ui.value.windows)
         s.stop()
-        scope.cancelChildren()
+        job.cancelChildren()
     }
 
     @Test
@@ -129,7 +131,7 @@ class WindowsInspectStateTest {
         assertTrue(s.ui.value.index!!.size >= 2)
         assertEquals(null, s.ui.value.selected)
         s.stop()
-        scope.cancelChildren()
+        job.cancelChildren()
     }
 
     @Test
@@ -144,7 +146,7 @@ class WindowsInspectStateTest {
         s.awaitState("WindowGone") { it is WindowsState.WindowGone }
         assertTrue(s.ui.value.capture != null, "the last capture stays on screen")
         s.stop()
-        scope.cancelChildren()
+        job.cancelChildren()
     }
 
     @Test
@@ -157,11 +159,11 @@ class WindowsInspectStateTest {
         port.captureResults.addLast(Outcome.Failure(CodedError(ErrorCodes.UIA_UNAVAILABLE, "the helper was restarted")))
         s.refresh()
         s.awaitState("CaptureFailed") { it is WindowsState.CaptureFailed }
-        port.captureResults.addLast(FakePort.screenFor(notepad.hwnd))
+        port.captureResults.addLast(Outcome.Success(FakePort.screenFor(notepad.hwnd)))
         s.refresh()
         s.awaitState("Captured again") { it is WindowsState.Captured }
         s.stop()
-        scope.cancelChildren()
+        job.cancelChildren()
     }
 
     @Test
@@ -169,14 +171,14 @@ class WindowsInspectStateTest {
         val s = state()
         s.start()
         s.awaitState("Idle") { it is WindowsState.Idle }
-        port.captureResults.addLast(FakePort.screenFor(notepad.hwnd))
-        port.captureResults.addLast(FakePort.screenFor(notepad.hwnd))
+        port.captureResults.addLast(Outcome.Success(FakePort.screenFor(notepad.hwnd)))
+        port.captureResults.addLast(Outcome.Success(FakePort.screenFor(notepad.hwnd)))
         s.chooseWindow(notepad.hwnd)
         s.chooseWindow(elevated.hwnd) // single flight: ignored while the first capture runs
         s.awaitState("Captured") { it is WindowsState.Captured }
         assertEquals(notepad.hwnd, s.ui.value.selectedHwnd)
         s.stop()
-        scope.cancelChildren()
+        job.cancelChildren()
     }
 
     @Test
@@ -199,7 +201,7 @@ class WindowsInspectStateTest {
         assertEquals("app:id/ok", selectedNode.identifier)
         assertEquals(1, port.stoppedPicks.get(), "pick mode is stopped after the pick")
         s.stop()
-        scope.cancelChildren()
+        job.cancelChildren()
     }
 
     @Test
@@ -216,7 +218,7 @@ class WindowsInspectStateTest {
         waitFor("pick cancelled event") { events.contains(WindowsEvent.PickCancelled) }
         collector.cancel()
         s.stop()
-        scope.cancelChildren()
+        job.cancelChildren()
     }
 
     @Test
@@ -228,12 +230,12 @@ class WindowsInspectStateTest {
         s.awaitState("Captured") { it is WindowsState.Captured }
         val selectedPath = ElementPath.root(0).child(0)
         s.select(selectedPath)
-        port.captureResults.addLast(FakePort.screenFor(notepad.hwnd))
+        port.captureResults.addLast(Outcome.Success(FakePort.screenFor(notepad.hwnd)))
         s.refresh()
         s.awaitState("Captured again") { it is WindowsState.Captured }
         assertEquals(selectedPath, s.ui.value.selected)
         s.stop()
-        scope.cancelChildren()
+        job.cancelChildren()
     }
 
     @Test
@@ -255,6 +257,6 @@ class WindowsInspectStateTest {
         )
         assertTrue(port.threads.all { it.startsWith("ui-io") || it.startsWith("ui-default") }, port.threads.toSet().toString())
         s.stop()
-        scope.cancelChildren()
+        job.cancelChildren()
     }
 }
