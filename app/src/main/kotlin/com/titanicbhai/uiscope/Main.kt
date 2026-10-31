@@ -47,6 +47,8 @@ import com.titanicbhai.uiscope.ui.firstrun.AdbDownloadActions
 import com.titanicbhai.uiscope.ui.firstrun.FirstRunCallbacks
 import com.titanicbhai.uiscope.ui.firstrun.FirstRunScreen
 import com.titanicbhai.uiscope.ui.help.HelpScreen
+import com.titanicbhai.uiscope.ui.compare.CompareCallbacks
+import com.titanicbhai.uiscope.ui.compare.CompareScreen
 import com.titanicbhai.uiscope.ui.inspect.ExportActions
 import com.titanicbhai.uiscope.ui.inspect.ExportDialog
 import com.titanicbhai.uiscope.ui.inspect.InspectCallbacks
@@ -115,6 +117,23 @@ private fun logRetentionError(error: AppError) {
 }
 
 private val exportLogger = Logger.getLogger("uiscope.export")
+
+/** The native Save dialog plus the file write, shared by the export dialog (P5-2) and the diff export (P6-2). */
+private suspend fun saveThroughDialog(window: java.awt.Frame, suggestedName: String, bytes: ByteArray): Outcome<Unit> {
+    val target = withContext(Dispatchers.Main) { chooseSaveFile(window, suggestedName) }
+    return when (target) {
+        null -> Outcome.Success(Unit) // the user cancelled the dialog: neither an error nor a message
+        else -> withContext(Dispatchers.IO) {
+            try {
+                java.nio.file.Files.write(target, bytes)
+                Outcome.Success(Unit)
+            } catch (t: Throwable) {
+                exportLogger.warning("the export could not be written: " + t.javaClass.simpleName)
+                Outcome.Failure(CodedError(ErrorCodes.UNEXPECTED, t.message))
+            }
+        }
+    }
+}
 
 /** The native Save dialog on the event thread (same pattern as the adb browser); null means the user cancelled. */
 private fun chooseSaveFile(window: java.awt.Frame, suggestedName: String): Path? {
@@ -414,6 +433,7 @@ fun main() {
                     status = status,
                     toasts = toasts,
                     dialogs = dialogs,
+                    diffEnabled = FeatureFlags.forHost().diff,
                 ) {
                     when (screen) {
                         ShellScreen.INSPECT -> {
@@ -507,6 +527,14 @@ fun main() {
                                 pickImportFile = { chooseOpenFile(window) },
                             ),
                         )
+                        ShellScreen.COMPARE -> CompareScreen(
+                            store = snapshotsReady.value,
+                            liveCapture = if (settingsState.lastTarget == InspectTarget.WINDOWS) windowsInspect?.capture else inspect.capture,
+                            callbacks = CompareCallbacks(
+                                onMessage = { toasts.show(it) },
+                                saveDiff = { name, bytes -> saveThroughDialog(window, name, bytes) },
+                            ),
+                        )
                         ShellScreen.SETTINGS -> SettingsScreen(
                             settings = settings,
                             appInfo = appInfo,
@@ -554,22 +582,7 @@ fun main() {
                             defaultFormat = settingsState.defaultExportFormat,
                             appVersion = appInfo.version,
                             actions = ExportActions(
-                                saveAs = { name, bytes ->
-                                    val target = withContext(Dispatchers.Main) { chooseSaveFile(window, name) }
-                                    if (target == null) {
-                                        Outcome.Success(Unit) // the user cancelled the dialog: neither an error nor a message
-                                    } else {
-                                        withContext(Dispatchers.IO) {
-                                            try {
-                                                java.nio.file.Files.write(target, bytes)
-                                                Outcome.Success(Unit)
-                                            } catch (t: Throwable) {
-                                                exportLogger.warning("the export could not be written: " + t.javaClass.simpleName)
-                                                Outcome.Failure(CodedError(ErrorCodes.UNEXPECTED, t.message))
-                                            }
-                                        }
-                                    }
-                                },
+                                saveAs = { name, bytes -> saveThroughDialog(window, name, bytes) },
                                 renderPng = { c, sel -> renderPngWithOutline(c, if (fromWindows) windowsInspect?.index else inspect.index, sel) },
                             ),
                             onDismiss = { exportOpen = false },

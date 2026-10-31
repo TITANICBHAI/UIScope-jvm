@@ -4,7 +4,8 @@
 
 UIScope captures the UI of a Windows application window (Windows 10 1809+) or an Android device: the element
 tree, a screenshot with live element highlighting, per-element properties, selector suggestions for ten test
-frameworks, and snapshots you can re-open offline or export.
+frameworks, and snapshots you can re-open offline or export. The **Compare** screen diffs any two captures —
+live vs snapshot or snapshot vs snapshot — with added/removed/changed/moved browsing and JSON or text export.
 
 > **Status: 1.0.0.** The app was rebuilt from the ground up; the previous implementation is gone
 > (`git log` keeps it). Microsoft Store submission and the first tagged release are the remaining owner steps.

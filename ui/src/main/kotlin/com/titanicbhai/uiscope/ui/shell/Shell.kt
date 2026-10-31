@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.HelpOutline
+import androidx.compose.material.icons.filled.Compare
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Lens
 import androidx.compose.material.icons.filled.Search
@@ -37,8 +38,8 @@ import androidx.compose.ui.unit.dp
 import com.titanicbhai.uiscope.error.AppError
 import com.titanicbhai.uiscope.ui.theme.UiScopeTokens
 
-/** The rail destinations (plan §4.1). Screens arrive with P4-3 (Inspect), P5-1 (Snapshots) and P4-8 (Settings). */
-enum class ShellScreen { INSPECT, SNAPSHOTS, SETTINGS, HELP }
+/** The rail destinations (plan §4.1). Screens arrive with P4-3 (Inspect), P5-1 (Snapshots), P6-2 (Compare, behind the diff flag) and P4-8 (Settings). */
+enum class ShellScreen { INSPECT, SNAPSHOTS, COMPARE, SETTINGS, HELP }
 
 /**
  * Hook point for P7-1 (single instance, regression M15): the shell starts nothing itself; P7-1 replaces [NoSingleInstance]
@@ -86,6 +87,7 @@ fun AppShell(
     status: ShellStatus,
     toasts: ToastState,
     dialogs: ShellDialogState,
+    diffEnabled: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     Column(Modifier.fillMaxSize()) {
@@ -103,6 +105,14 @@ fun AppShell(
                     icon = { Icon(Icons.Filled.History, contentDescription = null) },
                     label = { Text("Snapshots") },
                 )
+                if (diffEnabled) {
+                    NavigationRailItem(
+                        selected = screen == ShellScreen.COMPARE,
+                        onClick = { onScreen(ShellScreen.COMPARE) },
+                        icon = { Icon(Icons.Filled.Compare, contentDescription = null) },
+                        label = { Text("Compare") },
+                    )
+                }
                 NavigationRailItem(
                     selected = screen == ShellScreen.SETTINGS,
                     onClick = { onScreen(ShellScreen.SETTINGS) },

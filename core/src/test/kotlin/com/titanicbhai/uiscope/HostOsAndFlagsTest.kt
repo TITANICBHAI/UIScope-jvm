@@ -18,10 +18,12 @@ class HostOsAndFlagsTest {
     }
 
     @Test
-    fun `windows pc inspection is only on for Windows and diff is always off`() {
+    fun `windows pc inspection is only on for Windows and the diff gate has been removed`() {
         assertTrue(FeatureFlags.forHost(HostOs.WINDOWS).windowsPc)
         assertFalse(FeatureFlags.forHost(HostOs.MACOS).windowsPc)
         assertFalse(FeatureFlags.forHost(HostOs.LINUX).windowsPc)
-        HostOs.entries.forEach { assertFalse(FeatureFlags.forHost(it).diff, "diff must stay off for $it") }
+        // P6-1 (the matching engine) and P6-2 (the Compare UI) are rebuilt and verified, so the diff
+        // flag is on for every host (plan §1.4 #9: the gate exists only until both pass).
+        HostOs.entries.forEach { assertTrue(FeatureFlags.forHost(it).diff, "Compare must be on for $it") }
     }
 }
