@@ -9,17 +9,19 @@ import com.titanicbhai.uiscope.ports.PickEvent
 import com.titanicbhai.uiscope.process.SystemProcessLauncher
 import com.titanicbhai.uiscope.testing.FakeProcess
 import com.titanicbhai.uiscope.testing.assertSuccess
+import com.titanicbhai.uiscope.testing.awaitTrue
 import com.titanicbhai.uiscope.testing.blocking
 import java.nio.file.Files
+import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.seconds
-import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancelChildren
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.take
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 
@@ -88,10 +90,10 @@ class EngineWindowsPortTest {
         val button = capture.roots.single().children.single()
         val canvas = viewport.toCanvas(button.bounds)
         assertTrue(canvas.left >= 0 && canvas.right <= 400, "button fits on the canvas: $canvas")
-        // And back: un-mapping the canvas centre returns the capture-space centre.
+        // And back: un-mapping the canvas centre of the button returns its capture-space centre (600, 480).
         val centre = viewport.toCapture((canvas.left + canvas.right) / 2, (canvas.top + canvas.bottom) / 2)
-        assertEquals(500.0, centre.x, 0.5)
-        assertEquals(500.0, centre.y, 0.5)
+        assertEquals(600.0, centre.x, 0.5)
+        assertEquals(480.0, centre.y, 0.5)
         job.cancelChildren()
     }
 
@@ -99,21 +101,17 @@ class EngineWindowsPortTest {
     fun `pick events are translated to hover and result with the window handle`() = blocking {
         val p = port()
         p.connect().assertSuccess()
-        val hoverDeferred = CompletableDeferred<PickEvent>()
-        val collector = scope.launch { hoverDeferred.complete(p.pickEvents().first()) }
-        // startPick makes the fake helper emit pickHover then pickResult, like the real overlay would.
+        // The helper emits the events while startPick is in flight, so the collector subscribes first
+        // (the events SharedFlow has no replay: anything emitted before a subscriber joins is gone).
+        val received = CopyOnWriteArrayList<PickEvent>()
+        val collector = scope.launch { p.pickEvents().take(2).toList().let { received.addAll(it) } }
         p.startPick().assertSuccess()
-        val hover = withTimeout(10.seconds) { hoverDeferred.await() }
-        assertTrue(hover is PickEvent.Hover && hover.element.controlType == "Button", "hover translated: $hover")
-        val resultDeferred = CompletableDeferred<PickEvent>()
-        val collector2 = scope.launch { resultDeferred.complete(p.pickEvents().first()) }
-        // A second startPick re-arms the fake's event emission.
-        p.startPick().assertSuccess()
-        val pickResult = withTimeout(10.seconds) { resultDeferred.await() }
-        assertTrue(pickResult is PickEvent.Result && pickResult.hwnd == "0x00120a3c", "result translated: $pickResult")
-        assertTrue(pickResult.element.automationId == "app:id/ok")
+        withTimeout(10.seconds) { awaitTrue(10_000, "hover + result received") { received.size >= 2 } }
+        assertTrue(received[0] is PickEvent.Hover && received[0].element.controlType == "Button", "hover translated: ${received[0]}")
+        val result = received[1] as PickEvent.Result
+        assertEquals("0x00120a3c", result.hwnd)
+        assertEquals("app:id/ok", result.element.automationId)
         collector.cancel()
-        collector2.cancel()
         job.cancelChildren()
     }
 
