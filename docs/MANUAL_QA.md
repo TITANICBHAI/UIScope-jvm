@@ -84,3 +84,15 @@ hugs the element, a click is *not* delivered to the app underneath, and the pick
 5. **Import a bundle made on another machine** (export one from the Linux dev box or from a second install). **Pass if** tree, screenshot, title and note come back and the device serial is empty.
 6. **Update check with no internet** (unplug): **Pass if** nothing is shown and the log has one INFO line "update check failed".
 7. **Update check against the real repository** once the repo URL in `app.properties` is real: **Pass if** a newer release shows "What's new" linking to the release page, and an older or equal one shows nothing.
+
+## Phase 5 UI additions — snapshots screen, export dialog, storage meter (needs the app running)
+
+1. Press `Ctrl+S` (or *Save snapshot*) with a capture on screen. **Pass if** a toast confirms and the Snapshots screen lists it with title, target, time, node count and size.
+2. Select the snapshot and press *Open in Inspector*. **Pass if** the tree, the screenshot and the selector verdicts all come back under the "Snapshot from … — not live" banner, with no device attached.
+3. *Rename/Note…* changes the title; *Pin* survives a restart, and the pinned snapshot is never the one retention deletes.
+4. *Export…* a snapshot as `.uiscope`, delete it, then *Import…* it back. **Pass if** the tree and screenshot come back identical (and the first-ever export showed the one-line privacy notice).
+5. *Export…* from the Inspector as JSON to the clipboard: paste into a validator — **Pass if** it is valid; with *Redact text values* on, no original text appears (the CI sentinel test proves the pipeline; this is the eyeball pass).
+6. Copy a ~5,000-element capture to the clipboard. **Pass if** the UI never visibly stalls (the 100 ms budget of plan 4.8).
+7. *Save as...* a PNG with an element selected. **Pass if** the red outline hugs the element with no shift at your display scaling.
+8. Delete a snapshot, then check the Snapshots data folder. **Pass if** its folder and files are gone.
+9. The Settings meter matches what the folder holds (count and MB), and raising the size cap moves the bar.
