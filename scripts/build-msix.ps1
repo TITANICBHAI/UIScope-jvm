@@ -13,7 +13,7 @@ param(
     [Parameter(Mandatory = $true)][string] $Version,
     [Parameter(Mandatory = $true)][string] $Out,
     [switch] $TestSign,
-    [switch] $RunWack,
+    [switch] $RunWack
 )
 
 $ErrorActionPreference = "Stop"
