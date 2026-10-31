@@ -72,7 +72,10 @@ fun SnapshotInspector(
     var expanded by remember(capture) { mutableStateOf(setOf(ElementPath.root(0))) }
     var testHighlight by remember(capture) { mutableStateOf<TestHighlight?>(null) }
     val searchFocus = remember { FocusRequester() }
-    LaunchedEffect(capture) { searchFocus.requestFocus() }
+    // The tree pane attaches the focus modifier only once it has an index to show, so the request waits for it.
+    LaunchedEffect(index) {
+        if (index != null) searchFocus.requestFocus()
+    }
     Column(modifier.fillMaxSize()) {
         Surface(color = MaterialTheme.colorScheme.secondaryContainer) {
             Row(
