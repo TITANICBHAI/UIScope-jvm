@@ -101,35 +101,38 @@ compose.desktop {
 }
 
 // ── Windows helper (P3-1) ─────────────────────────────────────────────────────────
-// The helper is built by the CI workflow step (setup-dotnet + dotnet build, see ci.yml) into
-// native/windows-helper/bin. This task only stages exe+dll onto the app classpath under helper/,
-// so Main can extract them next to the data folder at start-up. Skipped when the exe is absent
-// (non-Windows builds, or a Windows run of the helper build failed — Main then reports
-// Windows inspection as unavailable instead of pretending).
-val stageWindowsHelper by tasks.registering {
-    onlyIf {
-        org.gradle.internal.os.OperatingSystem.current().isWindows &&
-            file("native/windows-helper/bin/UIScope.Helper.exe").exists()
-    }
+// The helper is a classic net48 EXE built with the Framework MSBuild that ships on every
+// Windows machine/runner (C:\Windows\Microsoft.NET\Framework64\v4.0.30319\MSBuild.exe) —
+// no dotnet SDK, no targeting pack, no NuGet. The task builds and stages exe onto the app
+// classpath under helper/, so Main can extract it next to the data folder at start-up.
+// Skipped when the exe is absent (non-Windows builds; Main then reports Windows
+// inspection as unavailable instead of pretending).
+val buildWindowsHelper by tasks.registering {
+    onlyIf { org.gradle.internal.os.OperatingSystem.current().isWindows }
     doLast {
+        val msbuild = "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\MSBuild.exe"
+        val csproj = rootProject.file("native/windows-helper/UIScope.Helper.csproj")
+        exec {
+            commandLine(msbuild, csproj.absolutePath, "/p:Configuration=Release", "/nologo", "/v:q")
+        }
         val out = layout.buildDirectory.dir("helper").get().asFile
         out.mkdirs()
         copy {
-            from("native/windows-helper/bin")
-            include("UIScope.Helper.exe", "UIScope.Helper.dll", "*.config")
+            from(File(csproj.parentFile, "bin"))
+            include("UIScope.Helper.exe", "*.config")
             into(out)
         }
     }
 }
 
 afterEvaluate {
-    tasks.named("processResources") { dependsOn(stageWindowsHelper) }
+    tasks.named("processResources") { dependsOn(buildWindowsHelper) }
 }
 
 sourceSets {
     main {
         resources {
-            // helper/ lands here via stageWindowsHelper; extracted at run time by Main.
+            // helper/ lands here via buildWindowsHelper; extracted at run time by Main.
             srcDir(layout.buildDirectory.dir("helper"))
         }
     }
