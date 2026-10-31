@@ -51,7 +51,7 @@ namespace UIScope.Helper
                         break;
 
                     case "captureWindow":
-                        Reply(id, CaptureWindowJson(ExtractString(line, "hwnd")));
+                        Reply(id, CaptureWindowJson(id, ExtractString(line, "hwnd")));
                         break;
 
                     case "ping":
@@ -110,7 +110,7 @@ namespace UIScope.Helper
             return sb.ToString();
         }
 
-        private static string CaptureWindowJson(string hwndText)
+        private static string CaptureWindowJson(string id, string hwndText)
         {
             if (hwndText == null || !hwndText.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
                 throw new ArgumentException("no hwnd given");

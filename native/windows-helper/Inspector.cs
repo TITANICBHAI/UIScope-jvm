@@ -39,7 +39,12 @@ namespace UIScope.Helper
 
         private static System.Drawing.Rectangle SafeRect(AutomationElement e)
         {
-            try { return e.Current.BoundingRectangle; }
+            try
+            {
+                // BoundingRectangle is a System.Windows.Rect (WindowsBase) - convert explicitly.
+                var r = e.Current.BoundingRectangle;
+                return System.Drawing.Rectangle.FromLTRB((int)r.Left, (int)r.Top, (int)r.Right, (int)r.Bottom);
+            }
             catch { return System.Drawing.Rectangle.Empty; }
         }
 

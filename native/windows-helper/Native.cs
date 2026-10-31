@@ -11,6 +11,10 @@ namespace UIScope.Helper
         public struct RECT
         {
             public int Left, Top, Right, Bottom;
+
+            public int Width { get { return Right - Left; } }
+
+            public int Height { get { return Bottom - Top; } }
         }
 
         public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
@@ -65,7 +69,8 @@ namespace UIScope.Helper
                 try
                 {
                     uint elevation;
-                    bool ok = GetTokenInformation(token, TokenElevation, out elevation, 4, out _);
+                    uint returned;
+                    bool ok = GetTokenInformation(token, TokenElevation, out elevation, 4, out returned);
                     return ok && elevation != 0;
                 }
                 finally { CloseHandle(token); }
