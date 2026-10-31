@@ -23,21 +23,14 @@ class PerfSmokeTest {
 
     private val logger = Logger.getLogger("uiscope.perf")
 
-    private fun node(depth: Int, fanout: Int): N {
-        val children = if (depth <= 0) emptyList() else List(fanout) { i ->
-            node(depth - 1, fanout).let { child ->
-                // Give each node a distinguishable identifier and text so the index and exporters do real work.
-                TestTrees.n(
-                    className = "android.widget.TextView",
-                    identifier = "app:id/n-${depth}-${i}",
-                    text = "item $depth-$i",
-                    bounds = Bounds(i * 10, depth * 10, 90, 40),
-                    children = listOf(child),
-                )
-            }
-        }
-        return TestTrees.n(className = "android.view.View", children = children)
-    }
+    // Each node carries a distinguishable identifier and text so the index and exporters do real work.
+    private fun node(depth: Int, fanout: Int, index: Int = 0): N = TestTrees.n(
+        className = "android.widget.TextView",
+        identifier = "app:id/n-$depth-$index",
+        text = "item $depth-$index",
+        bounds = Bounds(index * 10, depth * 10, 90, 40),
+        children = if (depth <= 0) emptyList() else List(fanout) { i -> node(depth - 1, fanout, i) },
+    )
 
     @Test
     fun `an 11k-node capture indexes and exports without a pathological slowdown`() {
