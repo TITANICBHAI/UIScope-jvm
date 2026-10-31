@@ -1,0 +1,62 @@
+# Release CI (plan P8-3): tagging v* builds the helper, the MSI/EXE installers and the unsigned MSIX,
+# computes SHA256SUMS and creates a draft GitHub Release with the CHANGELOG section for the version.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: build and draft release
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Read the version
+        id: version
+        shell: bash
+        run: echo "version=$(cat version.txt)" >> "$GITHUB_OUTPUT"
+
+      # The Windows helper is built by :app:processResources (buildWindowsHelper) on every Windows JVM run.
+      - name: Package the installers and the app image
+        shell: bash
+        run: ./gradlew :app:packageMsi :app:packageExe :app:createDistributable --stacktrace
+
+      - name: Build the unsigned MSIX
+        shell: pwsh
+        run: scripts/build-msix.ps1 -AppImage "app\build\compose\binaries\main\app\UIScope" -Version "${{ steps.version.outputs.version }}" -Out "dist\UIScope-${{ steps.version.outputs.version }}-x64.msix"
+
+      - name: Collect artifacts and SHA256SUMS
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path dist -Force | Out-Null
+          $msis = Get-ChildItem "app\build\compose\binaries\main\msi" -Filter *.msi -ErrorAction SilentlyContinue
+          $exes = Get-ChildItem "app\build\compose\binaries\main\exe" -Filter *.exe -ErrorAction SilentlyContinue
+          $msis + $exes | ForEach-Object { Copy-Item $_.FullName dist\ }
+          Get-ChildItem dist -File | ForEach-Object {
+            $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+            "$hash  $($_.Name)" | Out-File dist\SHA256SUMS -Append -Encoding ascii
+          }
+          Get-Content dist\SHA256SUMS
+
+      - name: Draft the GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          generate_release_notes: true
+          files: |
+            dist/SHA256SUMS
+            dist/*.msi
+            dist/*.exe
+            dist/*.msix
