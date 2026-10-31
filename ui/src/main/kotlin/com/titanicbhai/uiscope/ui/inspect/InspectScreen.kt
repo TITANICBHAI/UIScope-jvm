@@ -42,6 +42,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
@@ -117,11 +118,15 @@ fun InspectScreen(
 ) {
     var selectedTarget by remember { mutableStateOf(target) }
     val searchFocus = remember { FocusRequester() }
+    val rootFocus = remember { FocusRequester() }
     val clipboard = LocalClipboardManager.current
+    // The root grabs focus on composition so the 4.11 shortcuts work before anything else is touched.
+    LaunchedEffect(Unit) { rootFocus.requestFocus() }
     Column(
         modifier
             .fillMaxSize()
             .testTag("uiscope.inspect")
+            .focusRequester(rootFocus)
             .focusable()
             .onPreviewKeyEvent { event ->
                 // The app-level shortcuts of 4.11 (no single-letter shortcuts). Enter-in-search and Alt+Up live in the tree pane.
