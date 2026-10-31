@@ -14,6 +14,7 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -39,10 +40,11 @@ class WindowsHelperClient(
     private val protocolVersion: Int = HelperProtocol.PROTOCOL_VERSION,
     private val logger: Logger = Logger.getLogger("uiscope.windows"),
 ) {
+    private val eventFlow = MutableSharedFlow<Line.Event>(extraBufferCapacity = 64)
+
     /** Events from the helper (pickHover, hotkey, ...) in arrival order. Collect once. */
     val events: SharedFlow<Line.Event> = eventFlow
 
-    private val eventFlow = MutableSharedFlow<Line.Event>(extraBufferCapacity = 64)
     private val pending = ConcurrentHashMap<Long, CompletableDeferred<Line.Response>>()
     private val idCounter = AtomicLong(0)
     private val restartTimes = ArrayDeque<Long>()
@@ -74,24 +76,29 @@ class WindowsHelperClient(
             if (written is Outcome.Failure) {
                 pending.remove(id)
                 if (restartWithPolicy() == null) return helperGaveUp("the helper is not running (${written.errorOrAbort()})")
-            } else {
-                val response = try {
-                    withTimeout(timeout) { deferred.await() }
-                } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
-                    pending.remove(id)
-                    logger.log(Level.WARNING, "helper request $type timed out after $timeout; restarting the helper")
-                    if (restartWithPolicy() == null) return helperGaveUp("the helper was restarted too often; giving up")
-                    null
-                } ?: run {
-                    attempt++
-                    if (attempt >= 2) return helperGaveUp("the helper could not be reached after a restart")
-                    continue
-                }
-                if (!response.ok) {
-                    return Outcome.Failure(CodedError(response.errorCode ?: ErrorCodes.UNEXPECTED, response.errorMessage))
-                }
-                return Outcome.Success(response.value)
+                attempt++
+                if (attempt >= 2) return helperGaveUp("the helper could not be reached after a restart")
+                continue
             }
+            var response: Line.Response? = null
+            var timedOut = false
+            try {
+                response = withTimeout(timeout) { deferred.await() }
+            } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+                timedOut = true
+            }
+            if (timedOut) {
+                pending.remove(id)
+                logger.log(Level.WARNING, "helper request $type timed out after $timeout; restarting the helper")
+                if (restartWithPolicy() == null) return helperGaveUp("the helper was restarted too often; giving up")
+                attempt++
+                if (attempt >= 2) return helperGaveUp("the helper could not be reached after a restart")
+                continue
+            }
+            if (!response!!.ok) {
+                return Outcome.Failure(CodedError(response.errorCode ?: ErrorCodes.UNEXPECTED, response.errorMessage))
+            }
+            return Outcome.Success(response.value)
         }
     }
 
@@ -113,7 +120,7 @@ class WindowsHelperClient(
         }
     }
 
-    private fun ensureStarted(): Outcome<Unit> = when {
+    private suspend fun ensureStarted(): Outcome<Unit> = when {
         process != null -> Outcome.Success(Unit)
         else -> spawnAndHandshake(clientScope)
     }
