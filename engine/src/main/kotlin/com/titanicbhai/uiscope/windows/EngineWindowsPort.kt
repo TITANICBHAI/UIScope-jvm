@@ -133,9 +133,9 @@ class EngineWindowsPort(
 
     private fun pickedElement(payload: Map<String, Any?>): PickedElement {
         @Suppress("UNCHECKED_CAST")
-        val element = payload["element"] as? Map<String, Any?> ?: PickedElement(null, null, null, null, boundsZero)
+        val element = payload["element"] as? Map<String, Any?> ?: emptyMap()
         @Suppress("UNCHECKED_CAST")
-        val rect = element["rect"] as? Map<String, Any?> ?: boundsZero
+        val rect = element["rect"] as? Map<String, Any?> ?: emptyMap()
         fun long(key: String) = (rect[key] as? Long)?.toInt() ?: 0
         return PickedElement(
             runtimeId = element["runtimeId"] as? String,
@@ -152,9 +152,5 @@ class EngineWindowsPort(
         val controlType = element["controlType"] as? String ?: ""
         val name = element["name"] as? String ?: ""
         return listOf(controlType, name).filter { it.isNotBlank() }.joinToString(" - ")
-    }
-
-    private companion object {
-        val boundsZero = com.titanicbhai.uiscope.model.Bounds(0, 0, 0, 0)
     }
 }
