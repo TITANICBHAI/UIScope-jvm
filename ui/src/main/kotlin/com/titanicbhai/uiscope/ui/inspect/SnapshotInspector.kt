@@ -72,9 +72,19 @@ fun SnapshotInspector(
     var expanded by remember(capture) { mutableStateOf(setOf(ElementPath.root(0))) }
     var testHighlight by remember(capture) { mutableStateOf<TestHighlight?>(null) }
     val searchFocus = remember { FocusRequester() }
-    // The tree pane attaches the focus modifier only once it has an index to show, so the request waits for it.
+    // The tree pane attaches the focus modifier only once it has an index to show; the attachment can land a
+    // frame after the effect starts, so the request retries briefly instead of failing the frame.
     LaunchedEffect(index) {
-        if (index != null) searchFocus.requestFocus()
+        if (index != null) {
+            repeat(10) {
+                try {
+                    searchFocus.requestFocus()
+                    return@LaunchedEffect
+                } catch (_: IllegalStateException) {
+                    kotlinx.coroutines.delay(50)
+                }
+            }
+        }
     }
     Column(modifier.fillMaxSize()) {
         Surface(color = MaterialTheme.colorScheme.secondaryContainer) {
