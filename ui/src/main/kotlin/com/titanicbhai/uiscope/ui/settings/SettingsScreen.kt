@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
@@ -33,9 +35,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.titanicbhai.uiscope.AppInfo
 import com.titanicbhai.uiscope.error.Outcome
@@ -126,7 +132,7 @@ fun SettingsScreen(
             if (adbDownload == null) {
                 Text("Browse, test and download arrive with the first-run screen (P4-7).", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            SettingSlider("Live interval", current.liveIntervalSeconds.toFloat(), 1f..10f, steps = 8, display = { "${it.toInt()} s" }) { value ->
+            SettingVerticalSlider("Live interval", current.liveIntervalSeconds.toFloat(), 1f..10f, steps = 8, display = { "${it.toInt()} s" }) { value ->
                 settings.update { it.copy(liveIntervalSeconds = value.toInt()) }
             }
         }
@@ -287,6 +293,74 @@ private fun SettingSwitch(label: String, checked: Boolean, onChecked: (Boolean) 
 }
 
 @Composable
+/** The Live-interval control as a volume-style vertical fader (owner request): label and value on top, the slider below. */
+@Composable
+private fun SettingVerticalSlider(
+    label: String,
+    value: Float,
+    range: ClosedFloatingPointRange<Float>,
+    steps: Int,
+    display: (Float) -> String,
+    onCommit: (Float) -> Unit,
+) {
+    var local by remember(value) { mutableStateOf(value) }
+    Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+            Text(display(local), style = MaterialTheme.typography.bodySmall)
+        }
+        VerticalSlider(
+            value = local,
+            onValueChange = { local = it },
+            onValueChangeFinished = { onCommit(local) },
+            valueRange = range,
+            steps = steps,
+            length = 160.dp,
+            modifier = Modifier.padding(vertical = UiScopeTokens.spaceS).testTag("settings.live-interval-vertical"),
+        )
+    }
+}
+
+/** Material3's Slider is horizontal-only: this measures it (length x thickness), rotates it 270 degrees about its
+ *  top-left corner and translates it back into the box. The rotation maps the slider's internal increase direction
+ *  (local right) to visual up, so the value maps directly - no inversion - and pointer input rotates with the layer,
+ *  so dragging up and down works. */
+@Composable
+private fun VerticalSlider(
+    value: Float,
+    onValueChange: (Float) -> Unit,
+    onValueChangeFinished: () -> Unit,
+    valueRange: ClosedFloatingPointRange<Float>,
+    steps: Int,
+    length: Dp,
+    modifier: Modifier = Modifier,
+) {
+    val thickness = 48.dp
+    val fraction = if (valueRange.endInclusive > valueRange.start) {
+        ((value - valueRange.start) / (valueRange.endInclusive - valueRange.start)).coerceIn(0f, 1f)
+    } else {
+        0f
+    }
+    Box(modifier.width(thickness).height(length), contentAlignment = Alignment.TopStart) {
+        Slider(
+            value = fraction,
+            onValueChange = { internal ->
+                onValueChange(valueRange.start + internal * (valueRange.endInclusive - valueRange.start))
+            },
+            onValueChangeFinished = onValueChangeFinished,
+            valueRange = 0f..1f,
+            steps = steps,
+            modifier = Modifier
+                .requiredSize(length, thickness)
+                .graphicsLayer {
+                    rotationZ = 270f
+                    transformOrigin = TransformOrigin(0f, 0f)
+                    translationY = size.width
+                },
+        )
+    }
+}
+
 private fun SettingSlider(label: String, value: Float, range: ClosedFloatingPointRange<Float>, steps: Int, display: (Float) -> String, onCommit: (Float) -> Unit) {
     var local by remember(value) { mutableStateOf(value) }
     Column(Modifier.fillMaxWidth()) {

@@ -9,9 +9,11 @@ import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performTouchInput
 import com.titanicbhai.uiscope.AppInfo
 import com.titanicbhai.uiscope.settings.InMemorySettingsStore
 import com.titanicbhai.uiscope.settings.Settings
@@ -111,6 +113,20 @@ class SettingsScreenTest {
         val copied = clipboard.last
         // The shell passes the real diagnostics builder; the test's stub returns a version-carrying string.
         assertEquals("DIAGNOSTICS-1.0.0", copied, "copy diagnostics puts the builder's output on the clipboard")
+    }
+
+    @Test
+    fun `the live interval is a vertical fader that commits on release`() {
+        val store = InMemorySettingsStore()
+        setContent(store)
+        // Drag the fader up (up means more) and let go: the commit lands in the store.
+        rule.onNodeWithTag("settings.live-interval-vertical").performTouchInput { swipeUp() }
+        rule.waitForIdle()
+        assertTrue(
+            store.settings.value.liveIntervalSeconds > 1,
+            "swiping the fader up raised the interval: ${store.settings.value.liveIntervalSeconds}",
+        )
+        rule.onNodeWithText("Live interval").assertExists()
     }
 
     @Test
