@@ -166,11 +166,13 @@ class WindowsHelperClient(
     }
 
     private suspend fun handshake(): Outcome<Unit> {
+        // No client mutex here: start()/restartWithPolicy() already hold it, and Kotlin's Mutex is not reentrant.
+        // writeLine is internally synchronized on the process's own stdin lock.
         val response = withTimeoutOrNull(HANDSHAKE_TIMEOUT) {
             val id = idCounter.incrementAndGet()
             val deferred = CompletableDeferred<Line.Response>()
             pending[id] = deferred
-            mutex.withLock { process?.writeLine(HelperProtocol.request(id, "hello")) }
+            process?.writeLine(HelperProtocol.request(id, "hello"))
             deferred.await()
         } ?: return Outcome.Failure(
             protocolFailure("the helper did not answer the hello handshake; its stderr: [${stderrSnapshot()}]"),
