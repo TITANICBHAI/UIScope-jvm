@@ -45,7 +45,6 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.keyboardModifiers
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.pointerInput
@@ -131,16 +130,16 @@ fun InspectScreen(
                     event.key == Key.F5 -> {
                         callbacks.onCapture(); true
                     }
-                    event.key == Key.R && event.keyboardModifiers.isCtrlPressed -> {
+                    event.key == Key.R && event.isCtrlPressed -> {
                         callbacks.onCapture(); true
                     }
-                    event.key == Key.L && event.keyboardModifiers.isCtrlPressed -> {
+                    event.key == Key.L && event.isCtrlPressed -> {
                         callbacks.onSetLive(!ui.live.enabled); true
                     }
-                    event.key == Key.F && event.keyboardModifiers.isCtrlPressed -> {
+                    event.key == Key.F && event.isCtrlPressed -> {
                         searchFocus.requestFocus(); true
                     }
-                    event.key == Key.C && event.keyboardModifiers.isCtrlPressed && event.keyboardModifiers.isShiftPressed -> {
+                    event.key == Key.C && event.isCtrlPressed && event.isShiftPressed -> {
                         val index = ui.index
                         val node = ui.selected?.let { index?.byPath?.get(it) }
                         if (index != null && node != null) {

@@ -50,7 +50,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.keyboardModifiers
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.PointerEventType
@@ -181,7 +180,7 @@ fun TreePane(
         Column(Modifier.fillMaxSize().focusRequester(focusRequester).focusable().onPreviewKeyEvent { event ->
             if (event.type != KeyEventType.KeyUp) return@onPreviewKeyEvent false
             when {
-                event.key == Key.DirectionUp && event.keyboardModifiers.isAltPressed -> {
+                event.key == Key.DirectionUp && event.isAltPressed -> {
                     index?.parentOf(selected)?.let { onSelect(it.path) }; true
                 }
                 event.key == Key.DirectionDown -> {
@@ -214,12 +213,12 @@ fun TreePane(
                         // Enter / Shift+Enter walk the matches; Esc clears (plan 4.5).
                         if (event.type != KeyEventType.KeyUp || matches.isEmpty()) return@onPreviewKeyEvent false
                         when {
-                            event.key == Key.Enter && !event.keyboardModifiers.isShiftPressed -> {
+                            event.key == Key.Enter && !event.isShiftPressed -> {
                                 matchCursor = (matchCursor + 1) % matches.size
                                 onSelect(matches[matchCursor.coerceIn(matches.indices)])
                                 true
                             }
-                            event.key == Key.Enter && event.keyboardModifiers.isShiftPressed -> {
+                            event.key == Key.Enter && event.isShiftPressed -> {
                                 matchCursor = (matchCursor - 1 + matches.size) % matches.size
                                 onSelect(matches[matchCursor.coerceIn(matches.indices)])
                                 true
