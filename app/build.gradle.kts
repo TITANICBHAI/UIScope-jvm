@@ -148,4 +148,5 @@ dependencies {
     implementation(compose.foundation)
     implementation(libs.coroutines.core)
     implementation(libs.coroutines.swing)
+    testImplementation(libs.kotlin.test)
 }

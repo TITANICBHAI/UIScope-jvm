@@ -39,6 +39,7 @@ import com.titanicbhai.uiscope.model.Capture
 import com.titanicbhai.uiscope.model.ElementIndex
 import com.titanicbhai.uiscope.model.ElementPath
 import com.titanicbhai.uiscope.process.JdkNetworkGateway
+import com.titanicbhai.uiscope.process.Relauncher
 import com.titanicbhai.uiscope.process.SystemProcessLauncher
 import com.titanicbhai.uiscope.process.SystemProcessRunner
 import com.titanicbhai.uiscope.settings.InspectTarget
@@ -57,10 +58,10 @@ import com.titanicbhai.uiscope.ui.snapshots.SnapshotsScreen
 import com.titanicbhai.uiscope.ui.settings.SettingsScreen
 import com.titanicbhai.uiscope.ui.shell.AppShell
 import com.titanicbhai.uiscope.update.UpdateCheck
-import com.titanicbhai.uiscope.ui.shell.NoSingleInstance
 import com.titanicbhai.uiscope.ui.shell.ShellDialogState
 import com.titanicbhai.uiscope.ui.shell.ShellScreen
 import com.titanicbhai.uiscope.ui.shell.ShellStatus
+import com.titanicbhai.uiscope.ui.shell.LockFileSingleInstance
 import com.titanicbhai.uiscope.ui.shell.SingleInstanceHook
 import com.titanicbhai.uiscope.ui.shell.ToastState
 import com.titanicbhai.uiscope.ui.shell.WindowPlacementMath
@@ -207,7 +208,25 @@ fun main() {
     paths.ensureDirectories()
     val logging = (LoggingSetup.install(paths.logs) as? Outcome.Success)?.value
     val dispatchers = StandardDispatcherProvider(Dispatchers.Main)
-    val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main + CrashHandling.coroutineHandler())
+    // P7-2: fatal crashes log and show the Copy-diagnostics/Restart dialog; coroutine failures are logged only.
+    CrashHandling.install(
+        diagnostics = {
+            buildString {
+                appendLine("${appInfo.name} ${appInfo.version} (build ${appInfo.buildDate}, ${appInfo.commit})")
+                appendLine("OS: ${System.getProperty("os.name")} ${System.getProperty("os.version")}")
+                appendLine("Java: ${System.getProperty("java.version")}")
+                appendLine("Data folder: ${paths.root}")
+            }
+        },
+        relaunch = {
+            val java = Path.of(System.getProperty("java.home"), "bin", if (HostOs.current() == HostOs.WINDOWS) "java.exe" else "java").toString()
+            when (val relaunchResult = Relauncher.relaunch(listOf(java, "-cp", System.getProperty("java.class.path"), "com.titanicbhai.uiscope.MainKt"))) {
+                is Outcome.Success -> kotlin.system.exitProcess(0)
+                is Outcome.Failure -> shellLogger.warning("the restart could not be spawned: " + relaunchResult.error.code)
+            }
+        },
+    )
     val settings = FileSettingsStore(paths.settingsFile, scope, dispatchers)
     val runner = SystemProcessRunner(dispatchers)
     val locator = AdbLocator(runner, SettingsAdbPathStore(settings), paths, HostOs.current(), System.getenv(), Path.of(System.getProperty("user.home")))
@@ -258,10 +277,13 @@ fun main() {
     val screen = Toolkit.getDefaultToolkit().screenSize
     val saved = settings.settings.value
     val spec = WindowPlacementMath.restore(saved.windowWidth, saved.windowHeight, saved.windowX, saved.windowY, saved.windowMaximized, screen.width, screen.height)
-    val singleInstance: SingleInstanceHook = NoSingleInstance // P7-1 replaces this with the lock-file guard
+    val singleInstance = LockFileSingleInstance(
+        lockFile = paths.root.resolve("single-instance.lock"),
+        focusFile = paths.root.resolve("single-instance.focus"),
+    )
 
     application {
-        singleInstance.start(onSecondLaunch = { /* P7-1: focus the first window */ })
+        singleInstance.start(onSecondLaunch = { java.awt.Window.getWindows().filter { it.isVisible }.forEach { it.toFront() } })
         val savedX = spec.x
         val savedY = spec.y
         val windowState = rememberWindowState(
@@ -283,6 +305,7 @@ fun main() {
             }
         }
         val onClose: () -> Unit = {
+            singleInstance.release()
             windows?.stop()
             android.stop()
             settings.flush()
