@@ -210,7 +210,8 @@ class WindowsHelperClient(
 
     companion object {
         val DEFAULT_TIMEOUT: Duration = 5.seconds
-        private val HANDSHAKE_TIMEOUT: Duration = 5.seconds
+        // A cold JVM boot on a loaded CI runner can take a while; the handshake waits longer than a request.
+        private val HANDSHAKE_TIMEOUT: Duration = 20.seconds
         private val SHUTDOWN_TIMEOUT: Duration = 1.seconds
         private const val RESTART_WINDOW_MS = 60_000
         private const val MAX_RESTARTS_PER_MINUTE = 3
