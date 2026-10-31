@@ -255,7 +255,6 @@ fun SettingsScreen(
     }
 }
 
-@Composable
 /** Copies the shipped notices to a temp file and opens it; returns the failure cause for the About screen (or null). */
 private fun openThirdPartyNotices(): String? = try {
     val source = com.titanicbhai.uiscope.ui.Strings::class.java.getResourceAsStream("/THIRD_PARTY_NOTICES.md")
@@ -268,6 +267,7 @@ private fun openThirdPartyNotices(): String? = try {
     "The notices file could not be opened in this build (" + t.javaClass.simpleName + ")."
 }
 
+@Composable
 private fun SettingsSection(title: String, content: @Composable () -> Unit) {
     Surface(color = MaterialTheme.colorScheme.surfaceVariant, modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(UiScopeTokens.spaceM), verticalArrangement = Arrangement.spacedBy(UiScopeTokens.spaceS)) {
