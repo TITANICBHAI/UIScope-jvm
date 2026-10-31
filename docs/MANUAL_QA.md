@@ -77,6 +77,15 @@ hugs the element, a click is *not* delivered to the app underneath, and the pick
 8. If the crash dialog ever appears (P7-2): **Pass if** *Copy diagnostics* puts the build info and the stack trace on the clipboard, and *Restart* brings up a fresh UIScope window.
 9. Performance pass (P7-4, Appendix F budgets): on your machine, open a 3k-node and a 10k-node capture; check scroll/selection/zoom smoothness and the cold-start time, then record the numbers in `docs/perf.md` with the hardware noted.
 
+## Release and packaging (owner actions — Phase 8)
+
+1. **The release pipeline:** push a test tag (`git tag v0.9.9-test && git push origin v0.9.9-test`). **Pass if** the Release workflow drafts a GitHub release containing the MSI, EXE, unsigned MSIX and `SHA256SUMS`, and the checksums verify with `sha256sum -c`. Delete the draft and tag afterwards.
+2. **Clean-VM install:** install the MSI on a Windows 10 (1809+) **or** Windows 11 VM with **no JDK installed**. **Pass if** the app launches and completes the core loop; record the installed size (target ≤ 150 MB); check the icon in the Start menu, the taskbar and the installer.
+3. **MSIX sideload:** build with `scripts/build-msix.ps1 -TestSign`, install the signed package on a clean VM (developer mode or the test certificate installed). **Pass if** it installs and runs.
+4. **WACK:** run the same script with `-RunWack` on a desktop machine with the Windows SDK. **Pass if** the certification report is clean; attach it to the release notes.
+5. **About screen:** Help → Settings → About → *Third-party notices*. **Pass if** the shipped notices file opens.
+6. **The stranger test:** on a machine that has never seen UIScope, install from a release and complete the core loop (capture, inspect, save a snapshot, export JSON) using **only** the README. **Pass if** nothing in the README is wrong or missing.
+
 ## Round 5 additions — storage, bundles, update check (needs the app wired, or a developer console)
 
 1. **SQLite driver on Windows (first start):** start the app on a clean user account. **Pass if** the first snapshot saves without an error and `%LOCALAPPDATA%\UIScope\db\snapshots.db` exists. (The driver unpacks a native library into `<data>\tmp`; antivirus can interfere.)
