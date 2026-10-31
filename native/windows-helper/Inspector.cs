@@ -71,7 +71,10 @@ namespace UIScope.Helper
             return sb.ToString();
         }
 
-        private static string Q(string s) => "\"" + Escape(s) + "\"";
+        private static string Q(string s)
+        {
+            return "\"" + Escape(s) + "\"";
+        }
 
         /// <summary>The UIA subtree of one window as protocol JSON. Password values are never read (plan 4.4).</summary>
         internal static string CaptureTreeJson(IntPtr hwnd, out System.Drawing.Rectangle windowRect, out bool truncated)
