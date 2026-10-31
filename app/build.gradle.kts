@@ -29,9 +29,22 @@ compose.desktop {
         )
 
         nativeDistributions {
-            // Bundle the full JRE so the installer never hits "Failed to launch JVM".
-            // Replaced by an explicit module list in P8-1.
-            includeAllModules = true
+            // P8-1: an explicit module list instead of the full JRE. Covers SQLite JDBC (java.sql + java.naming
+            // for the JDBC service loader), serialization/stdlib (java.base), AWT/Swing file dialogs (java.desktop),
+            // java.util.logging, the HTTP gateway (java.net.http), the sun.misc.Unsafe users (jdk.unsupported) and
+            // TLS to GitHub (jdk.crypto.ec). Cross-check against `suggestRuntimeModules` at the first tagged build;
+            // a missing module shows up as a runtime ClassNotFound on a clean machine.
+            modules(
+                "java.base",
+                "java.desktop",
+                "java.logging",
+                "java.management",
+                "java.naming",
+                "java.net.http",
+                "java.sql",
+                "jdk.crypto.ec",
+                "jdk.unsupported",
+            )
 
             targetFormats(
                 TargetFormat.Exe,       // Windows — NSIS self-extracting installer
@@ -51,11 +64,9 @@ compose.desktop {
             licenseFile.set(rootProject.file("LICENSE"))
 
             // ── Windows ───────────────────────────────────────────────────────
-            // Icon source: src/main/resources/store/tile-71x71.png (1024×1024)
-            // Converted to multi-size ICO (16/24/32/48/64/128/256 px).
-            // MSIX tile assets (Square71x71Logo, Square150x150Logo, Square300x300Logo)
-            // live in src/main/resources/store/ — reference them in the MSIX manifest
-            // when wrapping the MSI with the Windows App Packaging Tool.
+            // Icon source: branding/icon-source.png. The MSIX tile assets
+            // (Square71x71Logo, Square150x150Logo, Square300x300Logo) live in branding/
+            // and are laid into the MSIX by scripts/build-msix.ps1 (P8-2).
             windows {
                 iconFile.set(project.file("src/main/resources/icon.ico"))
 
