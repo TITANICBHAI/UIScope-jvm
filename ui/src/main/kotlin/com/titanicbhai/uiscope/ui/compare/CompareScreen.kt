@@ -59,6 +59,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.util.logging.Logger
 
 /** The shell side of the Compare screen: toasts and the native save dialog for the diff export. */
 data class CompareCallbacks(
@@ -83,6 +84,8 @@ private enum class DiffFilter(val label: String) {
 }
 
 private val listTime = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm").withZone(ZoneId.systemDefault())
+
+private val compareLogger = Logger.getLogger("uiscope.compare")
 
 /**
  * The Compare screen (plan P6-2): pick two captures (the live capture of the active target and/or snapshots),
@@ -381,6 +384,7 @@ private fun DiffCanvas(
                     try {
                         javax.imageio.ImageIO.read(java.io.File(file))?.toComposeImageBitmap()
                     } catch (t: Throwable) {
+                        compareLogger.warning("the screenshot could not be decoded for the diff view: " + t.javaClass.simpleName)
                         null
                     }
                 }
