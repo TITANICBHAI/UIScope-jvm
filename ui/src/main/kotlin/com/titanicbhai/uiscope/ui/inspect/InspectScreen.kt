@@ -66,6 +66,9 @@ import com.titanicbhai.uiscope.selector.SelectorEngine
 import com.titanicbhai.uiscope.settings.InspectTarget
 import com.titanicbhai.uiscope.state.AndroidInspectUi
 import com.titanicbhai.uiscope.state.AndroidState
+import com.titanicbhai.uiscope.state.WindowsInspectUi
+import com.titanicbhai.uiscope.state.WindowsState
+import com.titanicbhai.uiscope.ui.Strings
 import com.titanicbhai.uiscope.ui.error.AppErrorView
 import com.titanicbhai.uiscope.ui.error.ErrorVariant
 import com.titanicbhai.uiscope.ui.theme.UiScopeTokens
@@ -88,6 +91,23 @@ data class InspectCallbacks(
     val onSetDetailsPaneWidth: (Int) -> Unit = {},
 )
 
+/** The same for the Windows target; the shell wires these to the WindowsInspectState holder. */
+data class WindowsCallbacks(
+    val onStart: () -> Unit = {},
+    val onSelectWindow: (String) -> Unit = {},
+    val onPick: () -> Unit = {},
+    val onCancelPick: () -> Unit = {},
+    val onRefresh: () -> Unit = {},
+    val onSelect: (ElementPath?) -> Unit = {},
+    val onToggleExpanded: (ElementPath) -> Unit = {},
+    val onExpandAll: () -> Unit = {},
+    val onCollapseAll: () -> Unit = {},
+    val onExpandSubtree: (ElementPath) -> Unit = {},
+    val onCollapseSubtree: (ElementPath) -> Unit = {},
+    val onSetTreePaneWidth: (Int) -> Unit = {},
+    val onSetDetailsPaneWidth: (Int) -> Unit = {},
+)
+
 private val DEFAULT_TREE_PANE = 320.dp
 private val DEFAULT_DETAILS_PANE = 320.dp
 private val SPLITTER_TOUCH = 12.dp
@@ -104,7 +124,7 @@ const val PC_TARGET_EMPTY_STATE = "Windows app inspection is available on Window
 /**
  * The Inspect screen (plan P4-3, 4.3/4.5): target bar on top, workspace of tree | canvas | details below, errors as a
  * banner over the last capture (M11). Takes the immutable [AndroidInspectUi] snapshot plus callbacks - no engine, no
- * process, no file work in composition. The Windows engine arrives with Phase 3; until then its target shows a placeholder.
+ * process, no file work in composition. The Windows target renders from [windows] when the shell provides it.
  */
 @Composable
 fun InspectScreen(
@@ -112,6 +132,8 @@ fun InspectScreen(
     target: InspectTarget,
     windowsPcAvailable: Boolean,
     callbacks: InspectCallbacks,
+    windows: WindowsInspectUi? = null,
+    windowsCallbacks: WindowsCallbacks = WindowsCallbacks(),
     treePaneWidth: Int? = null,
     detailsPaneWidth: Int? = null,
     modifier: Modifier = Modifier,
@@ -131,28 +153,33 @@ fun InspectScreen(
             .onPreviewKeyEvent { event ->
                 // The app-level shortcuts of 4.11 (no single-letter shortcuts). Enter-in-search and Alt+Up live in the tree pane.
                 if (event.type != KeyEventType.KeyUp) return@onPreviewKeyEvent false
+                val windowsTarget = selectedTarget == InspectTarget.WINDOWS
                 when {
                     event.key == Key.F5 -> {
-                        callbacks.onCapture(); true
+                        if (windowsTarget) windowsCallbacks.onRefresh() else callbacks.onCapture(); true
                     }
                     event.key == Key.R && event.ctrl() -> {
-                        callbacks.onCapture(); true
+                        if (windowsTarget) windowsCallbacks.onRefresh() else callbacks.onCapture(); true
                     }
-                    event.key == Key.L && event.ctrl() -> {
+                    event.key == Key.L && event.ctrl() && !windowsTarget -> {
                         callbacks.onSetLive(!ui.live.enabled); true
                     }
                     event.key == Key.F && event.ctrl() -> {
                         searchFocus.requestFocus(); true
                     }
                     event.key == Key.C && event.ctrl() && event.shift() -> {
-                        val index = ui.index
-                        val node = ui.selected?.let { index?.byPath?.get(it) }
+                        val index = if (windowsTarget) windows?.index else ui.index
+                        val selected = if (windowsTarget) windows?.selected else ui.selected
+                        val node = selected?.let { index?.byPath?.get(it) }
                         if (index != null && node != null) {
                             clipboard.setText(AnnotatedString(SelectorEngine.suggest(index, node).best.expression))
                         }
                         true
                     }
-                    event.key == Key.Escape && ui.state is AndroidState.Capturing -> {
+                    event.key == Key.Escape && windowsTarget && windows?.picking == true -> {
+                        windowsCallbacks.onCancelPick(); true
+                    }
+                    event.key == Key.Escape && !windowsTarget && ui.state is AndroidState.Capturing -> {
                         callbacks.onCancelCapture(); true
                     }
                     else -> false
@@ -168,12 +195,27 @@ fun InspectScreen(
             },
             ui = ui,
             callbacks = callbacks,
+            windows = windows,
+            windowsCallbacks = windowsCallbacks,
         )
         ui.problem?.let { problem ->
             AppErrorView(problem, ErrorVariant.BANNER, onDismiss = null)
         }
+        if (selectedTarget == InspectTarget.WINDOWS) {
+            windows?.problem?.let { problem ->
+                AppErrorView(problem, ErrorVariant.BANNER, onDismiss = null)
+            }
+        }
         when (selectedTarget) {
-            InspectTarget.WINDOWS -> if (windowsPcAvailable) PlaceholderPane("The Windows engine arrives with Phase 3 (task P3-8).") else PcTargetEmptyState()
+            InspectTarget.WINDOWS -> when {
+                !windowsPcAvailable -> PcTargetEmptyState()
+                windows == null -> WindowsStartingPane()
+                else -> when (val ws = windows.state) {
+                    is WindowsState.HelperMissing -> AppErrorView(ws.error, ErrorVariant.FULL_SCREEN, onAction = { windowsCallbacks.onStart() })
+                    WindowsState.Starting -> WindowsStartingPane()
+                    else -> WindowsWorkspace(windows, windowsCallbacks, treePaneWidth, detailsPaneWidth, searchFocus)
+                }
+            }
             InspectTarget.ANDROID -> when (val state = ui.state) {
                 is AndroidState.AdbMissing -> AppErrorView(CodedError(ErrorCodes.ADB_NOT_FOUND), ErrorVariant.FULL_SCREEN, onAction = { callbacks.onStart() })
                 is AndroidState.NoDevice -> FullScreenWithRetry(ErrorCodes.NO_DEVICE, callbacks)
@@ -226,7 +268,170 @@ private fun PlaceholderPane(text: String) {
     }
 }
 
-/** Target switch on the left, device picker and capture controls on the right; the row wraps so nothing drops off at minimum width. */
+/** The spinner while the helper self-test runs (the Windows twin of [StartingPane]). */
+@Composable
+private fun WindowsStartingPane() {
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            CircularProgressIndicator()
+            Text("Checking the UIScope helper...", modifier = Modifier.padding(UiScopeTokens.spaceM))
+        }
+    }
+}
+
+/** Pick button, window picker and the hover label (plan 4.4). During a pick the helper's mouse hook swallows every
+ *  click, so there is deliberately no Cancel button - Esc or right-click cancels, and the label says so. */
+@Composable
+private fun WindowsControls(windows: WindowsInspectUi, callbacks: WindowsCallbacks) {
+    if (windows.picking) {
+        Text(
+            windows.hoverLabel ?: "Pick an element - Esc or right-click cancels",
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.primary,
+        )
+        return
+    }
+    var open by remember { mutableStateOf(false) }
+    val selected = windows.windows.firstOrNull { it.hwnd == windows.selectedHwnd }
+    Button(
+        onClick = { callbacks.onPick() },
+        enabled = windows.state is WindowsState.Idle || windows.state is WindowsState.Captured || windows.state is WindowsState.CaptureFailed,
+    ) {
+        Text("Pick element")
+    }
+    OutlinedButton(onClick = { open = true }) {
+        Text(
+            when {
+                selected != null -> "${selected.title} - ${selected.processName}" + if (selected.isElevated) " (admin)" else ""
+                else -> "Choose window..."
+            },
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+    DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+        if (windows.windows.isEmpty()) DropdownMenuItem(text = { Text("No windows") }, onClick = { open = false })
+        for (window in windows.windows) {
+            DropdownMenuItem(
+                text = { Text(window.title + " - " + window.processName + if (window.isElevated) " (admin)" else "") },
+                onClick = {
+                    open = false
+                    callbacks.onSelectWindow(window.hwnd)
+                },
+            )
+        }
+        DropdownMenuItem(
+            text = { Text("Look again") },
+            leadingIcon = { Icon(Icons.Filled.Refresh, contentDescription = null) },
+            onClick = {
+                open = false
+                callbacks.onStart()
+            },
+        )
+    }
+}
+
+/** The Windows twin of the Android Workspace: tree | canvas | details over [WindowsInspectUi], reusing the same panes. */
+@Composable
+private fun WindowsWorkspace(
+    windows: WindowsInspectUi,
+    callbacks: WindowsCallbacks,
+    treePaneWidth: Int?,
+    detailsPaneWidth: Int?,
+    searchFocus: FocusRequester,
+) {
+    val treeWidth = remember { mutableStateOf(treePaneWidth?.dp ?: DEFAULT_TREE_PANE) }
+    val detailsWidth = remember { mutableStateOf(detailsPaneWidth?.dp ?: DEFAULT_DETAILS_PANE) }
+    LaunchedEffect(treePaneWidth) { treePaneWidth?.let { treeWidth.value = it.dp } }
+    LaunchedEffect(detailsPaneWidth) { detailsPaneWidth?.let { detailsWidth.value = it.dp } }
+    val selectedNode = windows.selected?.let { path -> windows.index?.byPath?.get(path) }
+    Column(Modifier.fillMaxSize()) {
+        WindowsCaptureBanners(windows)
+        Row(Modifier.weight(1f).fillMaxWidth()) {
+            TreePane(
+                index = windows.index,
+                expanded = windows.expanded,
+                selected = windows.selected,
+                onToggleExpanded = callbacks.onToggleExpanded,
+                onSelect = callbacks.onSelect,
+                onExpandAll = callbacks.onExpandAll,
+                onCollapseAll = callbacks.onCollapseAll,
+                onExpandSubtree = callbacks.onExpandSubtree,
+                onCollapseSubtree = callbacks.onCollapseSubtree,
+                duplicateIds = { windows.index?.hasDuplicateIdentifier(it) == true },
+                searchFocusRequester = searchFocus,
+                modifier = Modifier.width(treeWidth.value).fillMaxHeight(),
+            )
+            Splitter(onDrag = { delta -> treeWidth.value = (treeWidth.value + delta).coerceIn(160.dp, 900.dp) }, onDragEnd = { callbacks.onSetTreePaneWidth(treeWidth.value.value.toInt()) })
+            Box(Modifier.weight(1f).fillMaxHeight()) {
+                val capture = windows.capture
+                if (capture == null) {
+                    WindowsEmptyHint(windows)
+                } else {
+                    CanvasPane(
+                        capture = capture,
+                        index = windows.index,
+                        selected = windows.selected,
+                        onSelect = callbacks.onSelect,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
+            }
+            Splitter(onDrag = { delta -> detailsWidth.value = (detailsWidth.value - delta).coerceIn(160.dp, 900.dp) }, onDragEnd = { callbacks.onSetDetailsPaneWidth(detailsWidth.value.value.toInt()) })
+            DetailsPane(
+                node = selectedNode,
+                path = windows.selected,
+                index = windows.index,
+                onTestHighlight = {},
+                width = detailsWidth.value,
+            )
+        }
+    }
+}
+
+/** The P3-7 hints (tree truncated, limited accessibility) as banner rows over the workspace (M11). */
+@Composable
+private fun WindowsCaptureBanners(windows: WindowsInspectUi) {
+    val warnings = windows.capture?.warnings ?: return
+    if (warnings.isEmpty()) return
+    Column {
+        for (warning in warnings) {
+            val copy = Strings.error(warning.code)
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.secondaryContainer)
+                    .padding(horizontal = UiScopeTokens.spaceM, vertical = UiScopeTokens.spaceXs),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(copy.title, style = MaterialTheme.typography.labelLarge)
+                Text(
+                    copy.what,
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(start = UiScopeTokens.spaceS),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun WindowsEmptyHint(windows: WindowsInspectUi) {
+    val hint = when (val state = windows.state) {
+        is WindowsState.Capturing -> "Capturing ${state.window.title}..."
+        is WindowsState.CaptureFailed -> "The last capture failed; the banner above says why."
+        is WindowsState.WindowGone -> "The window closed. Pick another one."
+        WindowsState.Picking -> "Pick an element in any window; Esc or right-click cancels."
+        else -> "Choose a window above, or press Pick element, to begin."
+    }
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text(hint, style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center, modifier = Modifier.padding(UiScopeTokens.spaceXl))
+    }
+}
+
+/** Target switch on the left, device/window picker and capture controls on the right; the row wraps so nothing drops off at minimum width. */
 @Composable
 private fun TargetBar(
     target: InspectTarget,
@@ -234,6 +439,8 @@ private fun TargetBar(
     onTarget: (InspectTarget) -> Unit,
     ui: AndroidInspectUi,
     callbacks: InspectCallbacks,
+    windows: WindowsInspectUi? = null,
+    windowsCallbacks: WindowsCallbacks = WindowsCallbacks(),
 ) {
     var devicesOpen by remember { mutableStateOf(false) }
     Surface(color = MaterialTheme.colorScheme.surfaceVariant) {
@@ -279,6 +486,9 @@ private fun TargetBar(
                         Switch(checked = ui.live.enabled, onCheckedChange = null)
                         Text("Live", modifier = Modifier.padding(start = UiScopeTokens.spaceXs))
                     }
+                }
+                if (target == InspectTarget.WINDOWS && windows != null) {
+                    WindowsControls(windows, windowsCallbacks)
                 }
             }
         }

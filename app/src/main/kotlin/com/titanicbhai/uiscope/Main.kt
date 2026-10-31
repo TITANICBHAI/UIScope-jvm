@@ -34,13 +34,16 @@ import com.titanicbhai.uiscope.error.Outcome
 import com.titanicbhai.uiscope.error.map
 import com.titanicbhai.uiscope.logging.LoggingSetup
 import com.titanicbhai.uiscope.process.JdkNetworkGateway
+import com.titanicbhai.uiscope.process.SystemProcessLauncher
 import com.titanicbhai.uiscope.process.SystemProcessRunner
+import com.titanicbhai.uiscope.settings.InspectTarget
 import com.titanicbhai.uiscope.ui.firstrun.AdbDownloadActions
 import com.titanicbhai.uiscope.ui.firstrun.FirstRunCallbacks
 import com.titanicbhai.uiscope.ui.firstrun.FirstRunScreen
 import com.titanicbhai.uiscope.ui.help.HelpScreen
 import com.titanicbhai.uiscope.ui.inspect.InspectCallbacks
 import com.titanicbhai.uiscope.ui.inspect.InspectScreen
+import com.titanicbhai.uiscope.ui.inspect.WindowsCallbacks
 import com.titanicbhai.uiscope.ui.settings.SettingsScreen
 import com.titanicbhai.uiscope.ui.shell.AppShell
 import com.titanicbhai.uiscope.update.UpdateCheck
@@ -57,6 +60,12 @@ import com.titanicbhai.uiscope.snapshot.RetainingSnapshotStore
 import com.titanicbhai.uiscope.snapshot.retentionPolicy
 import com.titanicbhai.uiscope.state.AndroidInspectState
 import com.titanicbhai.uiscope.state.AndroidState
+import com.titanicbhai.uiscope.state.WindowsEvent
+import com.titanicbhai.uiscope.state.WindowsInspectState
+import com.titanicbhai.uiscope.state.WindowsInspectUi
+import com.titanicbhai.uiscope.state.WindowsState
+import com.titanicbhai.uiscope.windows.EngineWindowsPort
+import com.titanicbhai.uiscope.windows.WindowsHelperClient
 import com.titanicbhai.uiscope.storage.DataPaths
 import com.titanicbhai.uiscope.storage.FileSettingsStore
 import com.titanicbhai.uiscope.storage.LegacyData
@@ -109,6 +118,18 @@ private fun statusTarget(ui: com.titanicbhai.uiscope.state.AndroidInspectUi): St
     is AndroidState.Disconnected -> "disconnected"
 }
 
+/** One line for the status bar's left slot: what the Windows side is doing right now. */
+private fun windowsStatusLine(ui: WindowsInspectUi): String = when (val state = ui.state) {
+    WindowsState.Starting -> "checking the helper..."
+    is WindowsState.HelperMissing -> "helper unavailable"
+    WindowsState.Idle -> "choose a window"
+    WindowsState.Picking -> "picking..."
+    is WindowsState.Capturing -> "capturing..."
+    is WindowsState.Captured -> state.window.title
+    is WindowsState.CaptureFailed -> "capture failed"
+    is WindowsState.WindowGone -> "window closed"
+}
+
 /** Placeholder for screens that arrive with later Phase 4/5 tasks; the shell must never show a blank pane. */
 @androidx.compose.runtime.Composable
 private fun PlaceholderScreen(name: String, task: String) {
@@ -138,6 +159,20 @@ fun main() {
     val locator = AdbLocator(runner, SettingsAdbPathStore(settings), paths, HostOs.current(), System.getenv(), Path.of(System.getProperty("user.home")))
     val android = AndroidInspectState(EngineAdbPort(locator, runner, paths, dispatchers), settings, dispatchers, scope)
     android.start()
+
+    // The Windows helper (P3-1/P3-2): the exe is extracted next to the data folder, then the state's start()
+    // self-tests it with listWindows - a failure lands in HelperMissing and the UI says so honestly.
+    val windows: WindowsInspectState? = if (FeatureFlags.forHost().windowsPc) {
+        val helperPath = WindowsHelperExe.extract(paths) ?: paths.root.resolve("helper").resolve("UIScope.Helper.exe")
+        val helperClient = WindowsHelperClient(
+            launcher = SystemProcessLauncher(dispatchers),
+            helperCommand = listOf(helperPath.toString()),
+            dispatchers = dispatchers,
+        )
+        WindowsInspectState(EngineWindowsPort(helperClient, dispatchers = dispatchers), dispatchers, scope).also { it.start() }
+    } else {
+        null
+    }
 
     // Snapshot storage becomes available a moment after start-up: the database is opened on an I/O thread (HANDOFF §8.2).
     val snapshotsReady = mutableStateOf<SnapshotStoreImpl?>(null)
@@ -194,6 +229,7 @@ fun main() {
             }
         }
         val onClose: () -> Unit = {
+            windows?.stop()
             android.stop()
             settings.flush()
             snapshotsReady.value?.close()
@@ -217,8 +253,17 @@ fun main() {
             // The menu bar mirrors actions (plan §4.1); View entries arrive with their screens (P4-5).
             val settingsState by settings.settings.collectAsState()
             val inspect by android.ui.collectAsState()
+            val windowsInspect = windows?.ui?.collectAsState()?.value
             val toasts = rememberToastState()
             val dialogs = rememberShellDialogState()
+            LaunchedEffect(windows) {
+                windows?.events?.collect { event ->
+                    when (event) {
+                        WindowsEvent.PickCancelled -> toasts.show("Pick cancelled")
+                        WindowsEvent.SelectionLost -> toasts.show("The selected element is gone after the refresh")
+                    }
+                }
+            }
             if (!settingsState.firstRunDone) {
                 UiScopeTheme(mode = settingsState.theme) {
                     FirstRunScreen(
@@ -268,12 +313,21 @@ fun main() {
                 }
             }
             var screen by remember { mutableStateOf(ShellScreen.INSPECT) }
-            val status = ShellStatus(
-                target = statusTarget(inspect),
-                captureInfo = inspect.capture?.let { "${inspect.index?.size ?: 0} elements" },
-                warning = inspect.problem,
-                live = inspect.live.enabled,
-            )
+            val status = if (settingsState.lastTarget == InspectTarget.WINDOWS && windowsInspect != null) {
+                ShellStatus(
+                    target = windowsStatusLine(windowsInspect),
+                    captureInfo = windowsInspect.capture?.let { "${windowsInspect.index?.size ?: 0} elements" },
+                    warning = windowsInspect.problem,
+                    live = false,
+                )
+            } else {
+                ShellStatus(
+                    target = statusTarget(inspect),
+                    captureInfo = inspect.capture?.let { "${inspect.index?.size ?: 0} elements" },
+                    warning = inspect.problem,
+                    live = inspect.live.enabled,
+                )
+            }
             UiScopeTheme(mode = settingsState.theme) {
                 AppShell(
                     screen = screen,
@@ -302,6 +356,26 @@ fun main() {
                                 onSetTarget = {
                                     settings.update { current -> current.copy(lastTarget = it) }
                                 },
+                                onSetTreePaneWidth = { width ->
+                                    settings.update { current -> current.copy(treePaneWidth = width) }
+                                },
+                                onSetDetailsPaneWidth = { width ->
+                                    settings.update { current -> current.copy(detailsPaneWidth = width) }
+                                },
+                            ),
+                            windows = windowsInspect,
+                            windowsCallbacks = WindowsCallbacks(
+                                onStart = { windows?.start() },
+                                onSelectWindow = { hwnd -> windows?.chooseWindow(hwnd) },
+                                onPick = { windows?.startPick() },
+                                onCancelPick = { windows?.cancelPick() },
+                                onRefresh = { windows?.refresh() },
+                                onSelect = { windows?.select(it) },
+                                onToggleExpanded = { windows?.toggleExpanded(it) },
+                                onExpandAll = { windows?.expandAll() },
+                                onCollapseAll = { windows?.collapseAll() },
+                                onExpandSubtree = { windows?.expandSubtree(it) },
+                                onCollapseSubtree = { windows?.collapseSubtree(it) },
                                 onSetTreePaneWidth = { width ->
                                     settings.update { current -> current.copy(treePaneWidth = width) }
                                 },
