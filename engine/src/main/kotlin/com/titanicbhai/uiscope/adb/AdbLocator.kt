@@ -105,7 +105,7 @@ class AdbLocator(
 
     private suspend fun validate(path: Path, source: AdbSource): AdbLocation? {
         if (!Files.isRegularFile(path)) return null
-        val result = runner.run(listOf(path.toString(), "version"), 5.seconds)
+        val result = runner.run(listOf(path.toString(), "version"), 15.seconds)
         val ok = (result as? Outcome.Success)?.value ?: return null
         if (ok.exitCode != 0) return null
         val version = AdbParsers.parseVersion(ok.stdoutText()) ?: return null

@@ -40,7 +40,7 @@ namespace UIScope.Helper
         [DllImport("user32.dll")]
         public static extern IntPtr GetShellWindow();
 
-        [DllImport("user32.dll", SetLastError = true)]
+        [DllImport("kernel32.dll", SetLastError = true)]
         public static extern IntPtr OpenProcess(uint access, bool inherit, uint pid);
 
         [DllImport("kernel32.dll", SetLastError = true)]

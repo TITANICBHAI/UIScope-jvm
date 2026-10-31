@@ -51,13 +51,13 @@ class AdbClient(
     private val infoCache = ConcurrentHashMap<String, DeviceInfo>()
     private val winningStrategy = ConcurrentHashMap<String, Int>()
 
-    suspend fun version(): Outcome<AdbVersion> = when (val r = run(null, 5.seconds, ErrorCodes.ADB_START_FAILED, "version")) {
+    suspend fun version(): Outcome<AdbVersion> = when (val r = run(null, 15.seconds, ErrorCodes.ADB_START_FAILED, "version")) {
         is Outcome.Failure -> r
         is Outcome.Success -> AdbParsers.parseVersion(r.value.stdoutText())?.let { Outcome.Success(it) } ?: fail(ErrorCodes.ADB_NOT_FOUND, "That program did not identify itself as adb")
     }
 
     suspend fun devices(): Outcome<DeviceListing> {
-        val r = when (val x = run(null, 5.seconds, ErrorCodes.ADB_START_FAILED, "devices", "-l")) {
+        val r = when (val x = run(null, 15.seconds, ErrorCodes.ADB_START_FAILED, "devices", "-l")) {
             is Outcome.Failure -> return x
             is Outcome.Success -> x.value
         }
@@ -70,16 +70,18 @@ class AdbClient(
         return Outcome.Success(listing)
     }
 
-    /** `adb start-server`: what the device tracker calls when the server is not running. Starting a running server is harmless. */
+    /** `adb start-server`: what the device tracker calls when the server is not running. Starting a running server is harmless.
+     *  The 60 s budget covers a cold start while antivirus scans the fresh adb.exe — a timeout here kills the whole tree,
+     *  including the server that was starting, which is how a machine can loop on NO_DEVICE forever. */
     suspend fun startServer(): Outcome<Unit> =
-        when (val r = run(null, 15.seconds, ErrorCodes.ADB_START_FAILED, "start-server")) {
+        when (val r = run(null, 60.seconds, ErrorCodes.ADB_START_FAILED, "start-server")) {
             is Outcome.Failure -> r
             is Outcome.Success -> AdbErrors.classify(r.value.stdoutText() + "\n" + r.value.stderrText())?.let { Outcome.Failure(it) } ?: Outcome.Success(Unit)
         }
 
     suspend fun restartServer(): Outcome<Unit> {
         run(null, 5.seconds, ErrorCodes.ADB_START_FAILED, "kill-server")
-        return when (val r = run(null, 15.seconds, ErrorCodes.ADB_START_FAILED, "start-server")) {
+        return when (val r = run(null, 60.seconds, ErrorCodes.ADB_START_FAILED, "start-server")) {
             is Outcome.Failure -> r
             is Outcome.Success -> AdbErrors.classify(r.value.stdoutText() + "\n" + r.value.stderrText())?.let { Outcome.Failure(it) } ?: Outcome.Success(Unit)
         }

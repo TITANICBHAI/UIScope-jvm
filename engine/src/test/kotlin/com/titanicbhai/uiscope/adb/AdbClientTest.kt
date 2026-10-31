@@ -66,13 +66,13 @@ class AdbClientTest {
         Phone(mutableMapOf(stdout to mutableListOf(ok(Fixtures.androidDump("g1-trailing-suffix.xml")))).also { m -> extra.forEach { m[it.first] = mutableListOf(ok(it.second)) } }, FakeProcessRunner.bytes(shot))
 
     @Test
-    fun `devices parses the listing, keeps the version signal and uses a 5 second timeout`() = blocking {
+    fun `devices parses the listing, keeps the version signal and uses a 15 second timeout`() = blocking {
         val runner = FakeProcessRunner { FakeProcessRunner.ok(Fixtures.text("adb/devices-g9.txt")) }
         val listing = AdbClient("adb", runner, Path.of("."), StandardDispatcherProvider(Dispatchers.Unconfined)).devices().assertSuccess()
         assertEquals(6, listing.devices.size)
         assertEquals(listOf<AdbSignal>(AdbSignal.VersionMismatch(41, 40)), listing.signals)
         assertEquals(listOf("adb", "devices", "-l"), runner.calls.single())
-        assertEquals(5.seconds, runner.timeouts.single())
+        assertEquals(15.seconds, runner.timeouts.single())
     }
 
     @Test
@@ -88,7 +88,7 @@ class AdbClientTest {
         val runner = FakeProcessRunner { FakeProcessRunner.ok("* daemon started successfully") }
         AdbClient("adb", runner, Path.of("."), StandardDispatcherProvider(Dispatchers.Unconfined)).restartServer().assertSuccess()
         assertEquals(listOf(listOf("adb", "kill-server"), listOf("adb", "start-server")), runner.calls.toList())
-        assertEquals(15.seconds, runner.timeouts.last())
+        assertEquals(60.seconds, runner.timeouts.last())
     }
 
     @Test
@@ -96,7 +96,7 @@ class AdbClientTest {
         val ok = FakeProcessRunner { FakeProcessRunner.ok("* daemon not running; starting now at tcp:5037\n* daemon started successfully") }
         AdbClient("adb", ok, Path.of("."), StandardDispatcherProvider(Dispatchers.Unconfined)).startServer().assertSuccess()
         assertEquals(listOf(listOf("adb", "start-server")), ok.calls.toList())
-        assertEquals(15.seconds, ok.timeouts.single())
+        assertEquals(60.seconds, ok.timeouts.single())
         val bad = FakeProcessRunner { FakeProcessRunner.ok("", "* failed to start daemon\nadb: error: could not install *smartsocket* listener: Address already in use", 1) }
         AdbClient("adb", bad, Path.of("."), StandardDispatcherProvider(Dispatchers.Unconfined)).startServer().assertFailure(ErrorCodes.ADB_START_FAILED)
     }
