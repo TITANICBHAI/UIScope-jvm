@@ -14,7 +14,6 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -41,10 +40,10 @@ class WindowsHelperClient(
     private val logger: Logger = Logger.getLogger("uiscope.windows"),
 ) {
     /** Events from the helper (pickHover, hotkey, ...) in arrival order. Collect once. */
-    val events: SharedFlow<HelperLine.Event> = eventFlow
+    val events: SharedFlow<Line.Event> = eventFlow
 
-    private val eventFlow = MutableSharedFlow<HelperLine.Event>(extraBufferCapacity = 64)
-    private val pending = ConcurrentHashMap<Long, CompletableDeferred<HelperLine.Response>>()
+    private val eventFlow = MutableSharedFlow<Line.Event>(extraBufferCapacity = 64)
+    private val pending = ConcurrentHashMap<Long, CompletableDeferred<Line.Response>>()
     private val idCounter = AtomicLong(0)
     private val restartTimes = ArrayDeque<Long>()
     private val mutex = Mutex()
@@ -65,32 +64,35 @@ class WindowsHelperClient(
      */
     suspend fun request(type: String, params: Map<String, Any?> = emptyMap(), timeout: Duration = requestTimeout): Outcome<Map<String, Any?>> {
         val id = idCounter.incrementAndGet()
-        var attempts = 0
-        while (attempts < 2) {
-            attempts++
-            ensureStarted().onFailure { return it }
-            val deferred = CompletableDeferred<HelperLine.Response>()
+        var attempt = 0
+        while (true) {
+            val started = ensureStarted()
+            if (started is Outcome.Failure) return started
+            val deferred = CompletableDeferred<Line.Response>()
             pending[id] = deferred
             val written = mutex.withLock { process?.writeLine(HelperProtocol.request(id, type, params)) }
             if (written is Outcome.Failure) {
                 pending.remove(id)
-                if (restartWithPolicy() == null) return Failure("the helper is not running (${written.errorOrAbort()})")
-                continue
+                if (restartWithPolicy() == null) return helperGaveUp("the helper is not running (${written.errorOrAbort()})")
+            } else {
+                val response = try {
+                    withTimeout(timeout) { deferred.await() }
+                } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+                    pending.remove(id)
+                    logger.log(Level.WARNING, "helper request $type timed out after $timeout; restarting the helper")
+                    if (restartWithPolicy() == null) return helperGaveUp("the helper was restarted too often; giving up")
+                    null
+                } ?: run {
+                    attempt++
+                    if (attempt >= 2) return helperGaveUp("the helper could not be reached after a restart")
+                    continue
+                }
+                if (!response.ok) {
+                    return Outcome.Failure(CodedError(response.errorCode ?: ErrorCodes.UNEXPECTED, response.errorMessage))
+                }
+                return Outcome.Success(response.value)
             }
-            val response = try {
-                withTimeout(timeout) { deferred.await() }
-            } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
-                pending.remove(id)
-                logger.log(Level.WARNING, "helper request $type timed out after $timeout; restarting the helper")
-                if (restartWithPolicy() == null) return Failure("the helper was restarted too often; giving up")
-                continue
-            }
-            if (!response.ok) {
-                return Outcome.Failure(CodedError(response.errorCode ?: ErrorCodes.UNEXPECTED, response.errorMessage))
-            }
-            return Outcome.Success(response.value)
         }
-        return Failure("the helper could not be reached after a restart")
     }
 
     /** Sends `shutdown` and stops reading. The process tree is killed regardless. */
@@ -131,10 +133,10 @@ class WindowsHelperClient(
     private suspend fun readLoop(managed: ManagedProcess) {
         managed.stdoutLines.collect { line ->
             when (val decoded = HelperProtocol.decode(line)) {
-                is HelperLine.Response -> pending.remove(decoded.id)?.complete(decoded)
+                is Line.Response -> pending.remove(decoded.id)?.complete(decoded)
                     ?: logger.log(Level.FINE, "a response for an unknown id arrived and was dropped")
-                is HelperLine.Event -> eventFlow.emit(decoded)
-                HelperLine.Malformed -> logger.log(Level.WARNING, "the helper wrote a malformed protocol line; it was ignored")
+                is Line.Event -> eventFlow.emit(decoded)
+                Line.Malformed -> logger.log(Level.WARNING, "the helper wrote a malformed protocol line; it was ignored")
             }
         }
     }
@@ -142,7 +144,7 @@ class WindowsHelperClient(
     private suspend fun handshake(): Outcome<Unit> {
         val response = withTimeoutOrNull(HANDSHAKE_TIMEOUT) {
             val id = idCounter.incrementAndGet()
-            val deferred = CompletableDeferred<HelperLine.Response>()
+            val deferred = CompletableDeferred<Line.Response>()
             pending[id] = deferred
             mutex.withLock { process?.writeLine(HelperProtocol.request(id, "hello")) }
             deferred.await()
@@ -192,7 +194,7 @@ class WindowsHelperClient(
         managed
     }
 
-    private fun Failure(detail: String): Outcome<Map<String, Any?>> =
+    private fun helperGaveUp(detail: String): Outcome<Map<String, Any?>> =
         Outcome.Failure(CodedError(ErrorCodes.UIA_UNAVAILABLE, detail))
 
     private fun protocolFailure(detail: String): CodedError = CodedError(ErrorCodes.UIA_UNAVAILABLE, detail)

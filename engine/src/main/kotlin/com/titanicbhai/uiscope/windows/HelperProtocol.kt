@@ -21,13 +21,6 @@ object HelperProtocol {
         return writeJson(fields)
     }
 
-    /** A decoded stdout line. Malformed lines are reported (the client ignores and logs them). */
-    sealed interface Line {
-        data class Response(val id: Long, val ok: Boolean, val value: Map<String, Any?>, val errorCode: String?, val errorMessage: String?) : Line
-        data class Event(val name: String, val payload: Map<String, Any?>) : Line
-        data object Malformed : Line
-    }
-
     fun decode(line: String): Line {
         val root = when (val parsed = JsonReader.parse(line)) {
             is Outcome.Failure -> return Line.Malformed
@@ -49,6 +42,13 @@ object HelperProtocol {
             errorMessage = error?.get("message") as? String,
         )
     }
+}
+
+/** A decoded stdout line. Malformed lines are reported (the client ignores and logs them). */
+sealed interface Line {
+    data class Response(val id: Long, val ok: Boolean, val value: Map<String, Any?>, val errorCode: String?, val errorMessage: String?) : Line
+    data class Event(val name: String, val payload: Map<String, Any?>) : Line
+    data object Malformed : Line
 }
 
 /** A helper-reported failure (its own codes, e.g. WINDOW_GONE, HOTKEY_IN_USE). */
