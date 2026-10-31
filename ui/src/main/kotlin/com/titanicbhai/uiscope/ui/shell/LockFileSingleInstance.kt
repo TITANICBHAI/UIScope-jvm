@@ -51,7 +51,7 @@ class LockFileSingleInstance(
         val taken = try {
             opened.tryLock()
         } catch (overlapping: OverlappingFileLockException) {
-            logger.fine("the instance lock is already held inside this process")
+            logger.fine("the instance lock is already held inside this process: " + overlapping.message)
             opened.close()
             return false
         }
