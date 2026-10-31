@@ -46,7 +46,8 @@ jobs:
           New-Item -ItemType Directory -Path dist -Force | Out-Null
           $msis = Get-ChildItem "app\build\compose\binaries\main\msi" -Filter *.msi -ErrorAction SilentlyContinue
           $exes = Get-ChildItem "app\build\compose\binaries\main\exe" -Filter *.exe -ErrorAction SilentlyContinue
-          $msis + $exes | ForEach-Object { Copy-Item $_.FullName dist\ }
+          # @() wraps them: with exactly one match Get-ChildItem returns a scalar FileInfo, and FileInfo + FileInfo throws.
+          @($msis) + @($exes) | ForEach-Object { Copy-Item $_.FullName dist\ }
           Get-ChildItem dist -File | ForEach-Object {
             $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
             "$hash  $($_.Name)" | Out-File dist\SHA256SUMS -Append -Encoding ascii
