@@ -34,10 +34,10 @@ class EngineWindowsPortTest {
     private val job = SupervisorJob()
     private val scope = CoroutineScope(job + kotlinx.coroutines.Dispatchers.Default)
 
-    private fun port(): EngineWindowsPort {
+    private fun port(vararg flags: String): EngineWindowsPort {
         val client = WindowsHelperClient(
             launcher = SystemProcessLauncher(dispatchers),
-            helperCommand = FakeProcess.command("helper"),
+            helperCommand = FakeProcess.command("helper", *flags),
             dispatchers = dispatchers,
             requestTimeout = 10.seconds,
             logger = java.util.logging.Logger.getLogger("test.port"),
@@ -133,6 +133,27 @@ class EngineWindowsPortTest {
         assertTrue(taken is Outcome.Failure && taken.error.code == ErrorCodes.HOTKEY_IN_USE, "in-use surfaces: $taken")
         p.unregisterHotkey().assertSuccess()
         p.registerHotkey("ctrl+alt", "p").assertSuccess()
+        job.cancelChildren()
+    }
+
+    @Test
+    fun `an elevated target refuses with ELEVATED_TARGET`() = blocking {
+        val p = port("elevated-target")
+        p.connect().assertSuccess()
+        val result = p.captureWindow("0x00120A3C")
+        assertTrue(result is Outcome.Failure && result.error.code == ErrorCodes.ELEVATED_TARGET, "elevated refused: $result")
+        job.cancelChildren()
+    }
+
+    @Test
+    fun `a sparse tree on a large window carries the LIMITED_ACCESSIBILITY hint`() = blocking {
+        val p = port("sparse-tree")
+        p.connect().assertSuccess()
+        val capture = p.captureWindow("0x00120A3C").assertSuccess()
+        assertTrue(
+            capture.warnings.any { it.code == ErrorCodes.LIMITED_ACCESSIBILITY },
+            "hint present: ${capture.warnings}",
+        )
         job.cancelChildren()
     }
 

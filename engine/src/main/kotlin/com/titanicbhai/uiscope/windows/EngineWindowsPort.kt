@@ -6,6 +6,7 @@ import com.titanicbhai.uiscope.error.ErrorCodes
 import com.titanicbhai.uiscope.error.Outcome
 import com.titanicbhai.uiscope.model.Capture
 import com.titanicbhai.uiscope.model.CaptureWarning
+import com.titanicbhai.uiscope.model.ElementNode
 import com.titanicbhai.uiscope.model.ScreenInfo
 import com.titanicbhai.uiscope.model.Target
 import com.titanicbhai.uiscope.model.WindowInfo
@@ -117,10 +118,19 @@ class EngineWindowsPort(
             hwnd = (window["hwnd"] as? String) ?: hwnd,
         )
 
-        val warnings = if (value["truncated"] as? Boolean == true) {
-            listOf(CaptureWarning(ErrorCodes.TREE_TRUNCATED, "the tree was cut at the helper's limits"))
-        } else {
-            emptyList()
+        val roots = WindowsNodeMapper.mapRoots(rootsRaw)
+        // P3-7 hints per Appendix A: the tree was cut at the helper's limits, or a large window
+        // (> 300x300 px) exposes almost nothing — the Chromium/Electron/Qt accessibility situation.
+        val windowRect = window["rect"] as? Map<String, Any?> ?: emptyMap()
+        val windowWidth = (windowRect["width"] as? Long)?.toInt() ?: 0
+        val windowHeight = (windowRect["height"] as? Long)?.toInt() ?: 0
+        val warnings = buildList {
+            if (value["truncated"] as? Boolean == true) {
+                add(CaptureWarning(ErrorCodes.TREE_TRUNCATED, "the tree was cut at the helper's limits"))
+            }
+            if (windowWidth > 300 && windowHeight > 300 && countNodes(roots) < 5) {
+                add(CaptureWarning(ErrorCodes.LIMITED_ACCESSIBILITY, "fewer than 5 elements for a ${windowWidth}x${windowHeight} px window"))
+            }
         }
 
         val capture = Capture(
@@ -129,7 +139,7 @@ class EngineWindowsPort(
             target = Target.Windows(info),
             screen = ScreenInfo(width = width, height = height, originX = originX, originY = originY),
             screenshot = com.titanicbhai.uiscope.model.Screenshot(path, width, height),
-            roots = WindowsNodeMapper.mapRoots(rootsRaw),
+            roots = roots,
             warnings = warnings,
         )
         return Outcome.Success(capture)
@@ -166,3 +176,5 @@ class EngineWindowsPort(
         return listOf(controlType, name).filter { it.isNotBlank() }.joinToString(" - ")
     }
 }
+
+private fun countNodes(nodes: List<ElementNode>): Int = nodes.sumOf { 1 + countNodes(it.children) }

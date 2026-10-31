@@ -23,6 +23,8 @@ import kotlin.system.exitProcess
  *                                         no-hello      hello is never answered
  *                                         slow          every response is delayed 1.5 s
  *                                         malformed     a malformed line precedes every response
+ *                                         elevated-target  captureWindow answers ELEVATED_TARGET
+ *                                         sparse-tree   captureWindow returns a 2-node tree on a large window
  *                                       special request types: "crash" exits, "events" emits event-a/b/c then ok,
  *                                       "never" is never answered.
  */
@@ -124,6 +126,37 @@ private fun fakeHelper(flags: Set<String>) {
     }
 }
 
+/** The canned capture: a real (tiny) PNG plus an Appendix B tree; the origin is the window's top-left.
+ *  `sparse-tree` trims to 2 nodes so the LIMITED_ACCESSIBILITY hint fires (P3-7).
+ *  No core imports here: the helper JVM's classpath is testFixtures + stdlib only. */
+private fun captureWindowFixture(flags: Set<String>, id: String) {
+    val png = java.io.File.createTempFile("uiscope-fake-helper", ".png")
+    val image = java.awt.image.BufferedImage(800, 600, java.awt.image.BufferedImage.TYPE_INT_RGB)
+    javax.imageio.ImageIO.write(image, "png", png)
+    val escapedPath = png.absolutePath.replace("\\", "\\\\").replace("\"", "\\\"")
+    fun node(automationId: String, name: String, controlType: String, runtimeId: String, x: Int, y: Int, w: Int, h: Int) =
+        "{\"automationId\":\"$automationId\",\"name\":\"$name\",\"controlType\":\"$controlType\"," +
+            "\"className\":\"$controlType\",\"runtimeId\":\"$runtimeId\"," +
+            "\"rect\":{\"x\":$x,\"y\":$y,\"width\":$w,\"height\":$h}}"
+    val children = if (flags.contains("sparse-tree")) {
+        node("app:id/ok", "OK", "Button", "1 42 2", 500, 450, 200, 60)
+    } else {
+        node("app:id/ok", "OK", "Button", "1 42 2", 500, 450, 200, 60) + "," +
+            node("app:id/cancel", "Cancel", "Button", "1 42 3", 500, 520, 200, 60) + "," +
+            node("app:id/status", "Ready", "Text", "1 42 4", 120, 60, 300, 24) + "," +
+            node("app:id/input", "Name", "Edit", "1 42 5", 120, 90, 400, 120)
+    }
+    println("{\"id\":$id,\"ok\":true,\"window\":{\"hwnd\":\"0x00120a3c\",\"title\":\"Untitled - Notepad\"," +
+        "\"processName\":\"notepad.exe\",\"pid\":1234,\"isElevated\":false," +
+        "\"rect\":{\"x\":100,\"y\":50,\"width\":800,\"height\":600}}," +
+        "\"screenshot\":{\"path\":\"$escapedPath\",\"width\":800,\"height\":600,\"originX\":100,\"originY\":50}," +
+        "\"roots\":[{\"automationId\":\"app:id/root\",\"name\":\"Root\",\"controlType\":\"Window\"," +
+        "\"className\":\"Window\",\"runtimeId\":\"1 42 1\"," +
+        "\"rect\":{\"x\":100,\"y\":50,\"width\":800,\"height\":600},\"children\":[" +
+        children + "]}],\"truncated\":false}")
+    System.out.flush()
+}
+
 private fun dispatchHelperRequest(
     flags: Set<String>,
     id: String,
@@ -180,30 +213,13 @@ private fun dispatchHelperRequest(
             System.out.flush()
         }
         "captureWindow" -> {
-            // A real (tiny) PNG plus a 5-node Appendix B tree (root + 4 children, so the default fixture is
-            // not "sparse"); the origin is the window's top-left. P3-7's sparse-tree flag trims to 2 nodes.
-            // No core imports here: the helper JVM's classpath is testFixtures + stdlib only.
-            val png = java.io.File.createTempFile("uiscope-fake-helper", ".png")
-            val image = java.awt.image.BufferedImage(800, 600, java.awt.image.BufferedImage.TYPE_INT_RGB)
-            javax.imageio.ImageIO.write(image, "png", png)
-            val escapedPath = png.absolutePath.replace("\\", "\\\\").replace("\"", "\\\"")
-            fun node(automationId: String, name: String, controlType: String, runtimeId: String, x: Int, y: Int, w: Int, h: Int) =
-                "{\"automationId\":\"$automationId\",\"name\":\"$name\",\"controlType\":\"$controlType\"," +
-                    "\"className\":\"$controlType\",\"runtimeId\":\"$runtimeId\"," +
-                    "\"rect\":{\"x\":$x,\"y\":$y,\"width\":$w,\"height\":$h}}"
-            println("{\"id\":$id,\"ok\":true,\"window\":{\"hwnd\":\"0x00120a3c\",\"title\":\"Untitled - Notepad\"," +
-                "\"processName\":\"notepad.exe\",\"pid\":1234,\"isElevated\":false," +
-                "\"rect\":{\"x\":100,\"y\":50,\"width\":800,\"height\":600}}," +
-                "\"screenshot\":{\"path\":\"$escapedPath\",\"width\":800,\"height\":600,\"originX\":100,\"originY\":50}," +
-                "\"roots\":[{\"automationId\":\"app:id/root\",\"name\":\"Root\",\"controlType\":\"Window\"," +
-                "\"className\":\"Window\",\"runtimeId\":\"1 42 1\"," +
-                "\"rect\":{\"x\":100,\"y\":50,\"width\":800,\"height\":600},\"children\":[" +
-                node("app:id/ok", "OK", "Button", "1 42 2", 500, 450, 200, 60) + "," +
-                node("app:id/cancel", "Cancel", "Button", "1 42 3", 500, 520, 200, 60) + "," +
-                node("app:id/status", "Ready", "Text", "1 42 4", 120, 60, 300, 24) + "," +
-                node("app:id/input", "Name", "Edit", "1 42 5", 120, 90, 400, 120) +
-                "]}],\"truncated\":false}")
-            System.out.flush()
+            if (flags.contains("elevated-target")) {
+                // P3-7: the helper refuses an elevated target before any capture work (Appendix A).
+                println("{\"id\":$id,\"ok\":false,\"error\":{\"code\":\"ELEVATED_TARGET\",\"message\":\"the target runs as administrator\"}}")
+                System.out.flush()
+            } else {
+                captureWindowFixture(flags, id)
+            }
         }
         "hello" -> {
             val protocol = if (flags.contains("bad-version")) 2 else 1

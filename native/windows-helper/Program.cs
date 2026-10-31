@@ -168,6 +168,11 @@ namespace UIScope.Helper
                         break;
                 }
             }
+            catch (ProtocolException e)
+            {
+                Console.Error.WriteLine("helper: " + type + " failed: " + e.Message);
+                ReplyError(id, e.Code, e.Message);
+            }
             catch (Exception e)
             {
                 Console.Error.WriteLine("helper: " + type + " failed: " + e.Message);
@@ -253,6 +258,9 @@ namespace UIScope.Helper
             IntPtr hwnd = new IntPtr(Convert.ToInt64(hwndText.Substring(2), 16));
             if (hwnd == IntPtr.Zero || !Native.IsWindowVisible(hwnd))
                 throw new InvalidOperationException("the window was closed");
+            uint pid = PidOf(hwnd);
+            if (Native.IsElevated(pid))
+                throw new ProtocolException("ELEVATED_TARGET", "the target window runs as administrator; start UIScope elevated to inspect it");
 
             System.Drawing.Rectangle windowRect;
             bool truncated;
@@ -265,8 +273,8 @@ namespace UIScope.Helper
             sb.Append(",\"window\":{\"hwnd\":").Append(Q(hwndText.ToLowerInvariant()))
               .Append(",\"title\":").Append(Q(Native.WindowTitle(hwnd)))
               .Append(",\"processName\":").Append(Q(ProcessNameOf(hwnd)))
-              .Append(",\"pid\":").Append(PidOf(hwnd))
-              .Append(",\"isElevated\":").Append(Native.IsElevated(PidOf(hwnd)) ? "true" : "false")
+              .Append(",\"pid\":").Append(pid)
+              .Append(",\"isElevated\":").Append(Native.IsElevated(pid) ? "true" : "false")
               .Append(",\"rect\":{\"x\":").Append(windowRect.Left).Append(",\"y\":").Append(windowRect.Top)
               .Append(",\"width\":").Append(windowRect.Width).Append(",\"height\":").Append(windowRect.Height).Append("}}");
             sb.Append(",\"screenshot\":{\"path\":").Append(Q(screenshotPath))
@@ -363,5 +371,12 @@ namespace UIScope.Helper
             if (s == null) s = "";
             return "\"" + s.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\n", "\\n").Replace("\r", "\\r").Replace("\t", "\\t") + "\"";
         }
+    }
+
+    /// <summary>An error that carries its Appendix A code to the client; anything else reports UIA_UNAVAILABLE.</summary>
+    internal class ProtocolException : Exception
+    {
+        public readonly string Code;
+        public ProtocolException(string code, string message) : base(message) { Code = code; }
     }
 }

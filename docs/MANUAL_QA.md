@@ -63,6 +63,7 @@ hugs the element, a click is *not* delivered to the app underneath, and the pick
 7. Pick a Chrome or Edge page and a VS Code window. **Pass if** you see a real tree (or the "limited accessibility" hint), not an empty one.
 8. With UIScope idle in the background, press the pick hotkey (`Ctrl+Alt+P`). **Pass if** pick mode starts even though UIScope has no focus. (Needs the hotkey enabled in Settings — arrives with the Settings wiring.)
 9. Make another app own `Ctrl+Alt+P` first (some screen-capture tools do), then enable the hotkey in UIScope. **Pass if** UIScope shows the "shortcut is taken" message and Pick still works from the button.
+10. Capture a window with a huge UI tree (e.g. a long page in Edge with the full DOM exposed). **Pass if** the truncation notice appears and the tree is still usable.
 
 ## Round 3 — Everyday use and install (after Phase 5, and again before release)
 

@@ -171,6 +171,22 @@ class WindowsInspectStateTest {
     }
 
     @Test
+    fun `an elevated target surfaces ELEVATED_TARGET`() = kotlinx.coroutines.runBlocking {
+        val s = state()
+        s.start()
+        s.awaitState("Idle") { it is WindowsState.Idle }
+        port.captureResults.addLast(Outcome.Success(FakePort.screenFor(notepad.hwnd)))
+        s.chooseWindow(notepad.hwnd)
+        s.awaitState("Captured") { it is WindowsState.Captured }
+        port.captureResults.addLast(Outcome.Failure(CodedError(ErrorCodes.ELEVATED_TARGET, "runs as administrator")))
+        s.refresh()
+        s.awaitState("CaptureFailed") { it is WindowsState.CaptureFailed }
+        assertEquals(ErrorCodes.ELEVATED_TARGET, (s.ui.value.state as WindowsState.CaptureFailed).error.code)
+        s.stop()
+        job.cancelChildren()
+    }
+
+    @Test
     fun `a second capture request while one runs is ignored`() = kotlinx.coroutines.runBlocking {
         val s = state()
         s.start()
