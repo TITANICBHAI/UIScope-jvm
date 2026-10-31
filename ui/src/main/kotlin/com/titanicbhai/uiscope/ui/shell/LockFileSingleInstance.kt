@@ -2,6 +2,7 @@ package com.titanicbhai.uiscope.ui.shell
 
 import java.nio.channels.FileChannel
 import java.nio.channels.FileLock
+import java.nio.channels.OverlappingFileLockException
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
@@ -42,11 +43,18 @@ class LockFileSingleInstance(
         }
     }
 
-    /** Takes the lock; false when another live instance already holds it. */
+    /** Takes the lock; false when another live instance already holds it (across processes the lock comes back null; the
+     *  same JVM throws [java.nio.channels.OverlappingFileLockException] instead — both mean "not the first instance"). */
     fun tryAcquire(): Boolean {
         Files.createDirectories(lockFile.parent)
         val opened = FileChannel.open(lockFile, StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE)
-        val taken = opened.tryLock()
+        val taken = try {
+            opened.tryLock()
+        } catch (overlapping: OverlappingFileLockException) {
+            logger.fine("the instance lock is already held inside this process")
+            opened.close()
+            return false
+        }
         if (taken == null) {
             opened.close()
             return false
