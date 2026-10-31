@@ -436,6 +436,8 @@ internal fun diffAsJson(result: DiffResult): ByteArray = buildString {
     result.pairs.joinTo(this, ",") { pair ->
         "{\"before\":" + JsonWriter.string(pair.before.path.toString()) +
             ",\"after\":" + JsonWriter.string(pair.after.path.toString()) +
+            ",\"class\":" + JsonWriter.string(pair.before.className) +
+            ",\"identifier\":" + (pair.before.identifier?.let { JsonWriter.string(it) } ?: "null") +
             ",\"pass\":\"" + pair.pass.name + "\"" +
             ",\"changes\":[" + pair.changes.joinToString(",") { change ->
                 "{\"field\":" + JsonWriter.string(change.field) + ",\"before\":" +
@@ -444,9 +446,9 @@ internal fun diffAsJson(result: DiffResult): ByteArray = buildString {
             } + "]}"
     }
     append("],\"added\":[")
-    result.added.joinTo(this, ",") { JsonWriter.string(it.path.toString()) }
+    result.added.joinTo(this, ",") { node -> "{\"path\":" + JsonWriter.string(node.path.toString()) + ",\"class\":" + JsonWriter.string(node.className) + ",\"identifier\":" + (node.identifier?.let { JsonWriter.string(it) } ?: "null") + "}" }
     append("],\"removed\":[")
-    result.removed.joinTo(this, ",") { JsonWriter.string(it.path.toString()) }
+    result.removed.joinTo(this, ",") { node -> "{\"path\":" + JsonWriter.string(node.path.toString()) + ",\"class\":" + JsonWriter.string(node.className) + ",\"identifier\":" + (node.identifier?.let { JsonWriter.string(it) } ?: "null") + "}" }
     append("]}")
 }.toByteArray(Charsets.UTF_8)
 

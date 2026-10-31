@@ -183,7 +183,7 @@ class CompareScreenTest {
         rule.waitForIdle()
         assertEquals(1, r.saved.size)
         assertEquals("uiscope-diff.json", r.saved[0].first)
-        assertTrue(r.saved[0].second.contains("app:id/a"), "the JSON carries the matched path: ${r.saved[0].second.take(200)}")
+        assertTrue(r.saved[0].second.contains("app:id/a"), "the JSON carries the matched identifier: ${r.saved[0].second.take(240)}")
         assertTrue(r.saved[0].second.contains(ElementPath.root(0).child(0).toString()), "paths are structural")
     }
 }
