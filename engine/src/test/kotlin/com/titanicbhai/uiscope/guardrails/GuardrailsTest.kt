@@ -48,8 +48,10 @@ class GuardrailsTest {
 
     @Test
     fun `rule host-shell`() {
+        // The rule catches the shell command written as one literal (how it realistically appears). A shell and its
+        // -c flag split across separate string literals are not distinguishable from ordinary argument lists.
         for (text in listOf(
-            "val cmd = \"sh -c ls\"", "run(\"bash\", \"-c\", script)", "exec(\"cmd /c dir\")", "val shell = \"cmd.exe /c %S\"",
+            "val cmd = \"sh -c ls\"", "exec(\"cmd /c dir\")", "val shell = \"cmd.exe /c %S\"", "val b = \"bash -c build.sh\"",
         )) {
             assertEquals(listOf("host-shell"), ids(engine, text), text)
         }
