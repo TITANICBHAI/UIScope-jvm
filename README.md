@@ -44,8 +44,6 @@ snapshot exports as a `.uiscope` bundle and imports back on any machine.
 ## Supported OS
 
 - Windows 10 (1809+) and 11: both targets, full features.
-- macOS/Linux: Android inspection only, planned for 1.1 (not packaged for 1.0).
-- For Android inspection you need a phone with USB debugging; Windows app inspection needs a desktop session.
 
 ## FAQ
 
