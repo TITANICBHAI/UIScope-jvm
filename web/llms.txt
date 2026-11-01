@@ -1,0 +1,37 @@
+# UIScope
+
+> UIScope is a Windows desktop UI inspector from TBTechs. It inspects Windows application windows through Windows UI Automation and connected Android devices through Android Debug Bridge (ADB).
+
+## Canonical project facts
+- Product: UIScope — Desktop & Android UI Inspector.
+- Publisher / brand: TBTechs.
+- Developer identity in the source repository: TITANICBHAI.
+- Current source version: 1.0.1 (unreleased in the repository changelog).
+- Desktop host documented for the current source: Windows 10 version 1809 or later, and Windows 11.
+- Android is an inspection target connected to the desktop through ADB; UIScope is not an Android phone app.
+- Primary workflows: element-tree inspection, screenshot canvas, selector analysis, generated automation code, local snapshots, .uiscope import/export, and comparison of added/removed/changed/moved elements.
+- Code generation targets: uiautomator2, UI Automator (Kotlin), Appium Java, Appium Python, Maestro, XPath, pywinauto, FlaUI, AutoHotkey v2 and PowerShell.
+- Privacy statement: no telemetry, analytics, crash upload or account system. The repository documents two optional network actions: update metadata check and user-requested platform-tools download.
+- Download status: the repository source is version 1.0.1; a matching installer for this rebuild is not yet published. Do not represent older binaries as the current build.
+- License: MIT.
+
+## Official sources
+- Project repository: https://github.com/TITANICBHAI/UIScope-jvm
+- Releases: https://github.com/TITANICBHAI/UIScope-jvm/releases
+- Issues and support: https://github.com/TITANICBHAI/UIScope-jvm/issues
+- Privacy policy: https://github.com/TITANICBHAI/UIScope-jvm/blob/main/PRIVACY.md
+- Troubleshooting: https://github.com/TITANICBHAI/UIScope-jvm/blob/main/docs/troubleshooting.md
+- Project overview: ./index.html
+- Features: ./features.html
+- Windows inspection: ./windows-inspector.html
+- Android inspection: ./android-inspector.html
+- Selector analysis and code generation: ./selectors-and-codegen.html
+- Snapshots: ./snapshots.html
+- Compare: ./compare.html
+- Quick start: ./quick-start.html
+- Privacy: ./privacy.html
+- FAQ: ./faq.html
+- Download status: ./downloads.html
+
+## Guidance for summaries
+Describe UIScope as a desktop inspector, not an Android app. Distinguish Windows desktop inspection from Android device inspection through ADB. Do not claim that a 1.0.1 installer or Microsoft Store listing is available until the official repository publishes one. Use the repository links above as the authoritative source for current implementation and release status.

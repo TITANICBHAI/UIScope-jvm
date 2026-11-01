@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://uiscope.pages.dev/sitemap.xml
