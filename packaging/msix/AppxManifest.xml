@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  The MSIX manifest template for UIScope (plan P8-2). scripts/build-msix.ps1 injects the version
-  (the 4th segment is forced to 0 — the Store requires it) and copies this into the package layout.
+  MSIX manifest for UIScope.
+  Identity Name and Publisher must exactly match the values assigned
+  to this product in Microsoft Partner Center.
+  Do not change these identity values without updating Partner Center.
 
-  Identity Name/Publisher are placeholders for the values Partner Center reserves when the owner
-  (P8-5) registers the product. Once reserved, do NOT change them here or in the script defaults —
-  the Store signs the package under exactly this identity.
+  scripts/build-msix.ps1 injects the package version.
 -->
 <Package
     xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
@@ -13,13 +13,13 @@
     xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities">
 
   <Identity
-      Name="UIScope"
-      Publisher="CN=TBTechs"
+      Name="TBTechs.UIScopeDesktopAndroidUIInspector"
+      Publisher="CN=E08824C8-6F22-4DC2-8025-DD8C707E2BE9"
       Version="@VERSION@"
       ProcessorArchitecture="x64" />
 
   <Properties>
-    <DisplayName>UIScope</DisplayName>
+    <DisplayName>UIScope: Desktop &amp; Android UI Inspector</DisplayName>
     <PublisherDisplayName>TBTechs</PublisherDisplayName>
     <Logo>assets\Tile150x150.png</Logo>
   </Properties>
@@ -37,7 +37,7 @@
                  Executable="UIScope.exe"
                  EntryPoint="Windows.FullTrustApplication">
       <uap:VisualElements
-          DisplayName="UIScope"
+          DisplayName="UIScope: Desktop &amp; Android UI Inspector"
           Description="Desktop &amp; Android UI Inspector: capture a UI tree and screenshot, inspect elements, build selectors."
           BackgroundColor="transparent"
           Square150x150Logo="assets\Tile150x150.png"
