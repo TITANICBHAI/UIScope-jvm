@@ -10,6 +10,7 @@ import com.titanicbhai.uiscope.storage.DataPaths
 import java.io.File
 import java.io.IOException
 import java.nio.file.Files
+import java.nio.file.InvalidPathException
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
 import java.util.logging.Level
@@ -52,7 +53,7 @@ class FileAdbPathStore(private val file: Path, private val logger: Logger = Logg
 
 /**
  * Finds a working adb. Existing installations come first and the managed download is the last resort (decision D3):
- * 1. the saved path, 2. `ANDROID_SDK_ROOT` / `ANDROID_HOME`, 3. the default SDK folder, 4. `PATH`, 5. the app's own copy.
+ * 1. the saved path, 2. `ANDROID_SDK_ROOT` / `ANDROID_HOME`, 3. the default SDK folder, 4. `PATH` and a few well-known folders, 5. the app's own copy.
  * A candidate counts only if it is a file and `adb version` runs and prints adb's version banner.
  */
 class AdbLocator(
@@ -84,21 +85,46 @@ class AdbLocator(
         return Outcome.Success(location)
     }
 
+    /**
+     * A path from outside (settings file, environment, `PATH`) or null when it is not a usable path. Windows `PATH` entries are often quoted
+     * (`"C:\\Tools"`) or carry characters the file system rejects; one such entry must never stop the search for the others.
+     */
+    private fun pathOrNull(text: String?): Path? {
+        val cleaned = text?.trim()?.trim('"')?.trim().orEmpty()
+        if (cleaned.isEmpty()) return null
+        return try {
+            Path.of(cleaned)
+        } catch (e: InvalidPathException) {
+            logger.log(Level.FINE, "skipping an entry that is not a valid path", e)
+            null
+        }
+    }
+
     private fun candidates(): List<Pair<AdbSource, Path>> {
         val out = ArrayList<Pair<AdbSource, Path>>()
-        store.load()?.let { out += AdbSource.SAVED to Path.of(it) }
+        pathOrNull(store.load())?.let { out += AdbSource.SAVED to it }
         for (key in listOf("ANDROID_SDK_ROOT", "ANDROID_HOME")) {
-            env[key]?.takeIf { it.isNotBlank() }?.let { out += AdbSource.SDK_ENV to Path.of(it).resolve("platform-tools").resolve(exe) }
+            pathOrNull(env[key])?.let { out += AdbSource.SDK_ENV to it.resolve("platform-tools").resolve(exe) }
         }
         out += AdbSource.SDK_DEFAULT to defaultSdk().resolve("platform-tools").resolve(exe)
         val pathValue = env.entries.firstOrNull { it.key.equals("PATH", ignoreCase = true) }?.value.orEmpty()
-        pathValue.split(pathSeparator).filter { it.isNotBlank() }.forEach { out += AdbSource.PATH to Path.of(it).resolve(exe) }
+        pathValue.split(pathSeparator).mapNotNull { pathOrNull(it) }.forEach { out += AdbSource.PATH to it.resolve(exe) }
+        // Well-known install folders that are not on PATH unless the user put them there (older standalone SDKs, Homebrew, distro packages).
+        extraFolders().forEach { out += AdbSource.PATH to it.resolve(exe) }
         out += AdbSource.MANAGED to dataPaths.platformTools.resolve(exe)
         return out.distinctBy { it.second.toAbsolutePath().normalize() }
     }
 
+    private fun extraFolders(): List<Path> = when (os) {
+        HostOs.WINDOWS -> listOf("ProgramFiles(x86)", "ProgramFiles")
+            .mapNotNull { pathOrNull(env[it]) }
+            .map { it.resolve("Android").resolve("android-sdk").resolve("platform-tools") }
+        HostOs.MACOS -> listOf("/opt/homebrew/bin", "/usr/local/bin").mapNotNull { pathOrNull(it) }
+        HostOs.LINUX, HostOs.OTHER -> listOf("/usr/bin", "/usr/local/bin").mapNotNull { pathOrNull(it) }
+    }
+
     private fun defaultSdk(): Path = when (os) {
-        HostOs.WINDOWS -> (env["LOCALAPPDATA"]?.takeIf { it.isNotBlank() }?.let { Path.of(it) } ?: home.resolve("AppData").resolve("Local")).resolve("Android").resolve("Sdk")
+        HostOs.WINDOWS -> (pathOrNull(env["LOCALAPPDATA"]) ?: home.resolve("AppData").resolve("Local")).resolve("Android").resolve("Sdk")
         HostOs.MACOS -> home.resolve("Library").resolve("Android").resolve("sdk")
         HostOs.LINUX, HostOs.OTHER -> home.resolve("Android").resolve("Sdk")
     }

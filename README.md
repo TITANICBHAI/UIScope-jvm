@@ -10,6 +10,8 @@ live vs snapshot or snapshot vs snapshot — with added/removed/changed/moved br
 > **Status: 1.0.1.** The app was rebuilt from the ground up; the previous implementation is gone
 > (`git log` keeps it). Microsoft Store submission and the first tagged release are the remaining owner steps.
 
+**Website:** <https://titanicbhai.github.io/UIScope-jvm/web/> (plain HTML in [`web/`](web/); the app's Help menu links to it).
+
 ## Install
 
 - **Microsoft Store** (planned — the listing is the owner's step, P8-5): Microsoft signs the package.
@@ -23,7 +25,7 @@ macOS and Linux (Android inspection only) — **planned for 1.1**.
 
 ## 60-second quick start
 
-**Windows app inspection** (Windows only):
+**Windows app inspection** (Windows only; `UIScope.Helper.exe --selftest` in the data folder's `helper` folder checks the helper without the app):
 
 1. Launch UIScope. The helper self-test runs; if it says unavailable, the Windows section of
    [docs/troubleshooting.md](docs/troubleshooting.md) covers the causes.
@@ -44,6 +46,8 @@ snapshot exports as a `.uiscope` bundle and imports back on any machine.
 ## Supported OS
 
 - Windows 10 (1809+) and 11: both targets, full features.
+- macOS/Linux: Android inspection only, planned for 1.1 (not packaged for 1.0).
+- For Android inspection you need a phone with USB debugging; Windows app inspection needs a desktop session.
 
 ## FAQ
 

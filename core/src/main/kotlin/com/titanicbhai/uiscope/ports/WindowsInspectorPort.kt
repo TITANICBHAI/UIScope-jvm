@@ -34,6 +34,9 @@ sealed interface PickEvent {
     data object HotkeyPressed : PickEvent
 
     data object Cancelled : PickEvent
+
+    /** Pick mode could not start or died (for example Windows refused the mouse hook); [message] says why in plain words. */
+    data class Failed(val message: String) : PickEvent
 }
 
 /**

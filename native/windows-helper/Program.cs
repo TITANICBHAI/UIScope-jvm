@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Drawing;
 using System.IO;
 using System.Text;
 using System.Threading;
@@ -8,380 +10,483 @@ using System.Windows.Forms;
 namespace UIScope.Helper
 {
     /// <summary>
-    /// The UIScope Windows helper (plan P3-1, architecture decision D-WIN-1): a persistent process that owns everything
-    /// touching Win32/UIA. Speaks the version-1 protocol (Appendix J): one JSON object per line on stdin, responses and
-    /// events on stdout, diagnostics on stderr. Exits when stdin closes. Pick mode (P3-4) and the hotkey (P3-6) run on
-    /// the hidden host window's STA thread. Written in C# 5.
+    /// The UIScope Windows helper: a tiny line-delimited JSON server on stdin/stdout (Appendix J). Run with no arguments it speaks the protocol;
+    /// <c>--selftest</c> prints a human-readable health report; <c>--demo-pick</c> runs the pick overlay on its own.
+    ///
+    /// Written in C# 5 on purpose: the project builds with the Framework MSBuild that ships on every Windows box, whose compiler is C# 5.
     /// </summary>
     internal static class Program
     {
-        private const string HelperVersion = "0.1.0";
+        internal const string HelperVersion = "0.2.0";
         private const int ProtocolVersion = 1;
-        private const int HotkeyId = 1;
+        private const int HotkeyId = 0x5C01;
+        private const uint ModNoRepeat = 0x4000;
 
-        private static readonly object StdoutLock = new object();
+        private static readonly object OutputLock = new object();
+        private static readonly object PickLock = new object();
+        private static TextWriter stdout;
         private static HostForm host;
-        private static ManualResetEventSlim hostReady = new ManualResetEventSlim(false);
         private static PickSession pickSession;
 
-        private static void Main(string[] args)
+        private static int Main(string[] args)
         {
-            if (args.Length > 0 && args[0] == "--demo-pick")
+            AppDomain.CurrentDomain.UnhandledException += delegate(object sender, UnhandledExceptionEventArgs e)
             {
-                RunDemoPick();
-                return;
-            }
-
-            Console.OutputEncoding = Encoding.UTF8;
-
-            // The UI thread owns the hidden host window (hotkeys, pick sessions). Started first so
-            // request handlers can marshal onto it from the stdin reader below.
-            var uiThread = new Thread(delegate()
+                Log("unhandled exception: " + e.ExceptionObject);
+            };
+            if (args.Length > 0)
             {
-                host = new HostForm();
-                // SetVisibleCore(false) keeps the form from ever becoming visible, which also means its native
-                // handle is not created until something forces it. Every request handler marshals onto this
-                // thread with BeginInvoke, which throws until the handle exists - so force it here, on the
-                // thread that owns the control, before the stdin loop is allowed to answer anything.
-                var handleCreated = host.Handle;
-                host.HotkeyPressed += delegate(int hotkeyId)
+                switch (args[0])
                 {
-                    EmitLine("{\"event\":\"hotkey\",\"id\":" + hotkeyId + "}");
-                };
-                hostReady.Set();
-                Application.Run(host);
-            });
-            uiThread.SetApartmentState(ApartmentState.STA);
-            uiThread.Start();
-            hostReady.Wait();
-
-            var reader = Console.In;
-            string line;
-            while ((line = reader.ReadLine()) != null)
-            {
-                string trimmed = line.Trim();
-                if (trimmed.Length > 0) Handle(trimmed);
+                    case "--selftest": return SelfTest.Run(args);
+                    case "--demo-pick": return RunDemoPick();
+                    case "--version":
+                        Console.WriteLine(HelperVersion);
+                        return 0;
+                }
             }
-            // stdin closed: exit, like the real helper must.
+            return RunProtocol();
         }
 
-        /// <summary>--demo-pick (Appendix K, early check 2a): the overlay comes up, the picked element prints as
-        /// JSON on stdout, then the helper exits. Lets the owner verify alignment and click-swallowing before the UI exists.</summary>
-        private static void RunDemoPick()
+        // -- the protocol loop -------------------------------------------------------------------
+
+        private static int RunProtocol()
         {
-            Console.OutputEncoding = Encoding.UTF8;
-            var done = new ManualResetEventSlim(false);
+            // Explicit UTF-8 streams. Console.OutputEncoding/InputEncoding go through the console code page (the OEM page for a redirected
+            // pipe), may write a byte-order mark, and can throw when the process has no console; raw streams do none of that.
+            var utf8 = new UTF8Encoding(false);
+            var writer = new StreamWriter(Console.OpenStandardOutput(), utf8, 4096);
+            writer.AutoFlush = true;
+            writer.NewLine = "\n";
+            stdout = writer;
+            TextReader stdin = new StreamReader(Console.OpenStandardInput(), utf8);
+
+            StartUiThread();
+
+            string line;
+            while ((line = stdin.ReadLine()) != null)
+            {
+                if (line.Length == 0) continue;
+                HandleLine(line);
+            }
+            // stdin closed: the client is gone. The UI thread is a background thread, but exit explicitly so nothing can keep the process alive.
+            Environment.Exit(0);
+            return 0;
+        }
+
+        /// <summary>The hidden window and its message loop live on their own STA thread; every UI Automation call stays off it.</summary>
+        private static void StartUiThread()
+        {
+            var ready = new ManualResetEvent(false);
             var thread = new Thread(delegate()
             {
-                var session = new PickSession(
-                    delegate(PickedElementInfo element, IntPtr hwnd)
-                    {
-                        EmitLine("--demo-pick: picked from window " + hwnd.ToInt64().ToString("x8"));
-                        done.Set();
-                    },
-                    delegate
-                    {
-                        EmitLine("--demo-pick: cancelled");
-                        done.Set();
-                    });
-                session.Start(true);
-                done.Set();
+                try
+                {
+                    // A hidden process must never show the "unhandled exception" dialog nobody could click.
+                    Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
+                    Application.ThreadException += delegate(object sender, ThreadExceptionEventArgs e) { Log("UI thread: " + e.Exception); };
+                    host = new HostForm();
+                    host.HotkeyPressed += delegate(int id) { EmitLine("{\"event\":\"hotkey\",\"id\":" + id + "}"); };
+                    IntPtr created = host.Handle; // create the window on this thread
+                    GC.KeepAlive(created);
+                    ready.Set();
+                    Application.Run(host);
+                }
+                catch (Exception e)
+                {
+                    Log("the UI thread failed: " + e);
+                    ready.Set();
+                }
             });
             thread.SetApartmentState(ApartmentState.STA);
+            thread.IsBackground = true;
+            thread.Name = "uiscope-ui";
             thread.Start();
-            done.Wait(60000);
-            thread.Join(2000);
+            if (!ready.WaitOne(10000)) Log("the UI thread did not start in time");
         }
 
-        /// <summary>The one stdout writer: stdin responses and UI-thread events both funnel through the lock.</summary>
         internal static void EmitLine(string line)
         {
-            lock (StdoutLock)
+            lock (OutputLock)
             {
-                Console.Out.WriteLine(line);
-                Console.Out.Flush();
+                TextWriter target = stdout ?? Console.Out;
+                target.WriteLine(line);
+                target.Flush();
             }
         }
 
-        private static void Handle(string line)
+        internal static void Log(string text)
         {
-            string id = ExtractString(line, "id") ?? ExtractNumber(line, "id");
-            if (id == null) return; // no correlation id: not a request we can answer
-            string type = ExtractString(line, "type") ?? "";
+            try
+            {
+                Console.Error.WriteLine("helper: " + text);
+            }
+            catch (Exception)
+            {
+                // nothing sensible left to do
+            }
+        }
 
+        private static void Reply(string id, string fields)
+        {
+            EmitLine("{\"id\":" + id + ",\"ok\":true" + (string.IsNullOrEmpty(fields) ? "" : "," + fields) + "}");
+        }
+
+        private static void ReplyError(string id, string code, string message)
+        {
+            EmitLine("{\"id\":" + id + ",\"ok\":false,\"error\":{\"code\":" + Json.Str(code) + ",\"message\":" + Json.Str(message) + "}}");
+        }
+
+        private static void HandleLine(string line)
+        {
+            string id = Json.ExtractNumber(line, "id");
+            if (id == null)
+            {
+                Log("ignoring a line without a numeric id");
+                return;
+            }
+            string type = Json.ExtractString(line, "type") ?? "";
             try
             {
                 switch (type)
                 {
                     case "hello":
-                        Reply(id, "{\"protocol\":" + ProtocolVersion + ",\"helperVersion\":" + Q(HelperVersion) +
-                                  ",\"osBuild\":" + Q(Environment.OSVersion.VersionString) +
-                                  ",\"dpiAwareness\":\"PerMonitorV2\",\"isElevated\":" +
-                                  (IsCurrentProcessElevated() ? "true" : "false") + "}");
-                        break;
-
-                    case "listWindows":
-                        Reply(id, ListWindowsJson());
-                        break;
-
-                    case "captureWindow":
-                        Reply(id, CaptureWindowJson(id, ExtractString(line, "hwnd")));
-                        break;
-
-                    case "startPick":
-                        // The pick session runs on the UI thread; the events flow while it is up.
-                        Reply(id, "{}");
-                        host.BeginInvoke(new Action(delegate
-                        {
-                            if (pickSession != null) pickSession.Stop();
-                            pickSession = new PickSession(
-                                delegate(PickedElementInfo element, IntPtr hwnd) { /* the event line is already emitted */ },
-                                delegate { /* cancelled: the event line is already emitted */ });
-                            pickSession.Start(true);
-                        }));
-                        break;
-
-                    case "stopPick":
-                        host.BeginInvoke(new Action(delegate
-                        {
-                            if (pickSession != null) pickSession.Stop();
-                            pickSession = null;
-                        }));
-                        Reply(id, "{}");
-                        break;
-
-                    case "registerHotkey":
-                        Reply(id, RegisterHotkeyJson(ExtractString(line, "modifiers") ?? "", ExtractString(line, "key") ?? ""));
-                        break;
-
-                    case "unregisterHotkey":
-                        host.BeginInvoke(new Action(delegate { host.TryUnregisterHotkey(HotkeyId); }));
-                        Reply(id, "{}");
+                        Reply(id, "\"protocol\":" + ProtocolVersion + ",\"helperVersion\":" + Json.Str(HelperVersion) +
+                                  ",\"osBuild\":" + Json.Str(Environment.OSVersion.VersionString) + ",\"dpiAwareness\":\"PerMonitorV2\"" +
+                                  ",\"isElevated\":" + Json.Bool(Native.IsCurrentProcessElevated()) + ",\"pid\":" + Process.GetCurrentProcess().Id);
                         break;
 
                     case "ping":
-                        Reply(id, "{}");
+                        Reply(id, "");
+                        break;
+
+                    case "listWindows":
+                        RunAsync(id, type, ListWindowsFields);
+                        break;
+
+                    case "captureWindow":
+                        RunAsync(id, type, delegate { return CaptureFields(line); });
+                        break;
+
+                    case "startPick":
+                    {
+                        bool hide = Json.ExtractBool(line, "hideFromCapture", true);
+                        Reply(id, "");
+                        host.BeginInvoke(new Action(delegate { StartPick(hide); }));
+                        break;
+                    }
+
+                    case "stopPick":
+                        host.BeginInvoke(new Action(StopPick));
+                        Reply(id, "");
+                        break;
+
+                    case "registerHotkey":
+                        Reply(id, RegisterHotkeyFields(Json.ExtractString(line, "modifiers") ?? "", Json.ExtractString(line, "key") ?? ""));
+                        break;
+
+                    case "unregisterHotkey":
+                        host.Invoke(new Action(delegate { host.TryUnregisterHotkey(HotkeyId); }));
+                        Reply(id, "");
                         break;
 
                     case "shutdown":
-                        Reply(id, "{}");
+                        Reply(id, "");
                         Environment.Exit(0);
                         break;
 
                     default:
-                        ReplyError(id, "UIA_UNAVAILABLE", "the helper does not implement '" + type + "' yet");
+                        ReplyError(id, "UIA_UNAVAILABLE", "the helper does not implement '" + type + "'");
                         break;
                 }
             }
             catch (ProtocolException e)
             {
-                Console.Error.WriteLine("helper: " + type + " failed: " + e.Message);
+                Log(type + " failed: " + e.Code + ": " + e.Message);
                 ReplyError(id, e.Code, e.Message);
             }
             catch (Exception e)
             {
-                Console.Error.WriteLine("helper: " + type + " failed: " + e.Message);
+                Log(type + " failed: " + e);
                 ReplyError(id, "UIA_UNAVAILABLE", e.Message);
             }
         }
 
-        /// <summary>Registers the pick hotkey on the host window; HOTKEY_IN_USE when another app owns it (plan P3-6).</summary>
-        private static string RegisterHotkeyJson(string modifiers, string key)
+        /// <summary>
+        /// Slow requests run on pool threads (which are MTA, the right home for UI Automation), so a long capture never blocks the reader:
+        /// a <c>stopPick</c> or <c>shutdown</c> sent meanwhile is answered at once.
+        /// </summary>
+        private static void RunAsync(string id, string type, Func<string> work)
         {
-            uint mods = 0;
-            var m = modifiers.ToLowerInvariant();
-            if (m.Contains("ctrl")) mods |= 2;   // MOD_CONTROL
-            if (m.Contains("alt")) mods |= 1;    // MOD_ALT
-            if (m.Contains("shift")) mods |= 4;  // MOD_SHIFT
-            if (m.Contains("win")) mods |= 8;    // MOD_WIN
-            uint vk = KeyToVk(key);
-            if (vk == 0) throw new ArgumentException("unknown key '" + key + "'");
-
-            bool registered = false;
-            host.BeginInvoke(new Action(delegate
+            ThreadPool.QueueUserWorkItem(delegate
             {
-                registered = host.TryRegisterHotkey(HotkeyId, mods, vk);
-            }));
-            var deadline = Environment.TickCount + 1000;
-            while (Environment.TickCount < deadline) Thread.Sleep(10);
-            if (!registered) throw new InvalidOperationException("HOTKEY_IN_USE");
-            return "{}";
+                try
+                {
+                    Reply(id, work());
+                }
+                catch (ProtocolException e)
+                {
+                    Log(type + " failed: " + e.Code + ": " + e.Message);
+                    ReplyError(id, e.Code, e.Message);
+                }
+                catch (Exception e)
+                {
+                    Log(type + " failed: " + e);
+                    ReplyError(id, "UIA_UNAVAILABLE", e.Message);
+                }
+            });
         }
 
-        private static uint KeyToVk(string key)
-        {
-            if (string.IsNullOrEmpty(key)) return 0;
-            var k = key.Trim().ToLowerInvariant();
-            if (k.Length == 1 && k[0] >= 'a' && k[0] <= 'z') return (uint)k[0];
-            if (k.Length == 1 && k[0] >= '0' && k[0] <= '9') return (uint)k[0];
-            if (k.StartsWith("f") && k.Length <= 3)
-            {
-                int f;
-                if (int.TryParse(k.Substring(1), out f) && f >= 1 && f <= 24) return (uint)(0x6F + f); // VK_F1 = 0x70
-            }
-            return 0;
-        }
+        // -- listWindows -------------------------------------------------------------------------
 
-        private static bool IsCurrentProcessElevated()
+        private static string ListWindowsFields()
         {
-            var identity = System.Security.Principal.WindowsIdentity.GetCurrent();
-            var principal = new System.Security.Principal.WindowsPrincipal(identity);
-            return principal.IsInRole(System.Security.Principal.WindowsBuiltInRole.Administrator);
-        }
-
-        private static string ListWindowsJson()
-        {
-            var sb = new StringBuilder("{\"windows\":[");
+            var sb = new StringBuilder("\"windows\":[");
+            var names = new Dictionary<uint, string>();
+            var elevation = new Dictionary<uint, bool>();
+            bool selfElevated = Native.IsCurrentProcessElevated();
             bool first = true;
-            foreach (IntPtr hWnd in Inspector.TopLevelWindows())
+            foreach (IntPtr hwnd in Inspector.TopLevelWindows())
             {
                 uint pid;
-                Native.GetWindowThreadProcessId(hWnd, out pid);
-                string processName = "";
-                try { processName = Process.GetProcessById((int)pid).ProcessName; }
-                catch { /* the process may have exited */ }
-                Native.RECT rect;
-                Native.GetWindowRect(hWnd, out rect);
-                if (!first) sb.Append(",");
+                Native.GetWindowThreadProcessId(hwnd, out pid);
+                string name;
+                if (!names.TryGetValue(pid, out name))
+                {
+                    name = ProcessName(pid);
+                    names[pid] = name;
+                }
+                bool elevated;
+                if (!elevation.TryGetValue(pid, out elevated))
+                {
+                    elevated = Native.IsElevated(pid);
+                    elevation[pid] = elevated;
+                }
+                if (!first) sb.Append(',');
                 first = false;
-                sb.Append("{\"hwnd\":").Append(Q("0x" + hWnd.ToInt64().ToString("x8")))
-                  .Append(",\"title\":").Append(Q(Native.WindowTitle(hWnd)))
-                  .Append(",\"processName\":").Append(Q(processName))
-                  .Append(",\"pid\":").Append(pid)
-                  .Append(",\"isElevated\":").Append(Native.IsElevated(pid) ? "true" : "false")
-                  .Append(",\"rect\":{\"x\":").Append(rect.Left).Append(",\"y\":").Append(rect.Top)
-                  .Append(",\"width\":").Append(rect.Width).Append(",\"height\":").Append(rect.Height).Append("}}");
+                // "isElevated" tells the client the window cannot be inspected: an elevated helper can inspect everything.
+                sb.Append("{\"hwnd\":").Append(Json.Str(Json.Hwnd(hwnd)));
+                sb.Append(",\"title\":").Append(Json.Str(Native.WindowTitle(hwnd)));
+                sb.Append(",\"processName\":").Append(Json.Str(name));
+                sb.Append(",\"pid\":").Append(pid);
+                sb.Append(",\"isElevated\":").Append(Json.Bool(elevated && !selfElevated)).Append('}');
             }
-            sb.Append("]}");
-            return sb.ToString();
+            return sb.Append(']').ToString();
         }
 
-        private static string CaptureWindowJson(string id, string hwndText)
+        private static string ProcessName(uint pid)
         {
-            if (hwndText == null || !hwndText.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
-                throw new ArgumentException("no hwnd given");
-            IntPtr hwnd = new IntPtr(Convert.ToInt64(hwndText.Substring(2), 16));
-            if (hwnd == IntPtr.Zero || !Native.IsWindowVisible(hwnd))
-                throw new InvalidOperationException("the window was closed");
-            uint pid = PidOf(hwnd);
-            if (Native.IsElevated(pid))
-                throw new ProtocolException("ELEVATED_TARGET", "the target window runs as administrator; start UIScope elevated to inspect it");
-
-            System.Drawing.Rectangle windowRect;
-            bool truncated;
-            string roots = Inspector.CaptureTreeJson(hwnd, out windowRect, out truncated);
-
-            string screenshotPath = Inspector.Screenshot(windowRect);
-            var info = new FileInfo(screenshotPath);
-
-            var sb = new StringBuilder("{\"id\":").Append(id).Append(",\"ok\":true");
-            sb.Append(",\"window\":{\"hwnd\":").Append(Q(hwndText.ToLowerInvariant()))
-              .Append(",\"title\":").Append(Q(Native.WindowTitle(hwnd)))
-              .Append(",\"processName\":").Append(Q(ProcessNameOf(hwnd)))
-              .Append(",\"pid\":").Append(pid)
-              .Append(",\"isElevated\":").Append(Native.IsElevated(pid) ? "true" : "false")
-              .Append(",\"rect\":{\"x\":").Append(windowRect.Left).Append(",\"y\":").Append(windowRect.Top)
-              .Append(",\"width\":").Append(windowRect.Width).Append(",\"height\":").Append(windowRect.Height).Append("}}");
-            sb.Append(",\"screenshot\":{\"path\":").Append(Q(screenshotPath))
-              .Append(",\"width\":").Append(windowRect.Width)
-              .Append(",\"height\":").Append(windowRect.Height)
-              .Append(",\"originX\":").Append(windowRect.Left)
-              .Append(",\"originY\":").Append(windowRect.Top).Append("}");
-            sb.Append(",\"roots\":[").Append(roots).Append("]");
-            sb.Append(",\"truncated\":").Append(truncated ? "true" : "false");
-            sb.Append(",\"fileSize\":").Append(info.Length);
-            sb.Append("}");
-            return sb.ToString();
+            try
+            {
+                return Process.GetProcessById((int)pid).ProcessName;
+            }
+            catch (Exception)
+            {
+                return "";
+            }
         }
 
-        private static string ProcessNameOf(IntPtr hwnd)
+        // -- captureWindow -----------------------------------------------------------------------
+
+        private static IntPtr ParseHwnd(string text)
         {
-            uint pid = PidOf(hwnd);
-            try { return System.Diagnostics.Process.GetProcessById((int)pid).ProcessName; }
-            catch { return ""; }
+            if (string.IsNullOrEmpty(text)) throw new ProtocolException("WINDOW_GONE", "No window handle was given");
+            string digits = text.StartsWith("0x", StringComparison.OrdinalIgnoreCase) ? text.Substring(2) : text;
+            long value;
+            if (!long.TryParse(digits, System.Globalization.NumberStyles.HexNumber, System.Globalization.CultureInfo.InvariantCulture, out value))
+                throw new ProtocolException("WINDOW_GONE", "'" + text + "' is not a window handle");
+            return new IntPtr(value);
         }
 
-        private static uint PidOf(IntPtr hwnd)
+        private static string CaptureFields(string line)
         {
+            IntPtr hwnd = ParseHwnd(Json.ExtractString(line, "hwnd"));
+            int maxDepth = Json.ExtractInt(line, "maxDepth", 40);
+            int maxNodes = Json.ExtractInt(line, "maxNodes", 10000);
+            int budgetMs = Json.ExtractInt(line, "budgetMs", 20000);
+            string folder = Json.ExtractString(line, "tmpDir");
+
+            if (!Native.IsWindow(hwnd)) throw new ProtocolException("WINDOW_GONE", "The window no longer exists");
+            if (Native.IsIconic(hwnd)) throw new ProtocolException("WINDOW_MINIMIZED", "The window is minimized; restore it and capture again");
             uint pid;
             Native.GetWindowThreadProcessId(hwnd, out pid);
-            return pid;
-        }
+            bool targetElevated = Native.IsElevated(pid);
+            if (targetElevated && !Native.IsCurrentProcessElevated())
+                throw new ProtocolException("ELEVATED_TARGET", "That window runs as administrator; start UIScope as administrator to inspect it");
 
-        // ── tiny JSON field extraction (the client's requests are machine-written and flat) ──
+            Native.RECT native;
+            if (!Native.GetWindowRect(hwnd, out native) || native.Width < 1 || native.Height < 1)
+                throw new ProtocolException("WINDOW_MINIMIZED", "The window has no visible area");
+            Rectangle rect = new Rectangle(native.Left, native.Top, native.Width, native.Height);
 
-        private static string ExtractString(string line, string key)
-        {
-            string needle = "\"" + key + "\":";
-            int at = line.IndexOf(needle, StringComparison.Ordinal);
-            if (at < 0) needle = "\"" + key + "\": ";
-            if ((at = line.IndexOf(needle, StringComparison.Ordinal)) < 0) return null;
-            int start = at + needle.Length;
-            while (start < line.Length && char.IsWhiteSpace(line[start])) start++;
-            if (start >= line.Length || line[start] != '"') return null;
-            var sb = new StringBuilder();
-            for (int i = start + 1; i < line.Length; i++)
+            Inspector.TreeResult tree = Inspector.CaptureTree(hwnd, maxDepth, maxNodes, budgetMs);
+
+            string method;
+            string picture;
+            var shot = Stopwatch.StartNew();
+            try
             {
-                char c = line[i];
-                if (c == '\\' && i + 1 < line.Length)
-                {
-                    char n = line[++i];
-                    if (n == 'n') sb.Append('\n');
-                    else if (n == 'r') sb.Append('\r');
-                    else if (n == 't') sb.Append('\t');
-                    else sb.Append(n);
-                    continue;
-                }
-                if (c == '"') return sb.ToString();
-                sb.Append(c);
+                picture = Inspector.Screenshot(hwnd, rect, folder, out method);
             }
+            catch (Exception e)
+            {
+                throw new ProtocolException("UIA_UNAVAILABLE", "The screenshot could not be taken: " + e.Message);
+            }
+            Log("captured " + Json.Hwnd(hwnd) + ": " + tree.NodeCount + " nodes in " + tree.ElapsedMs + " ms" + (tree.Truncated ? " (truncated)" : "") +
+                ", screenshot by " + method + " in " + shot.ElapsedMilliseconds + " ms");
+
+            var sb = new StringBuilder();
+            sb.Append("\"window\":{\"hwnd\":").Append(Json.Str(Json.Hwnd(hwnd)));
+            sb.Append(",\"title\":").Append(Json.Str(Native.WindowTitle(hwnd)));
+            sb.Append(",\"processName\":").Append(Json.Str(ProcessName(pid)));
+            sb.Append(",\"pid\":").Append(pid);
+            sb.Append(",\"isElevated\":").Append(Json.Bool(targetElevated));
+            sb.Append(",\"rect\":").Append(Json.Rect(rect.X, rect.Y, rect.Width, rect.Height)).Append('}');
+            sb.Append(",\"screenshot\":{\"path\":").Append(Json.Str(picture));
+            sb.Append(",\"width\":").Append(rect.Width).Append(",\"height\":").Append(rect.Height);
+            sb.Append(",\"originX\":").Append(rect.X).Append(",\"originY\":").Append(rect.Y);
+            sb.Append(",\"method\":").Append(Json.Str(method)).Append('}');
+            sb.Append(",\"roots\":[").Append(tree.RootJson).Append(']');
+            sb.Append(",\"truncated\":").Append(Json.Bool(tree.Truncated));
+            sb.Append(",\"nodeCount\":").Append(tree.NodeCount).Append(",\"elapsedMs\":").Append(tree.ElapsedMs);
             return sb.ToString();
         }
 
-        private static string ExtractNumber(string line, string key)
+        // -- pick --------------------------------------------------------------------------------
+
+        /// <summary>UI thread.</summary>
+        private static void StartPick(bool hideFromCapture)
         {
-            string needle = "\"" + key + "\":";
-            int at = line.IndexOf(needle, StringComparison.Ordinal);
-            if (at < 0) needle = "\"" + key + "\": ";
-            if ((at = line.IndexOf(needle, StringComparison.Ordinal)) < 0) return null;
-            int start = at + needle.Length;
-            while (start < line.Length && char.IsWhiteSpace(line[start])) start++;
-            int end = start;
-            while (end < line.Length && (char.IsDigit(line[end]) || line[end] == '-')) end++;
-            return end > start ? line.Substring(start, end - start) : null;
+            try
+            {
+                lock (PickLock)
+                {
+                    if (pickSession != null) pickSession.Stop();
+                    var session = new PickSession(host);
+                    session.Ended += delegate
+                    {
+                        lock (PickLock)
+                        {
+                            if (pickSession == session) pickSession = null;
+                        }
+                    };
+                    pickSession = session;
+                    if (!session.Start(hideFromCapture))
+                    {
+                        pickSession = null;
+                        EmitLine("{\"event\":\"pickFailed\",\"message\":" + Json.Str("Windows would not let UIScope watch the mouse. Pick by choosing the window from the list instead.") + "}");
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Log("starting the pick failed: " + e);
+                EmitLine("{\"event\":\"pickFailed\",\"message\":" + Json.Str(e.Message) + "}");
+            }
         }
 
-        // ── replies ───────────────────────────────────────────────────────────────────────────
-
-        private static void Reply(string id, string result)
+        /// <summary>UI thread.</summary>
+        private static void StopPick()
         {
-            EmitLine("{\"id\":" + id + ",\"ok\":true," + (result.StartsWith("{") ? TrimBraces(result) : "\"result\":" + result) + "}");
+            lock (PickLock)
+            {
+                if (pickSession != null) pickSession.Stop();
+                pickSession = null;
+            }
         }
 
-        private static string TrimBraces(string result)
+        // -- hotkey ------------------------------------------------------------------------------
+
+        /// <summary>Registers the pick hotkey on the host window; HOTKEY_IN_USE when another application owns it (plan P3-6).</summary>
+        private static string RegisterHotkeyFields(string modifiers, string key)
         {
-            // {"a":1} -> "a":1  so the result fields sit directly in the response object (Appendix J shape).
-            return result.Length >= 2 && result[0] == '{' && result[result.Length - 1] == '}'
-                ? result.Substring(1, result.Length - 2)
-                : "\"result\":" + result;
+            uint mods = ModNoRepeat;
+            string m = modifiers.ToLowerInvariant();
+            if (m.Contains("ctrl") || m.Contains("control")) mods |= 2; // MOD_CONTROL
+            if (m.Contains("alt")) mods |= 1;                          // MOD_ALT
+            if (m.Contains("shift")) mods |= 4;                        // MOD_SHIFT
+            if (m.Contains("win")) mods |= 8;                          // MOD_WIN
+            uint vk = KeyToVk(key);
+            if (vk == 0) throw new ProtocolException("UIA_UNAVAILABLE", "unknown key '" + key + "'");
+            if ((mods & 0xF) == 0) throw new ProtocolException("UIA_UNAVAILABLE", "a global hotkey needs at least one modifier key");
+
+            bool registered = (bool)host.Invoke(new Func<bool>(delegate { return host.TryRegisterHotkey(HotkeyId, mods, vk); }));
+            if (!registered) throw new ProtocolException("HOTKEY_IN_USE", "Another application already uses " + modifiers + "+" + key);
+            return "";
         }
 
-        private static void ReplyError(string id, string code, string message)
+        /// <summary>
+        /// Virtual-key codes: letters are the <b>upper-case</b> ASCII codes (0x41-0x5A). The first version returned the lower-case ones, which
+        /// are F1-F12 and the numeric keypad, so "Ctrl+Alt+P" quietly registered Ctrl+Alt+F1.
+        /// </summary>
+        internal static uint KeyToVk(string key)
         {
-            EmitLine("{\"id\":" + id + ",\"ok\":false,\"error\":{\"code\":" + Q(code) + ",\"message\":" + Q(message) + "}}");
+            if (string.IsNullOrEmpty(key)) return 0;
+            string k = key.Trim().ToLowerInvariant();
+            if (k.Length == 1)
+            {
+                char c = k[0];
+                if (c >= 'a' && c <= 'z') return (uint)char.ToUpperInvariant(c);
+                if (c >= '0' && c <= '9') return (uint)c;
+            }
+            if (k.Length >= 2 && k[0] == 'f')
+            {
+                int number;
+                if (int.TryParse(k.Substring(1), out number) && number >= 1 && number <= 24) return (uint)(0x70 + number - 1);
+            }
+            switch (k)
+            {
+                case "space": return 0x20;
+                case "enter":
+                case "return": return 0x0D;
+                case "tab": return 0x09;
+                case "esc":
+                case "escape": return 0x1B;
+                case "insert": return 0x2D;
+                case "delete":
+                case "del": return 0x2E;
+                case "home": return 0x24;
+                case "end": return 0x23;
+                case "pageup": return 0x21;
+                case "pagedown": return 0x22;
+                case "left": return 0x25;
+                case "up": return 0x26;
+                case "right": return 0x27;
+                case "down": return 0x28;
+                case "printscreen": return 0x2C;
+                case "pause": return 0x13;
+                default: return 0;
+            }
         }
 
-        private static string Q(string s)
-        {
-            if (s == null) s = "";
-            return "\"" + s.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\n", "\\n").Replace("\r", "\\r").Replace("\t", "\\t") + "\"";
-        }
-    }
+        // -- demo --------------------------------------------------------------------------------
 
-    /// <summary>An error that carries its Appendix A code to the client; anything else reports UIA_UNAVAILABLE.</summary>
-    internal class ProtocolException : Exception
-    {
-        public readonly string Code;
-        public ProtocolException(string code, string message) : base(message) { Code = code; }
+        /// <summary>Runs the pick overlay on its own (no client): hover, click to print the element, Esc to cancel.</summary>
+        private static int RunDemoPick()
+        {
+            stdout = Console.Out;
+            Console.WriteLine("--demo-pick: hover an element and click it (Esc cancels).");
+            var thread = new Thread(delegate()
+            {
+                host = new HostForm();
+                IntPtr created = host.Handle;
+                GC.KeepAlive(created);
+                var session = new PickSession(host);
+                session.Ended += delegate { host.BeginInvoke(new Action(Application.ExitThread)); };
+                host.BeginInvoke(new Action(delegate
+                {
+                    if (!session.Start(true))
+                    {
+                        Console.WriteLine("--demo-pick: the mouse hook could not be installed");
+                        Application.ExitThread();
+                    }
+                }));
+                Application.Run(host);
+            });
+            thread.SetApartmentState(ApartmentState.STA);
+            thread.Start();
+            thread.Join();
+            return 0;
+        }
     }
 }

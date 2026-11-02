@@ -121,17 +121,26 @@ compose.desktop {
 val buildWindowsHelper by tasks.registering {
     onlyIf { org.gradle.internal.os.OperatingSystem.current().isWindows }
     doLast {
-        val msbuild = "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\MSBuild.exe"
+        // The Framework MSBuild exists on every Windows install (64-bit first, then 32-bit); its compiler is C# 5 (see the csproj).
+        val msbuild = listOf(
+            "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\MSBuild.exe",
+            "C:\\Windows\\Microsoft.NET\\Framework\\v4.0.30319\\MSBuild.exe",
+        ).firstOrNull { File(it).isFile }
+            ?: throw GradleException("MSBuild.exe (.NET Framework 4.x) was not found; it is part of Windows. Repair the .NET Framework and build again.")
         val csproj = rootProject.file("native/windows-helper/UIScope.Helper.csproj")
+        val bin = File(csproj.parentFile, "bin")
+        bin.deleteRecursively() // never bundle a stale exe from an earlier build
         exec {
             commandLine(msbuild, csproj.absolutePath, "/p:Configuration=Release", "/nologo", "/v:q")
         }
+        val built = File(bin, "UIScope.Helper.exe")
+        if (!built.isFile) throw GradleException("MSBuild finished but ${built.path} does not exist; the Windows helper was not built")
         val out = layout.buildDirectory.dir("helper").get().asFile
         // The exe must sit under helper/ inside this folder: a resources srcDir maps its contents to the jar
         // root, and WindowsHelperExe.extract looks for the resource path /helper/UIScope.Helper.exe exactly.
         File(out, "helper").mkdirs()
         copy {
-            from(File(csproj.parentFile, "bin"))
+            from(bin)
             include("UIScope.Helper.exe", "*.config")
             into(File(out, "helper"))
         }

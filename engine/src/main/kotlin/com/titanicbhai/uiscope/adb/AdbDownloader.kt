@@ -26,11 +26,20 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 
-/** What the user is asked to agree to before anything is downloaded (decision D3). */
+/**
+ * What the user is asked to agree to before anything is downloaded (decision D3). With a pinned build entry [revision] and [sizeBytes] are
+ * known; when the release is looked up in Google's package list at install time, [revision] is blank and [url] is the list's address.
+ */
 data class DownloadConsent(val revision: String, val url: String, val sizeBytes: Long, val installDir: Path) {
     fun text(): String =
-        "UIScope will download Google's official Android SDK Platform-Tools $revision (about ${(sizeBytes + MB - 1) / MB} MB) from $url " +
-            "and install them in $installDir. They provide adb. Nothing else is downloaded or installed."
+        if (revision.isBlank()) {
+            "UIScope will read Google's Android SDK package list ($url) to find the current Platform-Tools release, download the official ZIP for this " +
+                "system from dl.google.com, check its size and checksum, and install it in $installDir. They provide adb. Nothing else is downloaded " +
+                "or installed. The download is covered by Google's Android Software Development Kit License Agreement (https://developer.android.com/studio/terms)."
+        } else {
+            "UIScope will download Google's official Android SDK Platform-Tools $revision (about ${(sizeBytes + MB - 1) / MB} MB) from $url " +
+                "and install them in $installDir. They provide adb. Nothing else is downloaded or installed."
+        }
 
     private companion object {
         const val MB = 1024L * 1024L
@@ -39,7 +48,8 @@ data class DownloadConsent(val revision: String, val url: String, val sizeBytes:
 
 /**
  * Downloads Google's platform-tools for this operating system into the app's own folder:
- * pinned URL → SHA-256 check → safe extraction → check that adb is inside → atomic replace of the install folder.
+ * versioned URL (pinned in the build, or looked up in Google's package list by [feed]) → size and checksum check → safe extraction →
+ * check that adb is inside → atomic replace of the install folder.
  * Cancelling, or any failure, leaves no partial download and no half-installed folder.
  */
 class AdbDownloader(
@@ -50,22 +60,43 @@ class AdbDownloader(
     private val dispatchers: DispatcherProvider,
     private val limits: ZipSafe.Limits = ZipSafe.Limits(),
     private val logger: Logger = Logger.getLogger("uiscope.adb"),
+    /** Where the release comes from when the build pins none for this system. Null = pinned entries only. */
+    private val feed: PlatformToolsFeed? = null,
 ) {
     private val exe = if (os == HostOs.WINDOWS) "adb.exe" else "adb"
 
-    private fun entry(): PlatformToolsEntry? = manifest.entries[os]
+    /** The pin compiled into this build for the host, with its revision. */
+    private fun pinned(): Pair<String, PlatformToolsEntry>? = manifest.entries[os]?.let { manifest.revision to it }
 
+    /**
+     * What the consent dialog shows. Never touches the network (the dialog opens on the UI thread): with a feed, the release is looked up
+     * after the user confirms, inside [install], and the text says so.
+     */
     fun consent(): Outcome<DownloadConsent> {
-        val e = entry() ?: return unavailable()
-        return Outcome.Success(DownloadConsent(manifest.revision, e.url, e.sizeBytes, dataPaths.platformTools))
+        pinned()?.let { (revision, e) -> return Outcome.Success(DownloadConsent(revision, e.url, e.sizeBytes, dataPaths.platformTools)) }
+        if (feed == null) return unavailable()
+        return Outcome.Success(DownloadConsent("", PlatformToolsFeed.LIST_URL, 0L, dataPaths.platformTools))
+    }
+
+    /** The release to install: the pin when there is one, otherwise whatever Google's package list names today. */
+    private suspend fun entryToInstall(): Outcome<Pair<String, PlatformToolsEntry>> {
+        pinned()?.let { return Outcome.Success(it) }
+        val source = feed ?: return unavailable()
+        return when (val r = source.resolve(os)) {
+            is Outcome.Failure -> r
+            is Outcome.Success -> r.value.entries[os]?.let { Outcome.Success(r.value.revision to it) } ?: unavailable()
+        }
     }
 
     /** Returns the path of the installed adb. */
     suspend fun install(onProgress: (Long, Long?) -> Unit = { _, _ -> }): Outcome<Path> {
-        val e = entry() ?: return unavailable()
+        val (revision, e) = when (val r = entryToInstall()) {
+            is Outcome.Failure -> return r
+            is Outcome.Success -> r.value
+        }
         dataPaths.ensureDirectories().let { if (it is Outcome.Failure) return it }
         val id = UUID.randomUUID().toString()
-        val zip = dataPaths.tmp.resolve("platform-tools-${manifest.revision}-$id.zip.part")
+        val zip = dataPaths.tmp.resolve("platform-tools-${revision.filter { it.isLetterOrDigit() || it == '.' }}-$id.zip.part")
         val extractDir = dataPaths.tmp.resolve("platform-tools-extract-$id")
         try {
             gateway.download(e.url, zip, 10.minutes, onProgress).let {
@@ -77,7 +108,7 @@ class AdbDownloader(
             }
             withContext(dispatchers.io) {
                 val context = currentCoroutineContext() // lets the extraction notice a cancel between files
-                if (!sha256(zip).equals(e.sha256, ignoreCase = true)) {
+                if (!matchesExpected(zip, e)) {
                     Outcome.Failure(CodedError(ErrorCodes.ADB_DOWNLOAD_CHECKSUM, "The downloaded file does not match the expected checksum and was discarded", Remedy.RETRY))
                 } else {
                     when (val x = ZipSafe.extract(zip, extractDir, limits) { context.ensureActive() }) {
@@ -141,8 +172,21 @@ class AdbDownloader(
         }
     }
 
-    private fun sha256(file: Path): String {
-        val digest = MessageDigest.getInstance("SHA-256")
+    /**
+     * True only when the file has the size and checksum the entry promises. An entry with no checksum at all is never accepted: nothing
+     * is installed unverified. A pinned SHA-256 wins over a feed SHA-1.
+     */
+    private fun matchesExpected(file: Path, e: PlatformToolsEntry): Boolean {
+        if (e.sizeBytes > 0 && Files.size(file) != e.sizeBytes) return false
+        return when {
+            e.sha256.isNotBlank() -> digestHex(file, "SHA-256").equals(e.sha256, ignoreCase = true)
+            !e.sha1.isNullOrBlank() -> digestHex(file, "SHA-1").equals(e.sha1, ignoreCase = true)
+            else -> false
+        }
+    }
+
+    private fun digestHex(file: Path, algorithm: String): String {
+        val digest = MessageDigest.getInstance(algorithm)
         Files.newInputStream(file).use { stream -> copyTo(stream) { digest.update(it.first, 0, it.second) } }
         return digest.digest().joinToString("") { "%02x".format(it) }
     }

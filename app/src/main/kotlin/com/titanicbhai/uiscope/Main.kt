@@ -27,6 +27,7 @@ import androidx.compose.ui.window.rememberWindowState
 import com.titanicbhai.uiscope.adb.AdbDownloader
 import com.titanicbhai.uiscope.adb.AdbLocator
 import com.titanicbhai.uiscope.adb.EngineAdbPort
+import com.titanicbhai.uiscope.adb.PlatformToolsFeed
 import com.titanicbhai.uiscope.adb.PlatformToolsManifestData
 import com.titanicbhai.uiscope.adb.SettingsAdbPathStore
 import com.titanicbhai.uiscope.error.AppError
@@ -77,6 +78,7 @@ import com.titanicbhai.uiscope.state.AndroidState
 import com.titanicbhai.uiscope.state.WindowsEvent
 import com.titanicbhai.uiscope.state.WindowsInspectState
 import com.titanicbhai.uiscope.state.WindowsInspectUi
+import com.titanicbhai.uiscope.settings.PickHotkey
 import com.titanicbhai.uiscope.state.WindowsState
 import com.titanicbhai.uiscope.windows.EngineWindowsPort
 import com.titanicbhai.uiscope.windows.WindowsHelperClient
@@ -97,6 +99,9 @@ import kotlin.math.roundToInt
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -216,9 +221,8 @@ private fun PlaceholderScreen(name: String, task: String) {
 }
 
 /**
- * The application shell (plan P4-2, §4.1) hosting the developer harness until the real Inspect screen exists (P4-3).
- * Wiring shown here (data folder, logging, settings, process runner, adb locator, state holder, snapshot store, window
- * state) is what the real shell keeps.
+ * The application shell (plan P4-2, §4.1): wires the data folder, logging, settings, process runner, adb locator, the two
+ * state holders, the snapshot store and the window state, and hosts the screens.
  */
 fun main() {
     JdkNetworkGateway.enableSystemProxies() // before any network use
@@ -254,16 +258,19 @@ fun main() {
 
     // The Windows helper (P3-1/P3-2): the exe is extracted next to the data folder, then the state's start()
     // self-tests it with listWindows - a failure lands in HelperMissing and the UI says so honestly.
-    val windows: WindowsInspectState? = if (FeatureFlags.forHost().windowsPc) {
+    val helperClient: WindowsHelperClient? = if (FeatureFlags.forHost().windowsPc) {
         val helperPath = WindowsHelperExe.extract(paths) ?: paths.root.resolve("helper").resolve("UIScope.Helper.exe")
-        val helperClient = WindowsHelperClient(
+        WindowsHelperClient(
             launcher = SystemProcessLauncher(dispatchers),
             helperCommand = listOf(helperPath.toString()),
             dispatchers = dispatchers,
         )
-        WindowsInspectState(EngineWindowsPort(helperClient, dispatchers = dispatchers), dispatchers, scope).also { it.start() }
     } else {
         null
+    }
+    val windows: WindowsInspectState? = helperClient?.let { client ->
+        // The helper writes its screenshots into UIScope's own scratch folder (it used to fill the system temp folder and never clean up).
+        WindowsInspectState(EngineWindowsPort(client, dispatchers = dispatchers, screenshotDir = paths.tmp), dispatchers, scope).also { it.start() }
     }
 
     // Snapshot storage becomes available a moment after start-up: the database is opened on an I/O thread (HANDOFF §8.2).
@@ -271,7 +278,16 @@ fun main() {
     val bundles = mutableStateOf<SnapshotBundles?>(null) // held for the Phase 5 screens
     val updater = UpdateChecker(JdkNetworkGateway(dispatchers = dispatchers), appInfo, enabled = { settings.settings.value.checkForUpdates })
     // The ADB download (P2-4): the consent text and the install are wired here, the first-run and Settings screens only see lambdas.
-    val adbDownloader = AdbDownloader(JdkNetworkGateway(dispatchers = dispatchers), paths, PlatformToolsManifestData.MANIFEST, HostOs.current(), dispatchers)
+    // The build pins no release (the manifest ships empty), so the release is looked up in Google's package list when the user agrees to the download.
+    val downloadGateway = JdkNetworkGateway(dispatchers = dispatchers)
+    val adbDownloader = AdbDownloader(
+        downloadGateway,
+        paths,
+        PlatformToolsManifestData.MANIFEST,
+        HostOs.current(),
+        dispatchers,
+        feed = PlatformToolsFeed(downloadGateway),
+    )
     val adbDownload = AdbDownloadActions(
         consentText = { adbDownloader.consent().map { it.text() } },
         install = { onProgress -> adbDownloader.install(onProgress) },
@@ -335,7 +351,7 @@ fun main() {
         Window(
             onCloseRequest = onClose,
             state = windowState,
-            title = "${appInfo.name} ${appInfo.version} — developer harness",
+            title = "${appInfo.name} ${appInfo.version}",
         ) {
             // CMP 1.7 removed Window's minWidth/minHeight parameters; the minimum is enforced on the AWT window instead,
             // in real pixels for the current density.
@@ -358,6 +374,56 @@ fun main() {
                         WindowsEvent.PickCancelled -> toasts.show("Pick cancelled")
                         WindowsEvent.SelectionLost -> toasts.show("The selected element is gone after the refresh")
                     }
+                }
+            }
+            // The Windows pick shortcut follows the settings (it was never registered at all before). It is registered once the start-up
+            // self-test showed the helper works - and again after "Try again" brings a helper back - and a combination another program
+            // owns is reported instead of silently doing nothing.
+            val helperUp = windowsInspect != null && windowsInspect.state !is WindowsState.Starting && windowsInspect.state !is WindowsState.HelperMissing
+            LaunchedEffect(windows, helperUp) {
+                val inspector = windows ?: return@LaunchedEffect
+                if (!helperUp) return@LaunchedEffect
+                settings.settings.map { it.pickHotkeyEnabled to it.pickHotkey }.distinctUntilChanged().collect { (enabled, combination) ->
+                    val parsed = PickHotkey.parse(combination)
+                    if (enabled && parsed == null) {
+                        toasts.showError("The pick shortcut \"$combination\" is not valid. Use modifiers and a key, like Ctrl+Alt+P.")
+                        return@collect
+                    }
+                    val result = inspector.setHotkey(enabled, parsed?.first.orEmpty(), parsed?.second.orEmpty())
+                    if (result is Outcome.Failure && enabled) {
+                        toasts.showError(
+                            if (result.error.code == ErrorCodes.HOTKEY_IN_USE) {
+                                "$combination is already used by another program, so UIScope's pick shortcut is off."
+                            } else {
+                                "The pick shortcut could not be registered (${result.error.code})."
+                            },
+                        )
+                    }
+                }
+            }
+            // Picking: switch to the Windows side (the shortcut can start a pick while the Android side is showing) and, if the setting
+            // says so, step out of the way so the window being picked is not hidden behind UIScope; come back when the pick ends.
+            val pickingNow = windowsInspect?.picking == true
+            var minimizedForPick by remember { mutableStateOf(false) }
+            LaunchedEffect(pickingNow) {
+                if (pickingNow) {
+                    if (settingsState.lastTarget != InspectTarget.WINDOWS) settings.update { it.copy(lastTarget = InspectTarget.WINDOWS) }
+                    if (settingsState.hideWhilePicking && (window.extendedState and java.awt.Frame.ICONIFIED) == 0) {
+                        window.extendedState = window.extendedState or java.awt.Frame.ICONIFIED
+                        minimizedForPick = true
+                    }
+                } else if (minimizedForPick) {
+                    minimizedForPick = false
+                    window.extendedState = window.extendedState and java.awt.Frame.ICONIFIED.inv()
+                    window.toFront()
+                }
+            }
+            var screen by remember { mutableStateOf(ShellScreen.INSPECT) }
+            val openLink: (String) -> Unit = { url ->
+                try {
+                    java.awt.Desktop.getDesktop().browse(java.net.URI(url))
+                } catch (t: Throwable) {
+                    toasts.showError("Could not open the browser (${t.javaClass.simpleName})")
                 }
             }
             if (!settingsState.firstRunDone) {
@@ -384,12 +450,6 @@ fun main() {
                 Menu("File", mnemonic = 'F') {
                     Item("Exit", onClick = onClose)
                 }
-                Menu("View", mnemonic = 'V') {
-                    Item("Fit", enabled = false, onClick = {})
-                    Item("Actual size", enabled = false, onClick = {})
-                    Item("Show all bounds", enabled = false, onClick = {})
-                    Item("Live", enabled = false, onClick = {})
-                }
                 Menu("Help", mnemonic = 'H') {
                     Item("Check for updates", onClick = {
                         scope.launch {
@@ -403,12 +463,13 @@ fun main() {
                         }
                     })
                     Item("Welcome", onClick = { settings.update { it.copy(firstRunDone = false) } })
-                    Item("Keyboard shortcuts", enabled = false, onClick = {})
-                    Item("Report an issue", enabled = false, onClick = {})
-                    Item("About", enabled = false, onClick = {})
+                    Item("Keyboard shortcuts and help", onClick = { screen = ShellScreen.HELP })
+                    Item("Website", enabled = appInfo.websiteUrl.isNotBlank(), onClick = { openLink(appInfo.websiteUrl) })
+                    Item("Troubleshooting guide", enabled = appInfo.websiteUrl.isNotBlank(), onClick = { openLink(appInfo.websiteUrl.trimEnd('/') + "/docs.html#troubleshooting") })
+                    Item("Report an issue", onClick = { openLink(appInfo.issuesUrl) })
+                    Item("About ${appInfo.name}", onClick = { screen = ShellScreen.HELP })
                 }
             }
-            var screen by remember { mutableStateOf(ShellScreen.INSPECT) }
             var exportOpen by remember { mutableStateOf(false) }
             val openSnapshot = remember { mutableStateOf<LoadedSnapshot?>(null) }
             val status = if (settingsState.lastTarget == InspectTarget.WINDOWS && windowsInspect != null) {
@@ -551,6 +612,9 @@ fun main() {
                                     appendLine("Data folder: ${paths.root}")
                                     appendLine("adb: ${inspect.adb?.let { "${it.path} (${it.version}, via ${it.source})" } ?: "not found"}")
                                     appendLine("Devices: ${inspect.devices.size}")
+                                    appendLine("Android state: ${inspect.state::class.simpleName}")
+                                    appendLine("Windows state: ${windowsInspect?.state?.let { it::class.simpleName } ?: "not available on this system"}")
+                                    helperClient?.let { appendLine("Windows helper: ${it.diagnostics()}") }
                                 }
                             },
                             onOpenLogs = {

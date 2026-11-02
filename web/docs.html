@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<script src="assets/theme-init.js"></script><meta content="width=device-width, initial-scale=1" name="viewport"/>
+<title>UIScope Documentation — Setup, Windows, Android, Selectors &amp; Troubleshooting</title>
+<meta content="Detailed UIScope documentation for building from source, inspecting Windows apps and Android devices through ADB, understanding selectors, saving snapshots, keyboard shortcuts and troubleshooting." name="description"/>
+<link href="favicon.svg" rel="icon" type="image/svg+xml"/>
+<link href="assets/site.css" rel="stylesheet"/><link href="assets/refinement.css" rel="stylesheet"/>
+<meta content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" name="robots"/><meta content="TBTechs" name="author"/><meta content="sou-98cZYPWFJmbwxJgJptO-ZaIPNJqz2ven_iS4NjI" name="google-site-verification"/><meta content="#0b1119" name="theme-color"/><meta content="dark light" name="color-scheme"/><meta content="summary_large_image" name="twitter:card"/><meta content="UIScope Documentation — Setup, Windows, Android, Selectors &amp; Troubleshooting" name="twitter:title"/><meta content="Detailed setup and troubleshooting for Windows desktop and Android ADB inspection." name="twitter:description"/><meta content="https://uiscope.pages.dev/assets/uiscope-social.png" name="twitter:image"/><link href="https://uiscope.pages.dev/docs.html" rel="canonical"/><meta content="website" property="og:type"/><meta content="UIScope" property="og:site_name"/><meta content="UIScope Documentation — Setup, Windows, Android, Selectors &amp; Troubleshooting" property="og:title"/><meta content="Detailed setup and troubleshooting for Windows desktop and Android ADB inspection." property="og:description"/><meta content="https://uiscope.pages.dev/docs.html" property="og:url"/><meta content="https://uiscope.pages.dev/assets/uiscope-social.png" property="og:image"/><meta content="UIScope — Windows and Android UI inspection for developers" property="og:image:alt"/><script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://uiscope.pages.dev/#publisher","name":"TBTechs","url":"https://uiscope.pages.dev/","sameAs":["https://github.com/TITANICBHAI/UIScope-jvm"]},{"@type":"WebSite","@id":"https://uiscope.pages.dev/#website","name":"UIScope","url":"https://uiscope.pages.dev/","publisher":{"@id":"https://uiscope.pages.dev/#publisher"},"inLanguage":"en"},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://uiscope.pages.dev/"},{"@type":"ListItem","position":2,"name":"Documentation","item":"https://uiscope.pages.dev/docs.html"}]}]}</script>
+<script src="assets/site.js" defer></script>
+</head><body><a class="skip-link" href="#main">Skip to content</a>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="./" aria-label="UIScope home">
+      <img src="assets/uiscope-mark.webp" width="38" height="38" alt="" />
+      <span>UIScope<small>by TBTechs</small></span>
+    </a>
+    <nav class="nav-primary" aria-label="Primary navigation">
+      <a href="features.html">Features</a><a href="docs.html" aria-current="page">Docs</a><a href="windows-inspector.html">Windows</a><a href="android-inspector.html">Android</a>
+    </nav>
+    <div class="header-tools">
+      <details class="nav-drawer">
+        <summary class="menu-toggle" aria-label="Open site menu">
+          <svg viewBox="0 0 20 20" width="17" height="17" aria-hidden="true" focusable="false"><path d="M3 5h14M3 10h14M3 15h14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+          <span>Menu</span>
+          <svg class="menu-chevron" viewBox="0 0 16 16" width="13" height="13" aria-hidden="true" focusable="false"><path d="m4 6 4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </summary>
+        <nav class="nav" id="primary-nav" aria-label="All site pages"><div class="nav-menu-group"><h2>Explore</h2><a href="./">Overview</a><a href="features.html">Features</a><a href="windows-inspector.html">Windows inspector</a><a href="android-inspector.html">Android inspector</a></div><div class="nav-menu-group"><h2>Workflow</h2><a href="selectors-and-codegen.html">Selectors & code generation</a><a href="snapshots.html">Snapshots</a><a href="compare.html">Compare captures</a><a href="quick-start.html">Quick start</a></div><div class="nav-menu-group"><h2>Resources</h2><a href="docs.html" aria-current="page">Documentation</a><a href="faq.html">FAQ</a><a href="downloads.html">Download status</a><a href="privacy.html">Privacy</a><a href="https://github.com/TITANICBHAI/UIScope-jvm" target="_blank" rel="noopener noreferrer">GitHub repository</a><a href="https://github.com/TITANICBHAI/UIScope-jvm/issues" target="_blank" rel="noopener noreferrer">Report an issue</a></div></nav>
+      </details>
+      <button class="theme-toggle" type="button" data-theme-toggle aria-label="Switch to light mode" title="Switch to light mode" aria-pressed="false">
+        <svg class="theme-sun" viewBox="0 0 20 20" width="17" height="17" aria-hidden="true" focusable="false"><circle cx="10" cy="10" r="3.3" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M10 1.8v2M10 16.2v2M1.8 10h2M16.2 10h2M4.2 4.2l1.4 1.4m8.8 8.8 1.4 1.4m0-11.6-1.4 1.4m-8.8 8.8-1.4 1.4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        <svg class="theme-moon" viewBox="0 0 20 20" width="17" height="17" aria-hidden="true" focusable="false"><path d="M16.4 12.1A7 7 0 0 1 7.9 3.6 7.1 7.1 0 1 0 16.4 12.1Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+        <span data-theme-label>Light mode</span>
+      </button>
+    </div>
+  </div>
+</header>
+<main id="main"><section class="page-hero"><div class="wrap"><p class="breadcrumb"><a href="./">Home</a> / Documentation</p><div class="eyebrow">Product documentation</div><h1>UIScope documentation</h1><p>Setup, inspection workflows, selectors, snapshots, shortcuts and troubleshooting for the Windows desktop application. The in-app Help links point into this page.</p><div class="actions"><a class="btn primary" href="#quick-start">Start with setup →</a><a class="btn" href="https://github.com/TITANICBHAI/UIScope-jvm">Browse source ↗</a></div></div></section>
+<section class="section"><div class="wrap docs-layout"><nav aria-label="On this page" class="docs-toc side-card"><h2>On this page</h2>
+<p class="toc-group">Start</p>
+<ul><li><a href="#quick-start">Quick start</a></li><li><a href="#android">Inspect an Android device</a></li><li><a href="#windows">Inspect a Windows app</a></li></ul>
+<p class="toc-group">Use</p>
+<ul><li><a href="#selectors">Reading a selector rating</a></li><li><a href="#snapshots">Snapshots and Compare</a></li><li><a href="#shortcuts">Keyboard shortcuts</a></li><li><a href="#settings">Settings and data</a></li></ul>
+<p class="toc-group">When something is wrong</p>
+<ul>
+<li><a href="#troubleshooting">Troubleshooting</a></li>
+<li><a href="#android-problems">Android problems</a></li>
+<li><a href="#windows-problems">Windows problems</a></li>
+<li><a href="#report">Report a bug</a></li>
+</ul>
+</nav><article class="article docs-article"><div class="doc">
+<h2>UIScope documentation</h2>
+<p>Use the Windows desktop application to inspect Windows windows or a connected Android device through ADB. These sections preserve the in-app Help links and explain the current source-backed workflows.</p>
+<h2 id="quick-start">Quick start</h2><div class="install-status">
+<div class="callout warning"><p><strong>Current release status.</strong> The repository identifies source version <code>1.0.1</code>, but the changelog marks it as unreleased and a matching published installer is not available yet. Check the <a href="downloads.html">download status page</a> or the <a href="https://github.com/TITANICBHAI/UIScope-jvm/releases">official releases page</a> before expecting an installer.</p></div>
+<h3 id="install">Run from source</h3>
+<p>The project README documents a JDK 21 toolchain and the Gradle wrapper. This is the current route for developers who want to run the source before a matching installer is published.</p>
+<ol>
+<li>Install a JDK 21 distribution and Git on a supported Windows machine.</li>
+<li>Clone the <a href="https://github.com/TITANICBHAI/UIScope-jvm">official repository</a>, then open a terminal in the cloned folder.</li>
+<li>Run <code>gradlew.bat :app:run</code> from Windows Command Prompt or PowerShell.</li>
+</ol>
+<p>Use the repository README and build documentation if the Gradle build reports an environment-specific issue. Do not treat an older release asset as a build matching source version 1.0.1.</p>
+</div>
+
+
+<h2 id="android">Inspect an Android device</h2>
+<ol>
+<li>On the phone, open <em>Settings, About phone</em> and tap <em>Build number</em> seven times to unlock Developer options.</li>
+<li>In <em>Developer options</em>, turn on <em>USB debugging</em>. Connect the cable and choose <em>File transfer</em> if the phone asks for a USB mode.</li>
+<li>Accept <em>Allow USB debugging?</em> on the phone. Tick <em>Always allow from this computer</em> so it does not ask again.</li>
+<li>In UIScope, choose <em>Android</em>. If adb is not found, open <em>Settings</em> and choose <em>Download platform-tools</em>, or <em>Browse</em> to an adb you already have.</li>
+<li>Press <kbd>F5</kbd> to capture. Hover the screenshot, click an element and read its rating.</li>
+</ol>
+<div class="callout"><p><b>About the download.</b> When you choose <em>Download platform-tools</em>, UIScope first reads Google’s Android SDK package list to find the current release, then downloads Google’s official archive for your system, checks its size and checksum, and installs it in UIScope’s own folder. Nothing is installed anywhere else. The download is covered by <a href="https://developer.android.com/studio/terms">Google’s Android SDK license</a>.</p></div>
+<h2 id="windows">Inspect a Windows app</h2>
+<ol>
+<li>Choose <em>Windows</em> in UIScope. The helper checks itself on start; the status bar says “choose a window” when it is ready.</li>
+<li>Open <em>Choose window</em> and select any open window, <strong>or</strong> press <em>Pick element</em> (or <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>P</kbd> from any program), hover until the orange frame surrounds the control you want, and click it.</li>
+<li>UIScope captures that window and selects the element you clicked. <kbd>Esc</kbd> or a right-click cancels a pick.</li>
+</ol>
+<h3 id="pick-mode">How pick mode behaves</h3>
+<ul>
+<li>UIScope minimizes itself while you pick (so it does not hide the window you want) and comes back afterwards. Turn that off in <em>Settings, Windows</em>.</li>
+<li>The click you make to choose an element is swallowed: it never reaches the other application.</li>
+<li>Windows that run as administrator can only be inspected when UIScope itself runs as administrator.</li>
+</ul>
+<h2 id="selectors">Reading a selector rating</h2>
+
+<p>UIScope evaluates selector candidates against the captured element index and displays match counts, reliability guidance, warnings and a verdict. Treat that verdict as evidence for the current capture, not a guarantee that a selector will remain stable across app versions, sessions or data.</p><p>Copy the bare selector with <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd>, or the whole snippet for the framework you chose with <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>K</kbd>. Android targets: Appium (Python, Java), uiautomator2, UI Automator (Kotlin), Maestro, XPath. Windows targets: pywinauto, FlaUI, AutoHotkey v2, PowerShell UI Automation.</p>
+<h2 id="snapshots">Snapshots and Compare</h2>
+<p><kbd>Ctrl</kbd>+<kbd>S</kbd> saves the current capture as a snapshot. Snapshots reopen offline from the Snapshots screen and export as a <code>.uiscope</code> bundle another UIScope can import. <em>Compare</em> diffs any two captures, live or saved, and lists what was added, removed, changed or moved; the result exports as JSON or text.</p>
+<h2 id="shortcuts">Keyboard shortcuts</h2>
+<table>
+<tr><th>Action</th><th>Shortcut</th></tr>
+<tr><td>Capture or refresh</td><td><kbd>F5</kbd>, <kbd>Ctrl</kbd>+<kbd>R</kbd></td></tr>
+<tr><td>Toggle Live</td><td><kbd>Ctrl</kbd>+<kbd>L</kbd></td></tr>
+<tr><td>Pick an element (Windows, from any program)</td><td><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>P</kbd></td></tr>
+<tr><td>Focus search, next and previous match</td><td><kbd>Ctrl</kbd>+<kbd>F</kbd>, <kbd>Enter</kbd>, <kbd>Shift</kbd>+<kbd>Enter</kbd></td></tr>
+<tr><td>Save snapshot, Export</td><td><kbd>Ctrl</kbd>+<kbd>S</kbd>, <kbd>Ctrl</kbd>+<kbd>E</kbd></td></tr>
+<tr><td>Copy best selector, copy code</td><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd>, <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>K</kbd></td></tr>
+<tr><td>Select parent</td><td><kbd>Alt</kbd>+<kbd>Up</kbd></td></tr>
+<tr><td>Cancel a pick or capture, close a dialog, clear search</td><td><kbd>Esc</kbd></td></tr>
+</table>
+<h2 id="settings">Settings and data</h2>
+<p>UIScope keeps everything under <code>%LOCALAPPDATA%\UIScope</code>: <code>settings.json</code>, <code>snapshots</code>, <code>db</code>, <code>logs</code>, the helper under <code>helper</code> and a scratch folder <code>tmp</code>. <em>Settings</em> has buttons that open the logs and snapshots folders.</p>
+<p>To change the pick shortcut, close UIScope and edit <code>pickHotkey</code> in <code>settings.json</code>, for example <code>"Ctrl+Shift+F9"</code>. A shortcut needs at least one of Ctrl, Alt, Shift or Win plus a key. If another program already uses it, UIScope tells you and leaves the shortcut off.</p>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<p>Start with the status bar and the banner above the screenshot: they name the problem. <em>Copy details</em> on any error banner copies the exact code and message for a bug report.</p>
+<h3 id="android-problems">Android problems</h3>
+<details class="prob" id="adb-not-found"><summary>“adb not found”</summary><div>
+<p>UIScope looks at the path you saved, <code>ANDROID_SDK_ROOT</code> and <code>ANDROID_HOME</code>, the default Android Studio folder, your <code>PATH</code>, a few well-known folders and its own copy. None had a working adb.</p>
+<ul><li>Open <em>Settings</em> and choose <em>Download platform-tools</em>, or <em>Browse</em> to your <code>adb.exe</code>.</li>
+<li>If the download fails with a network code, check your connection or proxy and try again. UIScope never installs anything whose checksum does not match.</li>
+<li>Security software sometimes quarantines <code>adb.exe</code>. Restore it or exclude the UIScope folder.</li></ul></div></details>
+<details class="prob" id="no-device"><summary>“No device” although the phone is connected</summary><div>
+<ul><li>Use a data cable, not a charge-only one, and choose <em>File transfer</em> on the phone.</li>
+<li>Check that USB debugging is on (see <a href="#android">the steps above</a>).</li>
+<li>On Windows the phone may need its maker’s USB driver. If it appears with a warning icon in Device Manager, install the driver for your model.</li></ul></div></details>
+<details class="prob" id="device-unauthorized"><summary>“Device is not authorized”</summary><div>
+<p>The phone is waiting for you to accept <em>Allow USB debugging?</em>. Unlock it and accept. If the prompt never appears, open Developer options, choose <em>Revoke USB debugging authorizations</em>, and reconnect the cable.</p></div></details>
+<details class="prob" id="device-offline"><summary>“Device is offline”, or devices flip between device and offline</summary><div>
+<p>Usually two adb servers are fighting. Close other tools that start adb (Android Studio, scrcpy, another copy of platform-tools) or point UIScope at the same <code>adb.exe</code> they use with <em>Settings, Browse</em>. Replugging the cable also helps.</p></div></details>
+<details class="prob" id="capture-fails"><summary>The capture fails on one screen</summary><div>
+<ul><li><b>The screen is secure.</b> Banking, password and DRM screens block screenshots by design. UIScope says so instead of showing a blank image.</li>
+<li><b>uiautomator is busy.</b> Another automation tool (an Appium or uiautomator2 server, for example) holds the accessibility service. Stop it and capture again.</li>
+<li><b>Idle timeout or empty root.</b> The app was still animating. Wait a second and press <kbd>F5</kbd>; turning off animation scales in Developer options helps.</li></ul></div></details>
+<h3 id="windows-problems">Windows problems</h3>
+<details class="prob" id="windows-helper" open=""><summary>“Windows inspection isn’t available” (the helper)</summary><div>
+<p>UIScope uses a small helper program, <code>UIScope.Helper.exe</code>, to read other programs through UI Automation. This message means the helper did not start or did not answer.</p>
+<ol><li>Press <em>Retry</em> once. If it keeps failing, choose <em>Copy details</em> and read the last lines: they include what the helper wrote and whether it exited.</li>
+<li>Run the helper’s own self-test. Open a terminal and run:
+<pre class="code"><code>"%LOCALAPPDATA%\UIScope\helper\UIScope.Helper.exe" --selftest</code></pre>
+      It lists what works (UI Automation, the window list, a capture of one open window with timing, screenshots, the mouse hook) and prints the reason for anything that does not.</li>
+<li>If the file is missing or the self-test cannot start, your security software probably removed it. Restore <code>UIScope.Helper.exe</code> from quarantine or add an exclusion for <code>%LOCALAPPDATA%\UIScope</code>, then restart UIScope.</li>
+<li>The helper needs the .NET Framework 4.8 runtime, which Windows 10 1809 and newer include.</li></ol></div></details>
+<details class="prob" id="elevated"><summary>“That window runs as administrator”</summary><div>
+<p>Windows does not let a normal program read an elevated one. Close UIScope, start it with <em>Run as administrator</em>, and capture the window again.</p></div></details>
+<details class="prob" id="minimized"><summary>“The window is minimized”</summary><div>
+<p>A minimized window has no picture to capture. Restore it, then press <kbd>F5</kbd>.</p></div></details>
+<details class="prob" id="limited-accessibility"><summary>“This app exposes little accessibility information”</summary><div>
+<p>Some toolkits publish very little to UI Automation until asked:</p>
+<ul><li><b>Chromium and Electron</b> (Chrome, Edge, VS Code, Slack): start the app with <code>--force-renderer-accessibility</code>.</li>
+<li><b>Qt:</b> set <code>QT_ACCESSIBILITY=1</code> before starting it.</li>
+<li><b>Java Swing:</b> enable the Java Access Bridge with <code>JABSwitch.exe /enable</code>.</li></ul></div></details>
+<details class="prob" id="truncated"><summary>“The tree was cut at the limits”</summary><div>
+<p>Very large windows are read for up to 25 seconds or 10,000 elements, then UIScope shows what it has and says so. Select a smaller part of the app, or close panes you do not need, and capture again.</p></div></details>
+<details class="prob" id="hotkey-in-use"><summary>The pick shortcut does nothing, or UIScope says it is already used</summary><div>
+<p>Another program owns <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>P</kbd>. Use the <em>Pick element</em> button, or choose a different combination in <code>settings.json</code> (see <a href="#settings">Settings and data</a>). You can also turn the shortcut off in <em>Settings, Windows</em>.</p></div></details>
+<details class="prob" id="highlight-offset"><summary>The highlight does not line up with the element</summary><div>
+<p>This is almost always display scaling on a second monitor. UIScope uses physical pixels everywhere, so please report it with the diagnostics below and the scaling of each monitor.</p></div></details>
+<h2 id="report">Report a bug</h2>
+<ol>
+<li>Open <em>Settings</em> and choose <em>Copy diagnostics</em>. It contains versions, the adb and helper status and no screen content.</li>
+<li>Open the logs folder from <em>Settings</em>. Logs never contain element text, window titles or device serials.</li>
+<li>Create an issue at <a href="https://github.com/TITANICBHAI/UIScope-jvm/issues">github.com/TITANICBHAI/UIScope-jvm/issues</a> and paste the diagnostics.</li>
+</ol>
+</div></article></div></section></main>
+<footer class="site-footer"><div class="wrap"><div class="footer-grid">
+<div class="footer-brand"><a class="brand" href="./"><img alt="" height="42" src="assets/uiscope-mark.webp" width="42"/><span>UIScope<small>by TBTechs</small></span></a><p>A Windows desktop UI inspector for exploring Windows application and Android device interfaces, selectors, snapshots and differences.</p><a class="small" href="https://github.com/TITANICBHAI/UIScope-jvm">Open-source project on GitHub ↗</a></div>
+<div class="footer-col"><h3>Product</h3><a href="features.html">Features</a><a href="docs.html">Documentation</a><a href="windows-inspector.html">Windows inspection</a><a href="android-inspector.html">Android inspection</a><a href="selectors-and-codegen.html">Selectors &amp; code</a></div>
+<div class="footer-col"><h3>Workflow</h3><a href="snapshots.html">Snapshots</a><a href="compare.html">Compare captures</a><a href="quick-start.html">Quick start</a><a href="downloads.html">Release status</a></div>
+<div class="footer-col"><h3>Project</h3><a href="privacy.html">Privacy</a><a href="faq.html">FAQ</a><a href="https://github.com/TITANICBHAI/UIScope-jvm/blob/main/docs/troubleshooting.md">Troubleshooting ↗</a><a href="https://github.com/TITANICBHAI/UIScope-jvm/issues">Support &amp; issues ↗</a></div></div>
+<div class="footer-bottom"><span>© 2026 TBTechs · UIScope developer: TITANICBHAI · MIT-licensed source</span><span>Not affiliated with Microsoft or Google.</span></div></div></footer>
+</body></html>

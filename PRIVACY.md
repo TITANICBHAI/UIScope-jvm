@@ -24,7 +24,7 @@ Exactly two network actions exist, both through one gateway and both optional:
 
 1. **Update check** — a request to the GitHub releases API for your version's release notes. Off by default in
    the Microsoft Store build; opt-out in Settings; never downloads anything.
-2. **ADB download** — `dl.google.com`'s platform-tools ZIP, only when you click *Download platform-tools*.
+2. **ADB download** — only when you click *Download platform-tools*: Google's SDK package list (to find the current release) and then `dl.google.com`'s platform-tools ZIP. Both go to Google; nothing about you or your devices is sent.
 
 Nothing else. If UIScope is offline, everything except those two opt-ins works.
 

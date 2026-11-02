@@ -9,7 +9,7 @@ statistics, and nothing is ever downloaded without a deliberate user action.
 | # | What | When | Where | Host |
 |---|---|---|---|---|
 | 1 | **Update check** — a GET of the GitHub releases API for the repository's `latest` release. Reads JSON only; **never downloads anything** (P7-5). | Only when *Check for updates* is on (opt-out) **and** the build is not a Store build (`AppInfo.isStoreBuild`, P0-4); on demand from Help → *Check for updates*. | `engine/.../update/UpdateChecker.kt` through the `NetworkGateway` (P0-5) | `api.github.com` (repo URL from `AppInfo`) |
-| 2 | **ADB platform-tools download** — a GET of the platform-tools ZIP, streamed to the data folder with the ZIP-slip guard (P2-4). | Only on the user's explicit click (first-run or Settings → *Download platform-tools*). | `engine/.../adb/AdbDownloader.kt` through the `NetworkGateway` | `dl.google.com` |
+| 2 | **ADB platform-tools download** — two GETs on one click: Google's SDK package list (`repository2-3.xml`, to find the current release, its size and checksum) and then the platform-tools ZIP, streamed to the data folder with the ZIP-slip guard (P2-4). A pinned entry in the build skips the first request. | Only on the user's explicit click (first-run or Settings → *Download platform-tools*). | `engine/.../adb/PlatformToolsFeed.kt` and `AdbDownloader.kt` through the `NetworkGateway` | `dl.google.com` |
 
 ## Enforcement
 

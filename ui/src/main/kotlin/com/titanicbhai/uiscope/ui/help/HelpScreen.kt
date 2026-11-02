@@ -68,6 +68,10 @@ fun HelpScreen(
         }
         Row(horizontalArrangement = Arrangement.spacedBy(UiScopeTokens.spaceS)) {
             TextButton(onClick = { uriHandler.openUri(appInfo.docsUrl) }) { Text("Documentation") }
+            if (appInfo.websiteUrl.isNotBlank()) {
+                TextButton(onClick = { uriHandler.openUri(appInfo.websiteUrl) }) { Text("Website") }
+                TextButton(onClick = { uriHandler.openUri(appInfo.websiteUrl.trimEnd('/') + "/docs.html#troubleshooting") }) { Text("Troubleshooting") }
+            }
             TextButton(onClick = { uriHandler.openUri(appInfo.issuesUrl) }) { Text("Report an issue") }
             TextButton(onClick = { uriHandler.openUri(appInfo.privacyUrl) }) { Text("Privacy policy") }
         }

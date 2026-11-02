@@ -127,7 +127,8 @@ object Strings {
         // ── Windows (Appendix A; the codes arrive with the Phase 3 engine) ─────────────────────
         "UIA_UNAVAILABLE" to ErrorCopy(
             "Windows inspection isn't available",
-            "UIScope's helper could not start — it may be blocked by security software.",
+            "UIScope's Windows helper did not start or did not answer in time. Security software can block it, or the window may be frozen. " +
+                "\"Copy details\" says exactly what happened.",
             ACTION_RETRY,
         ),
         "ELEVATED_TARGET" to ErrorCopy(

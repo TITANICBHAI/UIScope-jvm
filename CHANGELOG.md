@@ -5,6 +5,39 @@ Nothing has been released yet. Entries below describe only what exists in the co
 
 ## [1.0.1] — unreleased (the first tagged release; 1.0.0 was never published)
 
+### Fixed — the two core features (reliability pass)
+Both inspection targets were built and unit-tested against fakes but had never run end to end; the first real run exposed these.
+- **Android: "Download platform-tools" could never work.** The build shipped an empty pinned manifest, so the download was permanently
+  unavailable and anyone without adb on `PATH` was stuck. The release is now looked up in Google's own SDK package list at the moment the user agrees
+  (versioned archive, size and checksum verified; any address off `dl.google.com` is refused). A pinned build entry still wins.
+- **Android: one odd `PATH` entry stopped the adb search.** A quoted folder or a character the file system rejects made adb discovery throw, so the
+  Android side sat on "looking for adb". Such entries are now cleaned up or skipped, and the old standalone SDK folder is checked as well.
+- **Windows: the helper's tree walk took minutes on real windows and always hit the 5 s timeout**, which killed and restarted the helper until
+  it gave up. The walk now fetches each element with its children in one call (UI Automation caching), has a node and time budget, and is
+  flagged truncated instead of hanging; captures get a 90 s backstop instead of 5 s.
+- **Windows: pick mode could not work.** It started a second message loop on the thread that already ran one (an exception, caught by a
+  dialog nobody could see), drew a solid frame with no hole that sat under the pointer and was hit-tested instead of the element, did slow
+  work inside the low-level mouse hook, and let half a click through. It was rewritten: no nested loop, a click-through outline, hover queries on a
+  worker thread, the click and its release both swallowed.
+- **Windows: the screenshot showed whatever was on top of the window**, UIScope itself included. Windows are now asked to paint themselves
+  (`PrintWindow`), with a screen copy as the fallback.
+- **Windows: the pick shortcut was never registered**, and the key table registered `Ctrl+Alt+F1` instead of `Ctrl+Alt+P` (lower-case letters are
+  function keys). It is now registered from the settings once the helper is up, conflicts are reported (`HOTKEY_IN_USE` used to arrive as a
+  generic error), and the setting gained a switch.
+- **Windows: protocol hardening.** Control characters in a window title made the whole window list unreadable; the helper's text encoding depended on
+  the console code page; a helper that exited left every waiting request to sit out its timeout and a failed handshake left a dead helper
+  registered; the helper process never exited when UIScope did (its UI thread kept it alive); elevated targets were misjudged when the helper was
+  itself elevated; the manifest placed `longPathAware` outside the schema; and the staged exe was copied without closing the resource stream or handling a locked file.
+- Screenshots the helper takes are written to UIScope's own scratch folder (they used to pile up in the system temp folder forever).
+
+### Changed
+- The window is titled **UIScope**, not "developer harness"; the View menu of permanently disabled items is gone; Help gained working
+  Keyboard shortcuts, Website, Troubleshooting and Report an issue items.
+- New *Settings → Windows* switches for the pick shortcut and for minimizing UIScope while picking (both existed only inside `settings.json`).
+- `UIScope.Helper.exe --selftest` prints what works and what does not (UI Automation, window list, a timed capture, screenshot, mouse hook).
+- Copy diagnostics now includes both inspectors' states and the helper's process and stderr summary.
+- A project website lives in `web/` (plain HTML, no external requests) and the app links to it.
+
 ### Added
 - Rebuilt foundations: multi-module build with a JDK 21 toolchain, CI (Windows and Linux), detekt rules against empty and swallowed catch blocks.
 - Capture data model with stable, structure-only element ids, an element index and pure viewport math.

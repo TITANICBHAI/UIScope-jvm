@@ -29,7 +29,8 @@ import kotlinx.coroutines.withTimeoutOrNull
  * The client side of the helper protocol (plan P3-2, Appendix J). Owns the helper process: spawns it, performs the
  * `hello` handshake (refusing a different major protocol version), correlates responses to requests by id, delivers
  * events in order, and enforces per-request timeouts. A timed-out helper is killed and restarted - at most three
- * restarts per minute, then `UIA_UNAVAILABLE` until the client is stopped. Malformed stdout lines are ignored and
+ * restarts per minute, then `UIA_UNAVAILABLE` until the client is stopped. A helper that exits on its own fails the requests that were
+ * waiting for it at once (no waiting out the timeout) and is started again by the next request. Malformed stdout lines are ignored and
  * logged; the helper's diagnostics go to stderr and never reach the protocol.
  */
 class WindowsHelperClient(
@@ -51,7 +52,7 @@ class WindowsHelperClient(
     private val mutex = Mutex()
     private val clientScope = CoroutineScope(SupervisorJob() + dispatchers.io)
     private var worker: Job? = null
-    private var process: ManagedProcess? = null
+    @Volatile private var process: ManagedProcess? = null
     private var stopped = false
 
     // Wire diagnostics for the give-up error (never screen content: protocol lines only).
@@ -67,13 +68,23 @@ class WindowsHelperClient(
             managed.stderrLines.collect { line ->
                 synchronized(stderrTail) {
                     stderrTail.addLast(line)
-                    while (stderrTail.size > 5) stderrTail.removeFirst()
+                    while (stderrTail.size > STDERR_LINES) stderrTail.removeFirst()
                 }
             }
         }
     }
 
-    private fun stderrSnapshot(): String = synchronized(stderrTail) { stderrTail.joinToString(" | ").take(300) }
+    private fun stderrSnapshot(): String = synchronized(stderrTail) { stderrTail.joinToString(" | ").take(STDERR_CHARS) }
+
+    /**
+     * One line for the log and "Copy details": which helper process is running, how much it said, how often it was restarted and what it
+     * last wrote on stderr. Never contains screen content.
+     */
+    fun diagnostics(): String {
+        val running = process
+        return "helper pid=${running?.pid ?: "none"} alive=${running?.isAlive ?: false} messages=$receivedCount " +
+            "restarts-in-last-minute=${synchronized(restartTimes) { restartTimes.size }} stderr=[${stderrSnapshot()}]"
+    }
 
     /** Starts the helper process and performs the handshake. Idempotent. */
     suspend fun start(scope: CoroutineScope): Outcome<Unit> = mutex.withLock {
@@ -120,6 +131,12 @@ class WindowsHelperClient(
                 continue
             }
             if (!response!!.ok) {
+                if (response.errorCode == CODE_HELPER_EXITED) {
+                    // The helper died while this request was waiting; the next loop pass starts a fresh one (once).
+                    attempt++
+                    if (attempt >= 2) return helperGaveUp(response.errorMessage ?: "the helper exited")
+                    continue
+                }
                 return Outcome.Failure(CodedError(response.errorCode ?: ErrorCodes.UNEXPECTED, response.errorMessage))
             }
             return Outcome.Success(response.value)
@@ -144,9 +161,10 @@ class WindowsHelperClient(
         }
     }
 
-    private suspend fun ensureStarted(): Outcome<Unit> = when {
-        process != null -> Outcome.Success(Unit)
-        else -> spawnAndHandshake(clientScope)
+    private suspend fun ensureStarted(): Outcome<Unit> {
+        if (process != null) return Outcome.Success(Unit)
+        // Under the lock: two requests arriving together must not start two helpers.
+        return mutex.withLock { if (process != null) Outcome.Success(Unit) else spawnAndHandshake(clientScope) }
     }
 
     private suspend fun spawnAndHandshake(scope: CoroutineScope): Outcome<Unit> {
@@ -159,7 +177,14 @@ class WindowsHelperClient(
         watchStderr(managed)
         worker?.cancelAndJoin()
         worker = scope.launch { readLoop(managed) }
-        return handshake()
+        val result = handshake()
+        if (result is Outcome.Failure) {
+            // A helper that failed (or never answered) the handshake must not stay registered as "running": the next try starts a new one.
+            logger.log(Level.WARNING, "the helper failed the handshake: ${result.error.detail}")
+            managed.kill()
+            if (process === managed) process = null
+        }
+        return result
     }
 
     private suspend fun readLoop(managed: ManagedProcess) {
@@ -172,6 +197,22 @@ class WindowsHelperClient(
                 is Line.Event -> eventFlow.emit(decoded)
                 Line.Malformed -> logger.log(Level.WARNING, "the helper wrote a malformed protocol line; it was ignored")
             }
+        }
+        onProcessEnded(managed)
+    }
+
+    /**
+     * stdout closed. If this is still the current helper it died on its own: forget it (the next request starts a new one) and fail
+     * everything that was waiting for an answer right now instead of letting each request sit out its timeout. A helper that was
+     * replaced or stopped on purpose has nothing pending that belongs to it.
+     */
+    private fun onProcessEnded(managed: ManagedProcess) {
+        if (process !== managed || stopped) return
+        process = null
+        val detail = "the helper process exited unexpectedly; its stderr: [${stderrSnapshot()}]"
+        logger.log(Level.WARNING, detail)
+        for (id in pending.keys.toList()) {
+            pending.remove(id)?.complete(Line.Response(id, false, emptyMap(), CODE_HELPER_EXITED, detail))
         }
     }
 
@@ -203,12 +244,14 @@ class WindowsHelperClient(
     private suspend fun restartWithPolicy(): ManagedProcess? = mutex.withLock {
         if (stopped) return null
         val now = System.currentTimeMillis()
-        restartTimes.removeAll { now - it > RESTART_WINDOW_MS }
-        if (restartTimes.size >= MAX_RESTARTS_PER_MINUTE) {
+        val tooMany = synchronized(restartTimes) {
+            restartTimes.removeAll { now - it > RESTART_WINDOW_MS }
+            if (restartTimes.size >= MAX_RESTARTS_PER_MINUTE) true else { restartTimes.addLast(now); false }
+        }
+        if (tooMany) {
             logger.log(Level.WARNING, "the helper restarted more than $MAX_RESTARTS_PER_MINUTE times in a minute; giving up")
             return null
         }
-        restartTimes.addLast(now)
         process?.kill()
         process = null
         val started = launcher.start(helperCommand, clientScope)
@@ -247,6 +290,17 @@ class WindowsHelperClient(
 
     companion object {
         val DEFAULT_TIMEOUT: Duration = 5.seconds
+
+        /** Walking a big window (thousands of elements, a busy browser) legitimately takes many seconds; the helper has its own, shorter, time budget. */
+        val CAPTURE_TIMEOUT: Duration = 90.seconds
+
+        /** Enumerating windows asks Windows about every process once; a machine under load needs more than a plain request. */
+        val LIST_TIMEOUT: Duration = 20.seconds
+
+        /** Not a helper code: the client's own marker for "the process ended while this request was waiting". */
+        const val CODE_HELPER_EXITED = "HELPER_EXITED"
+        private const val STDERR_LINES = 8
+        private const val STDERR_CHARS = 700
         // A cold JVM boot on a loaded CI runner can take a while; the handshake waits longer than a request.
         private val HANDSHAKE_TIMEOUT: Duration = 20.seconds
         private val SHUTDOWN_TIMEOUT: Duration = 1.seconds

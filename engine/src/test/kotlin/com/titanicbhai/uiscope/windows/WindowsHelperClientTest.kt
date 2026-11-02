@@ -120,4 +120,29 @@ class WindowsHelperClientTest {
     }
 
     private fun Outcome<Map<String, Any?>>.isOk() = this is Outcome.Success
+
+    @Test
+    fun `a request that is waiting when the helper dies fails at once instead of sitting out its timeout`() = blocking {
+        val helper = client(timeout = 60.seconds)
+        helper.start(scope).assertSuccess()
+        val started = System.nanoTime()
+        val result = helper.request("crash")
+        val elapsedMs = (System.nanoTime() - started) / 1_000_000
+        assertTrue(result is Outcome.Failure, "the request cannot succeed when the helper exits")
+        assertTrue(elapsedMs < 20_000, "the failure arrives within seconds, not after the 60 s timeout (took $elapsedMs ms)")
+        // ...and the helper is simply started again by the next request.
+        helper.request("ping").assertSuccess()
+        helper.stop()
+        job.cancelChildren()
+    }
+
+    @Test
+    fun `diagnostics say whether a helper runs and never throw`() = blocking {
+        val helper = client()
+        assertTrue(helper.diagnostics().contains("pid=none"), helper.diagnostics())
+        helper.start(scope).assertSuccess()
+        assertTrue(helper.diagnostics().contains("alive=true"), helper.diagnostics())
+        helper.stop()
+        job.cancelChildren()
+    }
 }

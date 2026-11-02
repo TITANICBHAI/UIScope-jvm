@@ -1,6 +1,7 @@
 package com.titanicbhai.uiscope.state
 
 import com.titanicbhai.uiscope.DispatcherProvider
+import com.titanicbhai.uiscope.error.CodedError
 import com.titanicbhai.uiscope.error.ErrorCodes
 import com.titanicbhai.uiscope.error.Outcome
 import com.titanicbhai.uiscope.model.Capture
@@ -213,6 +214,17 @@ class WindowsInspectState(
                     PickEvent.Cancelled -> {
                         mutate { copy(picking = false, hoverLabel = null, state = WindowsState.Idle) }
                         eventFlow.emit(WindowsEvent.PickCancelled)
+                    }
+                    is PickEvent.Failed -> {
+                        // Say why in plain words and leave the "Choose window..." list usable instead of sitting in pick mode forever.
+                        mutate {
+                            copy(
+                                picking = false,
+                                hoverLabel = null,
+                                state = WindowsState.Idle,
+                                problem = CodedError(ErrorCodes.UIA_UNAVAILABLE, event.message),
+                            )
+                        }
                     }
                     // The start() collector starts the pick on the hotkey when idle; mid-pick it is a no-op.
                     PickEvent.HotkeyPressed -> Unit

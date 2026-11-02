@@ -1,11 +1,13 @@
 using System;
+using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
 namespace UIScope.Helper
 {
     /// <summary>
-    /// Hidden message-loop window (plan P3-4/P3-6): owns the hotkey registrations and receives WM_HOTKEY.
-    /// Never visible; its message loop pumps everything else (pick sessions, timers, hooks).
+    /// Hidden message-loop window (plan P3-4/P3-6): owns the hotkey registration and receives WM_HOTKEY. It is never visible; its message
+    /// loop also pumps the pick session's hook and outline. Nothing slow may run on this thread (a slow low-level mouse hook freezes the
+    /// pointer system-wide), so every UI Automation call lives on other threads.
     /// </summary>
     internal class HostForm : Form
     {
@@ -29,6 +31,7 @@ namespace UIScope.Helper
 
         public bool TryRegisterHotkey(int id, uint modifiers, uint key)
         {
+            UnregisterHotKey(Handle, id); // a changed combination replaces ours; harmless when nothing was registered
             return RegisterHotKey(Handle, id, modifiers, key);
         }
 
@@ -43,10 +46,10 @@ namespace UIScope.Helper
             base.WndProc(ref m);
         }
 
-        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        [DllImport("user32.dll", SetLastError = true)]
         private static extern bool RegisterHotKey(IntPtr hWnd, int id, uint modifiers, uint vk);
 
-        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        [DllImport("user32.dll", SetLastError = true)]
         private static extern bool UnregisterHotKey(IntPtr hWnd, int id);
     }
 }

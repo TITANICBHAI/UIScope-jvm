@@ -32,6 +32,8 @@ data class AppInfo(
     val supportUrl: String,
     /** True when running from the Microsoft Store package. The update check is disabled there (decision D6). */
     val isStoreBuild: Boolean,
+    /** The project website (optional: empty hides the in-app links to it). */
+    val websiteUrl: String = "",
 ) {
     companion object {
         /** Set `UISCOPE_STORE=1` to force Store-build behaviour (for testing). */
@@ -67,6 +69,9 @@ data class AppInfo(
                 val v = value(key)
                 if (v.isNotEmpty() && !v.startsWith("https://")) problems += "'$key' must start with https:// (was '$v')"
             }
+            // The website is optional, but when it is given it must be https like every other link.
+            val website = props.getProperty("app.website.url")?.trim().orEmpty()
+            if (website.isNotEmpty() && !website.startsWith("https://")) problems += "'app.website.url' must start with https:// (was '$website')"
             require(problems.isEmpty()) { "app.properties is invalid: ${problems.joinToString("; ")}" }
             return AppInfo(
                 name = value("app.name"),
@@ -82,6 +87,7 @@ data class AppInfo(
                 docsUrl = value("app.docs.url"),
                 supportUrl = value("app.support.url"),
                 isStoreBuild = isStoreBuild,
+                websiteUrl = website,
             )
         }
 

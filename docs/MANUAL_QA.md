@@ -23,6 +23,32 @@ Rounds are seeded from Appendix K of the plan. Every acceptance box tagged `need
 | P4-8 | Every Settings control has an observable effect (theme applies instantly, Live interval changes a Live run, retention clamps on the next save, Copy diagnostics/Open folders/Reset work) | **partially verified on CI** (theme, diagnostics, reset, update-check hiding); the rest needs a real display — fold into Round 3 step 3 |
 | P4-7 | The first-run screen: step 3 reflects your real adb state, the consent dialog text matches Google's download, Browse opens the native chooser, Skip/Finish land on Inspect | **not yet verified** — needs a real display (Round 3 step 6 covers it) |
 
+## Round 11 — reliability pass (needs your Windows PC and your phone)
+
+Nothing in this round could be run where the code was written: the helper exe has only been compiled (Mono, C# 5 rules) and its pure logic
+run; the Compose changes have not been compiled at all until CI runs. Please go in this order and note pass/fail for each.
+
+1. **CI is green** on the commit that contains this round (it is the first compile of the shell, settings and help changes).
+2. **Helper self-test (2 minutes).** Open a terminal and run `"%LOCALAPPDATA%\UIScope\helper\UIScope.Helper.exe" --selftest` with any program open.
+   Pass if every line says `[ OK ]` (UI Automation, window list, tree with a node count and time, screenshot, hover query, mouse hook).
+   Paste the whole output with any failure.
+3. **Windows capture.** Choose a window of a large app (Explorer, Chrome or VS Code). Pass if the tree appears within about 30 s, the screenshot
+   shows the app (not UIScope, even if UIScope was on top), and a banner says *truncated* only when the window is genuinely huge.
+4. **Pick mode.** Press *Pick element*. Pass if UIScope minimizes, an orange frame follows the pointer around the other program's controls,
+   a click selects that control and brings UIScope back with the window captured, **the click did not press anything in the other program**,
+   and `Esc` / right-click cancel without a capture.
+5. **Shortcut.** With UIScope in the background press `Ctrl+Alt+P`. Pass if pick mode starts and UIScope switches to the Windows side.
+   Then start another program that owns the same shortcut (or change `pickHotkey` in `settings.json` to one you know is taken) and pass if
+   UIScope shows a message instead of failing silently. *Settings → Windows* switches off the shortcut and the minimizing.
+6. **Fresh Android machine.** On a PC with no adb (rename `platform-tools` in the data folder and take adb off `PATH`), choose
+   *Download platform-tools*. Pass if the consent text names Google's package list and dl.google.com, the download finishes, and adb is found.
+   (This is the first time Google's package list has been read by the app; if it fails, copy the details.)
+7. **Android capture.** Connect the phone with USB debugging. Pass if the device appears, a capture shows the screen and the tree, and a secure
+   screen reports *secure window* instead of a blank.
+8. **Display scaling.** At 125–150 % scaling, with two monitors if you have them, pick an element on each: the orange frame and the captured
+   highlight must line up with the control.
+9. **Help menu.** *Website*, *Troubleshooting guide* and *Report an issue* open the browser (the website goes live when GitHub Pages serves `web/`).
+
 ## Round 0 — Fixture capture (at the very start, about 10 minutes)
 
 Needs: your Android phone, a USB data cable and `adb`. Do step 1 of Round 1 (USB debugging), then run `scripts/capture-fixtures.sh`

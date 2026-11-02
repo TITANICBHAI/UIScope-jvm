@@ -1,49 +1,49 @@
-# UIScope website folder
+# UIScope website — hybrid static HTML edition
 
-This is a static, multi-page website built from the supplied UIScope-jvm source ZIP. It uses plain HTML, CSS and a small vanilla JavaScript file. There is no Node.js, npm, build step, framework, third-party font or remote runtime dependency. The visual refinement is an additional local CSS file and supports light and dark system themes.
+This folder is the merged website: the visual language and page coverage from `web.zip`, plus the app-linked documentation structure and troubleshooting depth from `UIScope-website.zip`.
 
-## Publish
+## Stack and performance posture
 
-Upload the **contents of this `web/` folder** to the static host's document root. The internal navigation and asset links are relative, so the site can also be deployed beneath a subpath.
+- Static, multi-page HTML. Important product copy is present in the HTML response; it is not injected by JavaScript.
+- Local CSS, images and two tiny first-party vanilla JavaScript files for the theme preference and menu dismissal. No framework, npm build, remote font, CDN runtime, analytics SDK or third-party script.
+- The full site menu uses native HTML `<details>` / `<summary>` on every screen size; desktop also keeps four quick links visible. The menu works without JavaScript, while the small local script adds Escape/outside-click dismissal.
+- Dark mode is the default regardless of operating-system preference. Visitors can explicitly switch to light mode; the choice is saved in local storage and restored across pages. If storage is unavailable, the switch still works for the current page.
+- Responsive layout, semantic landmarks, skip links, visible focus styles, descriptive link text and reduced-motion support.
+- Sitemap, robots.txt, canonical URLs, social metadata, basic JSON-LD and a concise llms.txt index.
 
-## Production domain and Google verification
+## Publish to the existing domain
 
-The site is configured for **https://uiscope.pages.dev/**. Canonical URLs, Open Graph URLs/images, Twitter images, JSON-LD site URLs, `sitemap.xml` and the `robots.txt` sitemap declaration use this domain.
+1. Upload the **contents** of this folder to the document root for `https://uiscope.pages.dev/`.
+2. Do not upload the outer folder as an extra path level unless you intentionally want a subdirectory deployment. Canonical URLs in this build target the domain root.
+3. Open the home page, `docs.html`, `robots.txt`, `sitemap.xml` and `llms.txt` in a browser to verify they return successfully.
+4. Check page source for the existing Google Search Console HTML verification tag. The tag is preserved on every indexable HTML page:
 
-The Google Search Console verification meta tag is included in every HTML page's `<head>`:
+   `meta name="google-site-verification" content="sou-98cZYPWFJmbwxJgJptO-ZaIPNJqz2ven_iS4NjI"`
 
-```html
-<meta name="google-site-verification" content="sou-98cZYPWFJmbwxJgJptO-ZaIPNJqz2ven_iS4NjI" />
+5. In Google Search Console, complete HTML-tag verification if it has not already been completed, then submit `https://uiscope.pages.dev/sitemap.xml`.
+6. Use URL Inspection on the home page and highest-value feature pages. A valid sitemap or verification tag does not guarantee indexing.
+7. Add the domain to Bing Webmaster Tools and review crawl/indexing status. Where available to the account, check AI Performance reporting for cited URLs and grounding queries.
+
+## Do not publish stale downloads
+
+The checked-in source says version **1.0.1**, but `CHANGELOG.md` marks it as unreleased and the current repository page does not list a published matching installer. The website intentionally links to the repository and release page instead of presenting an old binary as current. Update `downloads.html`, `docs.html`, `faq.html`, `llms.txt` and the home-page release note when a real release is published.
+
+## Product facts to keep synchronized
+
+- UIScope is a Windows desktop application, not an Android app.
+- Windows inspection uses Windows UI Automation.
+- Android inspection is performed from the desktop through ADB.
+- Current documented host support: Windows 10 version 1809 or later and Windows 11.
+- The current repository documents ten code-generation targets; see the selector page and source README.
+- Privacy claims must continue to match `PRIVACY.md` and `docs/network.md`.
+- Do not add testimonials, adoption numbers, ratings, compatibility claims, or release links without evidence.
+
+## Local preview
+
+From this directory run:
+
+```bash
+python -m http.server 8000
 ```
 
-After deploying the contents of `web/`, open `https://uiscope.pages.dev/` and confirm the tag is present in the page source. Then complete the HTML-tag verification flow in Google Search Console and submit `https://uiscope.pages.dev/sitemap.xml`. Adding the tag does not itself verify ownership or submit the sitemap.
-
-## SEO and answer-engine/GEO work included
-
-- Unique title and meta description on every page.
-- Canonical and Open Graph/Twitter metadata placeholders.
-- Semantic headings, descriptive link text, accessible navigation and mobile layout.
-- JSON-LD structured data for site identity, breadcrumbs and the visible FAQ page.
-- `sitemap.xml`, `robots.txt` and `llms.txt` with factual product scope, platform boundaries, version and release caveat.
-- Direct links to the authoritative repository, privacy policy, issues and troubleshooting guide.
-- Answer-first feature pages and concise fact statements suitable for search snippets and generative search systems.
-
-## Product accuracy notes
-
-The website copy follows the supplied repository README, changelog, privacy policy, distribution notes and current source version. The code identifies version **1.0.1**, marked unreleased in the changelog/distribution documents. A matching installer for this rebuild is not advertised. UIScope is described as a Windows desktop application; Android is an ADB-connected inspection target, not an Android phone app. The documented desktop host is Windows 10 version 1809+ and Windows 11.
-
-## Files
-
-- `index.html` — landing page
-- `features.html` — feature overview
-- `windows-inspector.html` — Windows inspection
-- `android-inspector.html` — Android inspection via ADB
-- `selectors-and-codegen.html` — selector analysis and ten code targets
-- `snapshots.html` — local snapshots and `.uiscope` bundles
-- `compare.html` — capture diff workflow
-- `quick-start.html` — first-run paths
-- `privacy.html` — privacy and network behavior
-- `faq.html` — FAQ with FAQPage JSON-LD
-- `downloads.html` — release status, without a stale binary link
-- `404.html` — not-found page
-- `assets/` — base stylesheet, visual-refinement stylesheet, tiny navigation script, supplied app mark and social preview image
+Then open `http://localhost:8000/`.

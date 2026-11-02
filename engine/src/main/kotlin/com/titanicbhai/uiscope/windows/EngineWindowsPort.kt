@@ -14,11 +14,12 @@ import com.titanicbhai.uiscope.ports.PickEvent
 import com.titanicbhai.uiscope.ports.PickedElement
 import com.titanicbhai.uiscope.ports.WindowInfo as PortWindowInfo
 import com.titanicbhai.uiscope.ports.WindowsInspectorPort
+import java.nio.file.Path
 import java.time.Clock
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapNotNull
 
 /**
  * The real [WindowsInspectorPort] on top of [WindowsHelperClient] (plan P3-3). Translates the Appendix J responses into
@@ -30,6 +31,8 @@ class EngineWindowsPort(
     private val client: WindowsHelperClient,
     dispatchers: DispatcherProvider,
     private val clock: Clock = Clock.systemUTC(),
+    /** Where the helper writes its screenshots (UIScope's own scratch folder). Null = the system temp folder. */
+    private val screenshotDir: Path? = null,
 ) : WindowsInspectorPort {
     // The helper client owns its process lifetime; the port starts it on first use.
     private val clientScope = CoroutineScope(SupervisorJob() + dispatchers.io)
@@ -37,7 +40,7 @@ class EngineWindowsPort(
     /** Starts the helper client the first time (idempotent); later calls reuse the running helper. */
     suspend fun connect(): Outcome<Unit> = client.start(clientScope)
 
-    override suspend fun listWindows(): Outcome<List<PortWindowInfo>> = when (val r = client.request("listWindows")) {
+    override suspend fun listWindows(): Outcome<List<PortWindowInfo>> = when (val r = client.request("listWindows", timeout = WindowsHelperClient.LIST_TIMEOUT)) {
         is Outcome.Failure -> r
         is Outcome.Success -> {
             @Suppress("UNCHECKED_CAST")
@@ -51,7 +54,16 @@ class EngineWindowsPort(
 
     override suspend fun captureWindow(hwnd: String): Outcome<Capture> = when (val r = client.request(
         "captureWindow",
-        mapOf("hwnd" to hwnd, "maxDepth" to 40L, "maxNodes" to 10_000L),
+        buildMap {
+            put("hwnd", hwnd)
+            put("maxDepth", 40L)
+            put("maxNodes", 10_000L)
+            // The helper stops walking after this long and returns what it has (flagged truncated); the client's timeout is only the
+            // backstop for a target that hangs the walk altogether.
+            put("budgetMs", HELPER_WALK_BUDGET_MS)
+            screenshotDir?.let { put("tmpDir", it.toString()) }
+        },
+        timeout = WindowsHelperClient.CAPTURE_TIMEOUT,
     )) {
         is Outcome.Failure -> r
         is Outcome.Success -> parseCapture(hwnd, r.value)
@@ -79,7 +91,7 @@ class EngineWindowsPort(
         is Outcome.Success -> Outcome.Success(Unit)
     }
 
-    override fun pickEvents(): Flow<PickEvent> = client.events.map { event ->
+    override fun pickEvents(): Flow<PickEvent> = client.events.mapNotNull { event ->
         when (event.name) {
             "pickHover" -> PickEvent.Hover(
                 label = hoverLabel(event.payload),
@@ -90,7 +102,10 @@ class EngineWindowsPort(
                 element = pickedElement(event.payload),
             )
             "hotkey" -> PickEvent.HotkeyPressed
-            else -> PickEvent.Cancelled
+            "pickFailed" -> PickEvent.Failed((event.payload["message"] as? String) ?: "Pick mode could not start")
+            "pickCancelled" -> PickEvent.Cancelled
+            // An event this build does not know (a newer helper) is ignored; it used to cancel the pick in progress.
+            else -> null
         }
     }
 
@@ -176,5 +191,7 @@ class EngineWindowsPort(
         return listOf(controlType, name).filter { it.isNotBlank() }.joinToString(" - ")
     }
 }
+
+private const val HELPER_WALK_BUDGET_MS = 25_000L
 
 private fun countNodes(nodes: List<ElementNode>): Int = nodes.sumOf { 1 + countNodes(it.children) }

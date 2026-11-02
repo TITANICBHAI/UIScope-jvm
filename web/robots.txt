@@ -1,3 +1,5 @@
+# Public product pages are intended to be crawlable. Any hosting/CDN-level access rules
+# must also permit the search and answer-engine crawlers the publisher wants to reach.
 User-agent: *
 Allow: /
 

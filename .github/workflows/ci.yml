@@ -57,3 +57,17 @@ jobs:
       - uses: actions/dependency-review-action@v4
         with:
           fail-on-severity: moderate
+
+  helper-check:
+    # The Windows helper must stay C# 5 (the Framework compiler on every Windows box); this catches C# 6+ syntax and a broken protocol helper
+    # on Linux in a minute, before the Windows leg builds the real exe. See native/windows-helper/tests/check.sh.
+    name: windows helper (C# 5 + logic tests)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Mono compiler
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends mono-mcs mono-runtime libmono-system-windows-forms4.0-cil libmono-system-drawing4.0-cil libmono-windowsbase4.0-cil libmono-system-core4.0-cil
+      - name: Compile and test the helper
+        run: bash native/windows-helper/tests/check.sh

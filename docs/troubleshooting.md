@@ -3,10 +3,17 @@
 ## Windows app inspection
 
 **"Windows inspection isn't available" / the helper self-test fails**
-- The helper (`UIScope.Helper.exe`, staged next to the data folder) may be quarantined by security software.
+- Press *Retry*, then *Copy details*: it ends with what the helper wrote on stderr and whether it exited.
+- Run the helper's own check from a terminal — it needs no UIScope and says what fails:
+  `"%LOCALAPPDATA%\UIScope\helper\UIScope.Helper.exe" --selftest`
+- The helper (`UIScope.Helper.exe`, staged under the data folder) may be quarantined by security software.
   Restore it or add an exclusion for the UIScope data folder.
 - It needs the .NET Framework 4.8 runtime, which every supported Windows 10 (1809+) and 11 install has.
-- Re-run the self-test with the *Look again* item in the window picker.
+- Re-run the start-up self-test with the *Look again* item in the window picker.
+
+**"The window is minimized"** — a minimized window has nothing to capture; restore it and press `F5`.
+
+**"The tree was cut at the limits"** — a very large window is read for up to 25 s or 10,000 elements and then shown as far as it got.
 
 **"That window runs as administrator"** — Windows stops normal apps from reading elevated windows. Close
 UIScope and restart it with *Run as administrator*.
@@ -24,8 +31,9 @@ Automation content (common for Chromium/Electron/Qt/Java apps):
 - Qt: set the environment variable `QT_ACCESSIBILITY=1` before starting it.
 - Java / Swing: enable the Java Access Bridge (`c:\Windows\System32\JABSwitch.exe /enable`).
 
-**The pick hotkey does nothing** — enable it in Settings; if it reports *that shortcut is taken*, another app
-owns `Ctrl+Alt+P`. Press *Pick element* instead, or free the combination.
+**The pick hotkey does nothing** — it is on by default and can be switched in *Settings → Windows*. If UIScope says another
+program already uses `Ctrl+Alt+P`, press *Pick element* instead, free the combination, or set a different `pickHotkey`
+(for example `"Ctrl+Shift+F9"`) in `settings.json` while UIScope is closed.
 
 **Two adb versions fighting** — if you already have platform-tools on PATH, point UIScope at that exact
 `adb.exe` (Settings → *Browse...*) so only one adb server runs. Symptoms of a fight: devices flap between
@@ -33,8 +41,9 @@ owns `Ctrl+Alt+P`. Press *Pick element* instead, or free the combination.
 
 ## Android inspection
 
-**ADB not found** — Settings → *Download platform-tools* installs a verified copy into the UIScope data folder,
-or *Browse...* to an existing one.
+**ADB not found** — Settings → *Download platform-tools* looks up the current release in Google's SDK package list,
+downloads the official archive, checks its size and checksum and installs it into the UIScope data folder; or *Browse...* to an existing adb.
+If the download reports a network error, check your connection or proxy and try again.
 
 **Google USB driver / OEM driver missing (Windows)** — the phone shows as an unknown device in Device Manager.
 Install the OEM USB driver (or Google's driver) for your model; adb then appears.
