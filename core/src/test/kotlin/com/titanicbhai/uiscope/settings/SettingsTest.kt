@@ -20,6 +20,9 @@ class SettingsTest {
         assertEquals(1024L * 1024 * 1024, s.retentionBytes)
         assertTrue(s.checkForUpdates && s.pickHotkeyEnabled && s.hideWhilePicking)
         assertFalse(s.autoSaveSnapshots || s.windowMaximized)
+        assertTrue(s.activateOnCapture, "choosing a window brings it to the front by default")
+        assertFalse(s.keepOnTop)
+        assertNull(s.lastSeenVersion)
         assertNull(s.adbPath)
         assertEquals(Settings(), Settings().sanitized(), "the defaults are already valid")
     }

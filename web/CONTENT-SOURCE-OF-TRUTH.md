@@ -14,7 +14,7 @@ When site copy and repository source disagree, the repository source wins. Reche
 - It inspects Windows application windows using Windows UI Automation.
 - It inspects connected Android devices using ADB from that Windows desktop application; it is not an Android app.
 - The current source documents Windows 10 version 1809 or later and Windows 11.
-- The current source version is 1.0.1, while the changelog marks that version unreleased. The site therefore does not advertise a matching published installer.
+- The current source version is 1.0.2. The site links to GitHub Releases for the installer and never hosts or links an older binary as current.
 - Ten code generation targets are listed in the README: uiautomator2, UI Automator (Kotlin), Appium Java, Appium Python, Maestro, XPath, pywinauto, FlaUI, AutoHotkey v2 and PowerShell.
 - Privacy wording must be checked against `PRIVACY.md` and `docs/network.md` before being changed.
 

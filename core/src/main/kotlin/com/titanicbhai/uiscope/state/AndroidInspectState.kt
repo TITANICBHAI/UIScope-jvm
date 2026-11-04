@@ -1,6 +1,7 @@
 package com.titanicbhai.uiscope.state
 
 import com.titanicbhai.uiscope.DispatcherProvider
+import com.titanicbhai.uiscope.error.AppError
 import com.titanicbhai.uiscope.error.Outcome
 import com.titanicbhai.uiscope.error.UnexpectedError
 import com.titanicbhai.uiscope.model.AdbDevice
@@ -214,20 +215,18 @@ class AndroidInspectState(
             return if (fromLive) captureJob else null
         }
         val gen = generation.incrementAndGet()
-        mutate { copy(state = AndroidState.Capturing(device, capture)) }
+        mutate { copy(state = AndroidState.Capturing(device, capture), preview = null) }
         val job = scope.launch {
             try {
                 val outcome = try {
-                    withContext(dispatchers.io) { adb.capture(device) }
+                    withContext(dispatchers.io) { adb.capture(device) { shown -> showEarly(gen, fromLive, shown) } }
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: RuntimeException) {
                     Outcome.Failure(UnexpectedError(e))
                 }
                 when (outcome) {
-                    is Outcome.Failure -> if (generation.get() == gen) {
-                        mutate { copy(state = AndroidState.CaptureFailed(device, outcome.error, capture)) }
-                    }
+                    is Outcome.Failure -> if (generation.get() == gen) failCapture(device, outcome.error)
                     is Outcome.Success -> {
                         val index = withContext(dispatchers.default) { ElementIndex(outcome.value) }
                         if (generation.get() == gen) publish(device, outcome.value, index)
@@ -241,6 +240,27 @@ class AndroidInspectState(
         return job
     }
 
+    /**
+     * The picture arrived before the elements did: show it now. A Live refresh keeps the previous full capture on screen instead, so the
+     * highlights do not blink off every few seconds.
+     */
+    private fun showEarly(gen: Int, fromLive: Boolean, shown: Capture) {
+        if (generation.get() != gen) return
+        if (fromLive && state.value.capture != null) return
+        mutate { copy(preview = shown) }
+    }
+
+    /** A failed capture keeps the picture that did arrive on screen (when there is nothing older), so the phone is never just blank. */
+    private suspend fun failCapture(device: AdbDevice, error: AppError) {
+        val early = state.value.preview?.takeIf { state.value.capture == null }
+        val index = early?.let { withContext(dispatchers.default) { ElementIndex(it) } }
+        if (early != null && index != null) {
+            mutate { copy(state = AndroidState.CaptureFailed(device, error, early), capture = early, index = index, selected = null, expanded = emptySet(), preview = null) }
+        } else {
+            mutate { copy(state = AndroidState.CaptureFailed(device, error, capture), preview = null) }
+        }
+    }
+
     /** Publishes tree and screenshot together and restores selection and expansion by identity. */
     private fun publish(device: AdbDevice, capture: Capture, index: ElementIndex) {
         val before = state.value
@@ -250,7 +270,9 @@ class AndroidInspectState(
         val selected = before.selected?.let(::relocate)
         val expanded = before.expanded.mapNotNull(::relocate).toSet()
         if (before.selected != null && selected == null) eventFlow.tryEmit(AndroidEvent.SelectionLost)
-        mutate { copy(state = AndroidState.Captured(device, capture), capture = capture, index = index, selected = selected, expanded = expanded) }
+        mutate {
+            copy(state = AndroidState.Captured(device, capture), capture = capture, index = index, selected = selected, expanded = expanded, preview = null)
+        }
     }
 
     /** Esc: cancels the running capture (and, through the port, the processes it started). The previous capture stays. */
@@ -261,7 +283,9 @@ class AndroidInspectState(
         val current = state.value
         val s = current.state
         if (s is AndroidState.Capturing) {
-            mutate { copy(state = if (capture != null) AndroidState.Captured(s.device, capture) else AndroidState.Ready(s.device)) }
+            mutate { copy(state = if (capture != null) AndroidState.Captured(s.device, capture) else AndroidState.Ready(s.device), preview = null) }
+        } else if (current.preview != null) {
+            mutate { copy(preview = null) }
         }
     }
 

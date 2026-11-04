@@ -53,6 +53,33 @@ namespace UIScope.Helper
         [DllImport("user32.dll")]
         public static extern bool IsIconic(IntPtr hWnd);
 
+        [DllImport("user32.dll")]
+        public static extern bool ShowWindowAsync(IntPtr hWnd, int cmdShow);
+
+        [DllImport("user32.dll")]
+        public static extern bool SetForegroundWindow(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
+        public static extern bool BringWindowToTop(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
+        public static extern void SwitchToThisWindow(IntPtr hWnd, bool altTab);
+
+        [DllImport("user32.dll")]
+        public static extern bool AttachThreadInput(uint idAttach, uint idAttachTo, bool attach);
+
+        [DllImport("user32.dll")]
+        public static extern IntPtr GetWindow(IntPtr hWnd, uint command);
+
+        [DllImport("user32.dll")]
+        public static extern bool PostMessage(IntPtr hWnd, int message, IntPtr wParam, IntPtr lParam);
+
+        [DllImport("user32.dll")]
+        public static extern void keybd_event(byte virtualKey, byte scanCode, uint flags, UIntPtr extraInfo);
+
+        [DllImport("kernel32.dll")]
+        public static extern uint GetCurrentThreadId();
+
         [DllImport("user32.dll", CharSet = CharSet.Unicode)]
         public static extern int GetWindowTextW(IntPtr hWnd, StringBuilder text, int count);
 
@@ -131,6 +158,13 @@ namespace UIScope.Helper
         public const int ERROR_ACCESS_DENIED = 5;
 
         public const uint GA_ROOT = 2;
+        public const uint GW_OWNER = 4;
+        public const int SW_RESTORE = 9;
+        public const int WM_SYSCOMMAND = 0x0112;
+        public const int SC_RESTORE = 0xF120;
+        /// <summary>F24: no keyboard has it and no program binds it, so a tap of it is a harmless way to count as "recent input".</summary>
+        public const byte VK_F24 = 0x87;
+        public const uint KEYEVENTF_KEYUP = 0x0002;
         public const uint PW_RENDERFULLCONTENT = 0x2;
         public const int GWL_EXSTYLE = -20;
         public const int WS_EX_TOOLWINDOW = 0x00000080;

@@ -1,3 +1,44 @@
+# Fix report, round 2 (version 1.0.2): the phone screen never appeared, and Windows windows were not switched to
+
+Round 1 (below) fixed what could be found by reading the code. On a real phone and PC the two core features still failed. This round
+starts from the symptoms and finds the cause of each.
+
+## Android: "UIScope doesn't even show me my phone's screen"
+
+| # | Cause | Effect | Fix |
+|---|---|---|---|
+| A1 | A capture was all-or-nothing: if `uiautomator dump` failed, the finished screenshot was thrown away with it | any video, game, animation, app that blocks accessibility, or another automation tool (Appium, uiautomator2) meant no screen at all | the screenshot is always delivered; a failed dump gives a picture with no elements and a warning that names the reason |
+| A2 | The screenshot was accepted only if the output *started* with the PNG signature, but `adb exec-out` merges the phone's warnings (multi-display phones print one) into the same stream; old Windows adb also turned LF into CR LF | a perfectly good picture was rejected as "not a PNG" | the PNG is found inside the output (noise in front and behind cut away, CR LF damage repaired); a second route fetches it through a file on the phone; the remembered route goes first next time |
+| A3 | Nothing showed why a capture failed: `CaptureFailed` and the capture warnings were never rendered on Android (only the status bar's word) | "I don't even know what is what" | banner with the reason and its fix, warning rows (with Retry), the specific detail under the explanation |
+| A4 | The screen waited for the slowest half (the dump takes 1 to 30 s, the screenshot under 1 s) | a long blank wait | the picture is published the moment it is saved ("Reading the elements..." until the tree follows) |
+| A5 | One undecodable screenshot (odd colour profile) threw out of the optional blank-screen check and failed the capture; screenshot timeout 10 s | failures on some phones and on Wi-Fi debugging | the check is best-effort, timeout 20 s |
+| A6 | The Android and Windows chips looked identical whether selected or not | unclear which side is active | selected state shown |
+
+## Windows: "I select the window but it doesn't switch to it, it just minimizes everything"
+
+| # | Cause | Effect | Fix |
+|---|---|---|---|
+| W12 | The helper never restored or raised a window (there was no `SetForegroundWindow`/`ShowWindow` anywhere): a minimized window was a dead end, and the screen-copy fallback photographs whatever is on top (UIScope) | choosing a window did nothing visible; pictures of the wrong thing | `captureWindow` restores, brings the window forward (polite call, then the input-queue and F24 tricks, then `SwitchToThisWindow`), lets it repaint, captures, then raises UIScope again; new `activateWindow` request for the Show window button |
+| W13 | Pick mode swallows the click (so the target app never reacts), UIScope had minimized itself, and it came back *before* the capture, on top of the window being read | "it minimizes everything and nothing switches" | UIScope stays out of the way until the capture ends, and the helper raises it again itself |
+| W14 | The window list was read once at start-up | windows opened later were missing, closed ones lingered, UIScope itself was listed | read again each time the list opens; minimized windows marked; UIScope's own window left out |
+| W15 | The capture failure was never displayed; an exception inside a capture left single-flight locked on "Capturing" for good | silent failures, a frozen screen | banner with reason and action; exceptions become `CaptureFailed`, the next capture works |
+| W16 | The "click to inspect, Esc cancels" hint lived only inside UIScope's window, which is minimized while picking | nothing on screen said what was happening | the helper draws a label beside the pointer: element type and name, and how to finish |
+
+## Product polish
+
+- Version **1.0.2**; `CHANGELOG.md` rewritten user-first (engineering history kept under it); bundled into the app at build time and rendered on the website by `scripts/build-changelog-page.py`.
+- **Help and About** shows the version, build, publisher and every link (Website, Support, Documentation, Troubleshooting, Changelog, Privacy, Source, Report an issue), *Copy diagnostics*, the release notes and the shortcuts. A status-bar button (`v1.0.2 - What's new`, `Support`) is visible on every screen, and *What's new* opens once after an update.
+- Settings: *Bring a window to the front when I choose it* (default on), *Keep UIScope on top* (also in the View menu).
+- The in-app website and support links point at the live site (`uiscope.pages.dev`); the site gained `support.html` and `changelog.html`.
+
+## How this round was checked, and what was not
+
+- `core` (227 tests) and `engine` (218 tests) compiled and passed, including new tests for the PNG recovery, the screen-without-elements capture, the early picture, the window activation requests, the list refresh and the crash-safe capture.
+- The C# helper compiled under C# 5 rules with Mono and its logic checks passed.
+- **Not verified here**: the Compose modules (`ui`, `app`: only checked for syntax), the helper on real Windows, and anything on a real phone. `docs/MANUAL_QA.md` Round 12 is the checklist for your hardware.
+
+---
+
 # Fix report: why Android and Windows did not work, and what changed
 
 The app was built and tested against fakes (210+ unit tests, green CI) but neither inspector had ever run against real hardware, and the

@@ -14,7 +14,7 @@ This file is a convenience index for automated readers. It is not a search-ranki
 - Core workflows: element hierarchy, screenshot canvas and highlighting, element properties and paths, selector analysis, generated code, local snapshots, `.uiscope` import/export, and capture comparison.
 - Code-generation targets documented in source: uiautomator2, UI Automator (Kotlin), Appium Java, Appium Python, Maestro, XPath, pywinauto, FlaUI, AutoHotkey v2, and PowerShell.
 - Privacy: no telemetry, analytics, crash upload, or account system. The repository documents two optional network actions: update metadata checks and a user-requested platform-tools download.
-- Source version: 1.0.1. The repository changelog marks it unreleased; a matching published installer is not currently available. Check the official Releases page for changes.
+- Source version: 1.0.2. Installers are attached to the matching GitHub release; check the official Releases page. Changelog: https://uiscope.pages.dev/changelog.html. Support: https://uiscope.pages.dev/support.html.
 - License: MIT.
 
 ## Official sources
@@ -28,6 +28,8 @@ This file is a convenience index for automated readers. It is not a search-ranki
 - Snapshots: https://uiscope.pages.dev/snapshots.html
 - Capture comparison: https://uiscope.pages.dev/compare.html
 - Quick start: https://uiscope.pages.dev/quick-start.html
+- Changelog (what is new in each version): https://uiscope.pages.dev/changelog.html
+- Support: https://uiscope.pages.dev/support.html
 - Privacy: https://uiscope.pages.dev/privacy.html
 - FAQ: https://uiscope.pages.dev/faq.html
 - Release status: https://uiscope.pages.dev/downloads.html
@@ -40,4 +42,4 @@ This file is a convenience index for automated readers. It is not a search-ranki
 
 ## Important distinctions
 
-Describe UIScope as a Windows desktop application. Do not describe it as an Android app. The Android device is an inspection target connected through ADB. Do not claim that a current 1.0.1 installer, Microsoft Store listing, macOS desktop build, or Linux desktop build is available unless the repository publishes an update confirming it.
+Describe UIScope as a Windows desktop application. Do not describe it as an Android app. The Android device is an inspection target connected through ADB. Do not claim that a current 1.0.2 installer, Microsoft Store listing, macOS desktop build, or Linux desktop build is available unless the repository publishes an update confirming it.

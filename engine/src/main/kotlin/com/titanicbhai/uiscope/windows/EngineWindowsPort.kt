@@ -33,6 +33,10 @@ class EngineWindowsPort(
     private val clock: Clock = Clock.systemUTC(),
     /** Where the helper writes its screenshots (UIScope's own scratch folder). Null = the system temp folder. */
     private val screenshotDir: Path? = null,
+    /** Read on every capture: whether to restore and raise the window first (the "Bring the window to the front" setting). */
+    private val activateOnCapture: () -> Boolean = { true },
+    /** UIScope's own process id: left out of the window list, and raised again after a capture so the user lands on the result. */
+    private val ownPid: Long = ProcessHandle.current().pid(),
 ) : WindowsInspectorPort {
     // The helper client owns its process lifetime; the port starts it on first use.
     private val clientScope = CoroutineScope(SupervisorJob() + dispatchers.io)
@@ -40,7 +44,9 @@ class EngineWindowsPort(
     /** Starts the helper client the first time (idempotent); later calls reuse the running helper. */
     suspend fun connect(): Outcome<Unit> = client.start(clientScope)
 
-    override suspend fun listWindows(): Outcome<List<PortWindowInfo>> = when (val r = client.request("listWindows", timeout = WindowsHelperClient.LIST_TIMEOUT)) {
+    override suspend fun listWindows(): Outcome<List<PortWindowInfo>> = when (
+        val r = client.request("listWindows", mapOf("excludePid" to ownPid), timeout = WindowsHelperClient.LIST_TIMEOUT)
+    ) {
         is Outcome.Failure -> r
         is Outcome.Success -> {
             @Suppress("UNCHECKED_CAST")
@@ -62,12 +68,25 @@ class EngineWindowsPort(
             // backstop for a target that hangs the walk altogether.
             put("budgetMs", HELPER_WALK_BUDGET_MS)
             screenshotDir?.let { put("tmpDir", it.toString()) }
+            // Restore and raise the window before looking at it (a minimized window has no pixels), then raise UIScope again.
+            val activate = activateOnCapture()
+            put("activate", activate)
+            if (activate) {
+                put("settleMs", ACTIVATE_SETTLE_MS)
+                put("returnToPid", ownPid)
+            }
         },
         timeout = WindowsHelperClient.CAPTURE_TIMEOUT,
     )) {
         is Outcome.Failure -> r
         is Outcome.Success -> parseCapture(hwnd, r.value)
     }
+
+    override suspend fun activateWindow(hwnd: String): Outcome<Unit> =
+        when (val r = client.request("activateWindow", mapOf("hwnd" to hwnd), timeout = WindowsHelperClient.CAPTURE_TIMEOUT)) {
+            is Outcome.Failure -> r
+            is Outcome.Success -> Outcome.Success(Unit)
+        }
 
     override suspend fun startPick(hideFromCapture: Boolean): Outcome<Unit> =
         when (val r = client.request("startPick", mapOf("hideFromCapture" to hideFromCapture))) {
@@ -146,6 +165,11 @@ class EngineWindowsPort(
             if (windowWidth > 300 && windowHeight > 300 && countNodes(roots) < 5) {
                 add(CaptureWarning(ErrorCodes.LIMITED_ACCESSIBILITY, "fewer than 5 elements for a ${windowWidth}x${windowHeight} px window"))
             }
+            @Suppress("UNCHECKED_CAST")
+            val activation = value["activation"] as? Map<String, Any?>
+            if (activation?.get("requested") == true && activation["foreground"] == false) {
+                add(CaptureWarning(ErrorCodes.WINDOW_NOT_ACTIVATED, "Windows would not let UIScope bring the window to the front"))
+            }
         }
 
         val capture = Capture(
@@ -166,6 +190,7 @@ class EngineWindowsPort(
         processName = m["processName"] as? String ?: "",
         pid = (m["pid"] as? Long) ?: 0L,
         isElevated = m["isElevated"] as? Boolean == true,
+        isMinimized = m["isMinimized"] as? Boolean == true,
     )
 
     private fun pickedElement(payload: Map<String, Any?>): PickedElement {
@@ -193,5 +218,8 @@ class EngineWindowsPort(
 }
 
 private const val HELPER_WALK_BUDGET_MS = 25_000L
+
+/** How long the helper lets a window that was just restored or raised repaint before it is looked at. */
+private const val ACTIVATE_SETTLE_MS = 300L
 
 private fun countNodes(nodes: List<ElementNode>): Int = nodes.sumOf { 1 + countNodes(it.children) }

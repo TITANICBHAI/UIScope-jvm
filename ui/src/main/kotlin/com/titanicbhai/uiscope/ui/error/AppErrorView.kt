@@ -23,10 +23,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.titanicbhai.uiscope.error.AppError
 import com.titanicbhai.uiscope.ui.Strings
 import com.titanicbhai.uiscope.ui.theme.UiScopeTokens
+
+/** The longest reason shown under an error's explanation; the full text is always one click away in *Copy details*. */
+private const val MAX_DETAIL_CHARS = 200
 
 /** Where an error is shown: a slim row above content (M11: errors are visible *beside* content, never instead of it), or a full screen when there is nothing beside it. */
 enum class ErrorVariant { BANNER, FULL_SCREEN }
@@ -69,6 +73,15 @@ fun AppErrorView(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(copy.title, style = MaterialTheme.typography.titleSmall)
                     Text(copy.what, style = MaterialTheme.typography.bodySmall)
+                    // The specific reason (never screen content: details are written by UIScope), so "what is wrong" is never a guess.
+                    error.detail?.takeIf { it.isNotBlank() }?.let { detail ->
+                        Text(
+                            detail.take(MAX_DETAIL_CHARS),
+                            style = MaterialTheme.typography.labelSmall,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                 }
                 copy.action?.let { label -> TextButton(onClick = { onAction(error) }) { Text(label) } }
                 TextButton(onClick = { clipboard.setText(AnnotatedString(details)) }) { Text(Strings.ACTION_COPY_DETAILS) }
@@ -92,6 +105,15 @@ fun AppErrorView(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
+            error.detail?.takeIf { it.isNotBlank() }?.let { detail ->
+                Spacer(Modifier.height(UiScopeTokens.spaceS))
+                Text(
+                    detail.take(MAX_DETAIL_CHARS),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                )
+            }
             Spacer(Modifier.height(UiScopeTokens.spaceL))
             Row(horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(UiScopeTokens.spaceM)) {
                 copy.action?.let { label -> Button(onClick = { onAction(error) }) { Text(label) } }

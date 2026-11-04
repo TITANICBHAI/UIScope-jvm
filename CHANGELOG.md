@@ -1,9 +1,42 @@
 # Changelog
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/); versions follow [Semantic Versioning](https://semver.org/).
-Nothing has been released yet. Entries below describe only what exists in the code today.
+The newest version is on top. The app's "What's new" window and the website's changelog page are generated from this file.
 
-## [1.0.1] — unreleased (the first tagged release; 1.0.0 was never published)
+## [1.0.2] — 2026-11-04
+
+A reliability release for the two things UIScope exists for: seeing an Android screen, and inspecting a Windows app.
+
+### New
+- **Your phone's screen shows up first.** The picture appears as soon as it is captured, usually a second or two before UIScope has finished reading the elements, and a "Reading the elements..." cue tells you the rest is coming.
+- **Windows: choosing a window brings it to you.** A minimized window is restored, the window is brought to the front, UIScope reads it and then comes back in front with the result. Turn it off in Settings if you prefer windows to stay where they are.
+- **Show window** button: bring the window you are inspecting to the front again at any time, restoring it if it was minimized.
+- **Keep UIScope on top** (Settings and the View menu): stay visible next to the app you are inspecting.
+- **A hint next to your pointer while picking.** UIScope minimizes itself while you pick, so the instructions and the name of the element under the pointer now float beside it.
+- **Help and About, with the links in plain sight**: version and build, Website, Support, Documentation, Troubleshooting, Privacy and Source, one-click **Copy diagnostics**, and this changelog. A small version button in the status bar opens "What's new" from anywhere, and a window shows it once after every update.
+- **Plain-words errors that stay on screen.** When a capture fails (Android or Windows) a banner now says what happened and what to do, with the technical reason under it. Before, only a word in the status bar changed.
+- A line above the Android screen says which phone, Android version, screen size, app and time you are looking at.
+
+### Fixed
+- **Android: the phone's screen never appeared.** A capture is a screenshot plus an element dump, and when the dump failed (video, games, animations, apps that block accessibility, or another automation tool) the good screenshot was thrown away with it. The screenshot is now always shown; only the elements are missing, with the reason.
+- **Android: a good screenshot was rejected as "not an image".** Phones with several displays print a warning in front of the PNG, and older adb versions on Windows corrupt line endings. UIScope now finds the picture inside the output, repairs it when it can, and has a second way of fetching it through a file on the phone.
+- **Android: one undecodable screenshot could end the whole capture.** The optional "is this screen blank" check no longer takes the capture down with it.
+- **Android: slow phones and Wi-Fi debugging timed out** after 10 s while saving the screenshot; the limit is now 20 s.
+- **Windows: a minimized window was a dead end** ("restore it and capture again"). It is restored automatically.
+- **Windows: the screenshot could show UIScope instead of the window.** When the window could not paint itself, UIScope copied the screen while standing in front of it. The window is now brought forward first.
+- **Windows: picking an element never switched to the window.** The click that picks is swallowed so the application below does not react, which also meant Windows never activated it. Picking now brings the window forward for its screenshot and then returns to UIScope with the result.
+- **Windows: the "Choose window..." list was read once at start-up**, so windows opened later were missing and closed ones lingered. It is read again every time it opens, minimized windows are marked, and UIScope's own window is not listed.
+- **Windows: an unexpected failure during a capture could leave the screen stuck on "Capturing"** for good. It is reported and the next capture works.
+
+### Improved
+- The Android and Windows buttons at the top show which one is selected.
+- The Android and Windows screens say what is happening and what to do next instead of showing an empty area.
+- Error copy for every capture problem was rewritten to say that the screen is still shown when only the elements are missing.
+
+### Development history (not shown in the app)
+- Everything below this heading is the engineering log of the 1.0.x work that came before, kept for the repository.
+
+## [1.0.1] — engineering log (the work that led up to 1.0.2)
 
 ### Fixed — the two core features (reliability pass)
 Both inspection targets were built and unit-tested against fakes but had never run end to end; the first real run exposed these.

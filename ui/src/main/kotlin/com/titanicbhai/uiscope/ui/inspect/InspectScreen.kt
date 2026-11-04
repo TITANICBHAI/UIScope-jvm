@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -20,11 +21,11 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.focusable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -33,6 +34,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -60,8 +62,10 @@ import androidx.compose.ui.unit.dp
 import com.titanicbhai.uiscope.error.AppError
 import com.titanicbhai.uiscope.error.CodedError
 import com.titanicbhai.uiscope.error.ErrorCodes
+import com.titanicbhai.uiscope.model.CaptureWarning
 import com.titanicbhai.uiscope.model.ElementNode
 import com.titanicbhai.uiscope.model.ElementPath
+import com.titanicbhai.uiscope.model.Target
 import com.titanicbhai.uiscope.selector.SelectorEngine
 import com.titanicbhai.uiscope.settings.InspectTarget
 import com.titanicbhai.uiscope.state.AndroidInspectUi
@@ -100,6 +104,10 @@ data class WindowsCallbacks(
     val onPick: () -> Unit = {},
     val onCancelPick: () -> Unit = {},
     val onRefresh: () -> Unit = {},
+    /** Called whenever the "Choose window..." list opens, so it always shows the windows that exist now. */
+    val onRefreshWindows: () -> Unit = {},
+    /** "Show window": bring the inspected window to the front. */
+    val onShowWindow: () -> Unit = {},
     val onSelect: (ElementPath?) -> Unit = {},
     val onToggleExpanded: (ElementPath) -> Unit = {},
     val onExpandAll: () -> Unit = {},
@@ -228,7 +236,7 @@ fun InspectScreen(
                 is AndroidState.Offline -> AppErrorView(CodedError(ErrorCodes.DEVICE_OFFLINE), ErrorVariant.FULL_SCREEN, onAction = { callbacks.onStart() })
                 is AndroidState.NoPermissions -> AppErrorView(CodedError(ErrorCodes.NO_PERMISSIONS), ErrorVariant.FULL_SCREEN)
                 is AndroidState.Starting -> StartingPane()
-                else -> Workspace(ui, callbacks, treePaneWidth, detailsPaneWidth, searchFocus)
+                else -> AndroidWorkspace(ui, callbacks, treePaneWidth, detailsPaneWidth, searchFocus)
             }
         }
     }
@@ -285,26 +293,31 @@ private fun WindowsStartingPane() {
 }
 
 /** Pick button, window picker and the hover label (plan 4.4). During a pick the helper's mouse hook swallows every
- *  click, so there is deliberately no Cancel button - Esc or right-click cancels, and the label says so. */
+ *  click, so there is deliberately no Cancel button - Esc or right-click cancels. UIScope itself is usually minimized then,
+ *  which is why the helper also draws the same hint beside the cursor. */
 @Composable
 private fun WindowsControls(windows: WindowsInspectUi, callbacks: WindowsCallbacks) {
     if (windows.picking) {
         Text(
-            windows.hoverLabel ?: "Pick an element - Esc or right-click cancels",
+            windows.hoverLabel ?: "Click any element to inspect it - Esc or right-click cancels",
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.primary,
         )
         return
     }
     var open by remember { mutableStateOf(false) }
+    // The list is read again every time it opens: a window started after UIScope (or closed since) must not be missing or stale.
+    LaunchedEffect(open) { if (open) callbacks.onRefreshWindows() }
     val selected = windows.windows.firstOrNull { it.hwnd == windows.selectedHwnd }
+    val busy = windows.state is WindowsState.Capturing
     Button(
         onClick = { callbacks.onPick() },
-        enabled = windows.state is WindowsState.Idle || windows.state is WindowsState.Captured || windows.state is WindowsState.CaptureFailed,
+        enabled = windows.state is WindowsState.Idle || windows.state is WindowsState.Captured || windows.state is WindowsState.CaptureFailed ||
+            windows.state is WindowsState.WindowGone,
     ) {
         Text("Pick element")
     }
-    OutlinedButton(onClick = { open = true }) {
+    OutlinedButton(onClick = { open = true }, enabled = !busy) {
         Text(
             when {
                 selected != null -> "${selected.title} - ${selected.processName}" + if (selected.isElevated) " (admin)" else ""
@@ -315,10 +328,15 @@ private fun WindowsControls(windows: WindowsInspectUi, callbacks: WindowsCallbac
         )
     }
     DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-        if (windows.windows.isEmpty()) DropdownMenuItem(text = { Text("No windows") }, onClick = { open = false })
+        if (windows.windows.isEmpty()) DropdownMenuItem(text = { Text("No windows found") }, onClick = { open = false })
         for (window in windows.windows) {
             DropdownMenuItem(
-                text = { Text(window.title + " - " + window.processName + if (window.isElevated) " (admin)" else "") },
+                text = {
+                    Text(
+                        window.title + " - " + window.processName + (if (window.isMinimized) " (minimized)" else "") +
+                            (if (window.isElevated) " (admin)" else ""),
+                    )
+                },
                 onClick = {
                     open = false
                     callbacks.onSelectWindow(window.hwnd)
@@ -330,9 +348,22 @@ private fun WindowsControls(windows: WindowsInspectUi, callbacks: WindowsCallbac
             leadingIcon = { Icon(Icons.Filled.Refresh, contentDescription = null) },
             onClick = {
                 open = false
-                callbacks.onStart()
+                callbacks.onRefreshWindows()
             },
         )
+    }
+    if (selected != null || windows.selectedHwnd != null) {
+        OutlinedButton(onClick = { callbacks.onShowWindow() }, enabled = !busy) { Text("Show window") }
+    }
+    if (busy) BusyLabel("Bringing the window forward and reading it...")
+}
+
+/** A small spinner with a line of text: the "something is happening" cue (nothing in UIScope is ever silently busy). */
+@Composable
+private fun BusyLabel(text: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
+        Text(text, style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(start = UiScopeTokens.spaceS))
     }
 }
 
@@ -351,7 +382,8 @@ private fun WindowsWorkspace(
     LaunchedEffect(detailsPaneWidth) { detailsPaneWidth?.let { detailsWidth.value = it.dp } }
     val selectedNode = windows.selected?.let { path -> windows.index?.byPath?.get(path) }
     Column(Modifier.fillMaxSize()) {
-        WindowsCaptureBanners(windows)
+        WindowsStateBanner(windows, callbacks)
+        CaptureWarningRows(windows.capture?.warnings.orEmpty(), onRetry = callbacks.onRefresh)
         Row(Modifier.weight(1f).fillMaxWidth()) {
             TreePane(
                 index = windows.index,
@@ -394,10 +426,42 @@ private fun WindowsWorkspace(
     }
 }
 
-/** The P3-7 hints (tree truncated, limited accessibility) as banner rows over the workspace (M11). */
+/** Why the last Windows capture failed, in words, with the action that fixes it (it used to be a status-bar word and nothing else). */
 @Composable
-private fun WindowsCaptureBanners(windows: WindowsInspectUi) {
-    val warnings = windows.capture?.warnings ?: return
+private fun WindowsStateBanner(windows: WindowsInspectUi, callbacks: WindowsCallbacks) {
+    val state = windows.state
+    var dismissed by remember(state) { mutableStateOf(false) }
+    if (dismissed) return
+    when (state) {
+        is WindowsState.CaptureFailed -> AppErrorView(
+            state.error,
+            ErrorVariant.BANNER,
+            onAction = { error ->
+                when (error.code) {
+                    ErrorCodes.WINDOW_GONE -> callbacks.onPick()
+                    ErrorCodes.ELEVATED_TARGET -> dismissed = true
+                    else -> callbacks.onRefresh()
+                }
+            },
+            onDismiss = { dismissed = true },
+        )
+        is WindowsState.WindowGone -> AppErrorView(
+            CodedError(ErrorCodes.WINDOW_GONE),
+            ErrorVariant.BANNER,
+            onAction = { callbacks.onPick() },
+            onDismiss = { dismissed = true },
+        )
+        else -> Unit
+    }
+}
+
+/**
+ * The hints about one capture as banner rows over the workspace (M11): the Windows P3-7 hints (tree truncated, limited accessibility, window
+ * not brought forward) and, on Android, why the elements could not be read while the screen is still shown. [onRetry] adds a Retry button
+ * to the rows whose copy offers one.
+ */
+@Composable
+private fun CaptureWarningRows(warnings: List<CaptureWarning>, onRetry: (() -> Unit)? = null) {
     if (warnings.isEmpty()) return
     Column {
         for (warning in warnings) {
@@ -415,8 +479,11 @@ private fun WindowsCaptureBanners(windows: WindowsInspectUi) {
                     style = MaterialTheme.typography.bodySmall,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(start = UiScopeTokens.spaceS),
+                    modifier = Modifier.weight(1f).padding(start = UiScopeTokens.spaceS),
                 )
+                if (onRetry != null && copy.action == Strings.ACTION_RETRY) {
+                    TextButton(onClick = onRetry) { Text(Strings.ACTION_RETRY) }
+                }
             }
         }
     }
@@ -425,11 +492,11 @@ private fun WindowsCaptureBanners(windows: WindowsInspectUi) {
 @Composable
 private fun WindowsEmptyHint(windows: WindowsInspectUi) {
     val hint = when (val state = windows.state) {
-        is WindowsState.Capturing -> "Capturing ${state.window.title}..."
-        is WindowsState.CaptureFailed -> "The last capture failed; the banner above says why."
-        is WindowsState.WindowGone -> "The window closed. Pick another one."
-        WindowsState.Picking -> "Pick an element in any window; Esc or right-click cancels."
-        else -> "Choose a window above, or press Pick element, to begin."
+        is WindowsState.Capturing -> "Bringing the window forward and reading it..."
+        is WindowsState.CaptureFailed -> "That window could not be read. The message above says why and what to do."
+        is WindowsState.WindowGone -> "The window was closed. Choose another one, or press Pick element."
+        WindowsState.Picking -> "Click any element in any window to inspect it. Esc or right-click cancels."
+        else -> "Choose a window above, or press Pick element and click something, to begin."
     }
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Text(hint, style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center, modifier = Modifier.padding(UiScopeTokens.spaceXl))
@@ -451,9 +518,9 @@ private fun TargetBar(
     Surface(color = MaterialTheme.colorScheme.surfaceVariant) {
         Column(Modifier.fillMaxWidth().padding(horizontal = UiScopeTokens.spaceM, vertical = UiScopeTokens.spaceS)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(UiScopeTokens.spaceS)) {
-                AssistChip(onClick = { onTarget(InspectTarget.ANDROID) }, label = { Text("Android") })
+                FilterChip(selected = target == InspectTarget.ANDROID, onClick = { onTarget(InspectTarget.ANDROID) }, label = { Text("Android") })
                 if (windowsPcAvailable) {
-                    AssistChip(onClick = { onTarget(InspectTarget.WINDOWS) }, label = { Text("Windows app") })
+                    FilterChip(selected = target == InspectTarget.WINDOWS, onClick = { onTarget(InspectTarget.WINDOWS) }, label = { Text("Windows app") })
                 }
                 Spacer(Modifier.weight(1f))
                 if (target == InspectTarget.ANDROID) {
@@ -514,6 +581,67 @@ private fun deviceLabel(ui: AndroidInspectUi): String {
     }
 }
 
+private val CAPTURE_TIME: java.time.format.DateTimeFormatter =
+    java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss").withZone(java.time.ZoneId.systemDefault())
+
+/**
+ * The Android workspace with what used to be missing around it: a line saying which phone and screen this is, and the reason when a
+ * capture failed or its elements could not be read (the screen itself stays visible in both cases).
+ */
+@Composable
+private fun AndroidWorkspace(
+    ui: AndroidInspectUi,
+    callbacks: InspectCallbacks,
+    treePaneWidth: Int?,
+    detailsPaneWidth: Int?,
+    searchFocus: FocusRequester,
+) {
+    Column(Modifier.fillMaxSize()) {
+        AndroidInfoRow(ui)
+        AndroidFailureBanner(ui, callbacks)
+        CaptureWarningRows((ui.capture ?: ui.preview)?.warnings.orEmpty(), onRetry = callbacks.onCapture)
+        Box(Modifier.weight(1f).fillMaxWidth()) {
+            Workspace(ui, callbacks, treePaneWidth, detailsPaneWidth, searchFocus)
+        }
+    }
+}
+
+/** "Pixel 7 | Android 14 | 1080x2400 | com.example.app | captured 12:03:41": what the picture below is a picture of. */
+@Composable
+private fun AndroidInfoRow(ui: AndroidInspectUi) {
+    val capture = ui.capture ?: ui.preview ?: return
+    val android = capture.target as? Target.Android
+    val parts = buildList {
+        android?.device?.model?.let { add(it) }
+        android?.device?.androidVersion?.let { add("Android $it") }
+        add("${capture.screen.width}x${capture.screen.height}")
+        android?.foregroundPackage?.let { add(it) }
+        add("captured " + CAPTURE_TIME.format(capture.takenAt))
+    }
+    Text(
+        parts.joinToString("  |  "),
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        modifier = Modifier.fillMaxWidth().padding(horizontal = UiScopeTokens.spaceM, vertical = 2.dp),
+    )
+}
+
+/** Why the last Android capture failed, in words, with its action (the reason used to be shown nowhere). */
+@Composable
+private fun AndroidFailureBanner(ui: AndroidInspectUi, callbacks: InspectCallbacks) {
+    val state = ui.state as? AndroidState.CaptureFailed ?: return
+    var dismissed by remember(state) { mutableStateOf(false) }
+    if (dismissed) return
+    AppErrorView(
+        state.error,
+        ErrorVariant.BANNER,
+        onAction = { error -> if (error.code == ErrorCodes.ADB_START_FAILED || error.code == ErrorCodes.ADB_NOT_FOUND) callbacks.onStart() else callbacks.onCapture() },
+        onDismiss = { dismissed = true },
+    )
+}
+
 /** tree | splitter | canvas | splitter | details, with the widths the user dragged (persisted through Settings). */
 @Composable
 private fun Workspace(
@@ -547,17 +675,36 @@ private fun Workspace(
         )
         Splitter(onDrag = { delta -> treeWidth.value = (treeWidth.value + delta).coerceIn(160.dp, 900.dp) }, onDragEnd = { callbacks.onSetTreePaneWidth(treeWidth.value.value.toInt()) })
         Box(Modifier.weight(1f).fillMaxHeight()) {
-            if (ui.capture == null) {
+            // The picture of the phone shows up as soon as it arrives, before its elements have been read.
+            val shown = ui.capture ?: ui.preview
+            if (shown == null) {
                 EmptyWorkspaceHint(ui)
             } else {
                 CanvasPane(
-                    capture = ui.capture,
-                    index = ui.index,
+                    capture = shown,
+                    index = if (ui.capture != null) ui.index else null,
                     selected = ui.selected,
                     onSelect = callbacks.onSelect,
                     testHighlight = testHighlight.value,
                     modifier = Modifier.fillMaxSize(),
                 )
+            }
+            if (ui.state is AndroidState.Capturing) {
+                Surface(
+                    modifier = Modifier.align(Alignment.TopEnd).padding(UiScopeTokens.spaceS),
+                    shape = UiScopeTokens.cornerMedium,
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
+                    shadowElevation = 2.dp,
+                ) {
+                    Row(Modifier.padding(horizontal = UiScopeTokens.spaceM, vertical = UiScopeTokens.spaceXs), verticalAlignment = Alignment.CenterVertically) {
+                        CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
+                        Text(
+                            if (ui.preview != null) "Reading the elements..." else "Reading the screen...",
+                            style = MaterialTheme.typography.labelMedium,
+                            modifier = Modifier.padding(start = UiScopeTokens.spaceS),
+                        )
+                    }
+                }
             }
         }
         Splitter(onDrag = { delta -> detailsWidth.value = (detailsWidth.value - delta).coerceIn(160.dp, 900.dp) }, onDragEnd = { callbacks.onSetDetailsPaneWidth(detailsWidth.value.value.toInt()) })
@@ -575,8 +722,8 @@ private fun Workspace(
 private fun EmptyWorkspaceHint(ui: AndroidInspectUi) {
     val hint = when (val state = ui.state) {
         is AndroidState.ChooseDevice -> "Several devices are connected - pick one in the device picker above."
-        is AndroidState.Ready -> "Press Capture now to read the screen."
-        is AndroidState.CaptureFailed -> "The last capture failed; the previous capture is still shown when there was one."
+        is AndroidState.Ready, is AndroidState.Capturing -> "Reading your phone's screen..."
+        is AndroidState.CaptureFailed -> "The phone's screen could not be read. The message above says why and what to do."
         is AndroidState.Disconnected -> "The device disconnected. The last capture is still shown; reconnect and press Capture now."
         else -> "Connect a device and capture to begin."
     }

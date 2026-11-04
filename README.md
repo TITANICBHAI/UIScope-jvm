@@ -7,10 +7,10 @@ tree, a screenshot with live element highlighting, per-element properties, selec
 frameworks, and snapshots you can re-open offline or export. The **Compare** screen diffs any two captures —
 live vs snapshot or snapshot vs snapshot — with added/removed/changed/moved browsing and JSON or text export.
 
-> **Status: 1.0.1.** The app was rebuilt from the ground up; the previous implementation is gone
-> (`git log` keeps it). Microsoft Store submission and the first tagged release are the remaining owner steps.
+> **Status: 1.0.2.** The app was rebuilt from the ground up; the previous implementation is gone
+> (`git log` keeps it). What changed: [CHANGELOG.md](CHANGELOG.md). Microsoft Store submission and tagging the release (`v1.0.2`) are the remaining owner steps.
 
-**Website:** <https://titanicbhai.github.io/UIScope-jvm/web/> (plain HTML in [`web/`](web/); the app's Help menu links to it).
+**Website:** <https://uiscope.pages.dev/> (plain HTML in [`web/`](web/); the app's Help screen and status bar link to it) · **Support:** <https://uiscope.pages.dev/support.html> · **Changelog:** <https://uiscope.pages.dev/changelog.html>
 
 ## Install
 

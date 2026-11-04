@@ -4,6 +4,7 @@ import com.titanicbhai.uiscope.DispatcherProvider
 import com.titanicbhai.uiscope.error.CodedError
 import com.titanicbhai.uiscope.error.ErrorCodes
 import com.titanicbhai.uiscope.error.Outcome
+import com.titanicbhai.uiscope.error.UnexpectedError
 import com.titanicbhai.uiscope.model.Capture
 import com.titanicbhai.uiscope.model.ElementIndex
 import com.titanicbhai.uiscope.model.ElementNode
@@ -11,7 +12,9 @@ import com.titanicbhai.uiscope.model.ElementPath
 import com.titanicbhai.uiscope.ports.PickEvent
 import com.titanicbhai.uiscope.ports.WindowsInspectorPort
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.logging.Level
 import java.util.logging.Logger
+import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -95,6 +98,39 @@ class WindowsInspectState(
         }
     }
 
+    /**
+     * Re-reads the "Choose window..." list. The screen calls it every time the list opens, so a window that was started after UIScope
+     * (or closed since) is never missing from, or stuck in, the list. A failure keeps the old list: capture reports a dead helper.
+     */
+    fun refreshWindows() {
+        when (state.value.state) {
+            is WindowsState.Starting, is WindowsState.HelperMissing -> return
+            else -> Unit
+        }
+        scope.launch {
+            when (val r = withContext(dispatchers.io) { port.listWindows() }) {
+                is Outcome.Success -> mutate { copy(windows = r.value) }
+                is Outcome.Failure -> logger.fine("the window list could not be refreshed: ${r.error.code}")
+            }
+        }
+    }
+
+    /** "Show window": brings the inspected window to the front, restoring it when it is minimized. */
+    fun showWindow() {
+        val hwnd = state.value.selectedHwnd ?: return
+        scope.launch {
+            when (val r = withContext(dispatchers.io) { port.activateWindow(hwnd) }) {
+                is Outcome.Success -> mutate { copy(problem = null) }
+                is Outcome.Failure ->
+                    if (r.error.code == ErrorCodes.WINDOW_GONE) {
+                        mutate { copy(state = WindowsState.WindowGone(lastCapture = capture)) }
+                    } else {
+                        mutate { copy(problem = r.error) }
+                    }
+            }
+        }
+    }
+
     // ── capture ────────────────────────────────────────────────────────────────────────────────
 
     /** Captures [hwnd] (from "Choose window..." or a pick). Single-flight: a running capture ignores new requests. */
@@ -124,10 +160,19 @@ class WindowsInspectState(
             )
         }
         captureJob = scope.launch {
-            val result = withContext(dispatchers.io) { port.captureWindow(hwnd) }
+            val result = try {
+                withContext(dispatchers.io) { port.captureWindow(hwnd) }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: RuntimeException) {
+                // Never leave single-flight locked: a crash in the port used to freeze every later capture on "Capturing".
+                logger.log(Level.WARNING, "the capture crashed", e)
+                Outcome.Failure(UnexpectedError(e))
+            }
             when (result) {
                 is Outcome.Failure -> {
                     capturing.set(false)
+                    pendingPickElement = null
                     if (result.error.code == ErrorCodes.WINDOW_GONE) {
                         mutate { copy(state = WindowsState.WindowGone(lastCapture = previous)) }
                     } else {

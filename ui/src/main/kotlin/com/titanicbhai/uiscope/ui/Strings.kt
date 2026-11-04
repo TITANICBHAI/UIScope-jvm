@@ -65,28 +65,28 @@ object Strings {
             ACTION_OPEN_GUIDE,
         ),
         ErrorCodes.DUMP_NULL_ROOT to ErrorCopy(
-            "The screen can't be read right now",
-            "The app may be transitioning or block accessibility.",
+            "The elements can't be read right now",
+            "The phone's screen is shown, but the app may be mid-transition or block accessibility. Try again in a moment.",
             ACTION_RETRY,
         ),
         ErrorCodes.DUMP_IDLE_TIMEOUT to ErrorCopy(
             "The screen keeps animating",
-            "Pause the video, animation or spinner and try again.",
+            "The screen is shown, but its elements can't be read while something moves. Pause the video, animation or spinner and try again.",
             ACTION_RETRY,
         ),
         ErrorCodes.UIAUTOMATOR_BUSY to ErrorCopy(
             "Another automation tool is using the device",
-            "Stop Appium, uiautomator2 or Maestro sessions on this device.",
+            "The screen is shown, but its elements can't be read. Stop Appium, uiautomator2 or Maestro sessions on this device.",
             ACTION_RETRY,
         ),
         ErrorCodes.DUMP_TIMEOUT to ErrorCopy(
-            "Timed out reading the screen",
-            "The device is slow or busy.",
+            "Timed out reading the elements",
+            "The device is slow or busy. The screen is shown; the elements may need another try.",
             ACTION_RETRY,
         ),
         ErrorCodes.SCREENSHOT_FAILED to ErrorCopy(
             "Couldn't take a screenshot",
-            "The element tree is still shown if it is available.",
+            "The element tree is still shown if it is available. Try again; if it keeps failing, unlock the phone and keep its screen on.",
             ACTION_RETRY,
         ),
         ErrorCodes.SECURE_WINDOW to ErrorCopy(
@@ -96,7 +96,7 @@ object Strings {
         ),
         ErrorCodes.PARSE_FAILED to ErrorCopy(
             "Couldn't read the UI dump",
-            "The device returned something UIScope could not parse.",
+            "The device returned something UIScope could not parse. The screen is shown without its elements.",
             ACTION_COPY_DETAILS,
         ),
         ErrorCodes.WIRELESS_PAIR_FAILED to ErrorCopy(
@@ -143,7 +143,12 @@ object Strings {
         ),
         "WINDOW_MINIMIZED" to ErrorCopy(
             "The window is minimized",
-            "Restore it for a screenshot — the element tree was still read.",
+            "UIScope could not restore it by itself. Click it in the taskbar, then capture again.",
+            ACTION_RETRY,
+        ),
+        ErrorCodes.WINDOW_NOT_ACTIVATED to ErrorCopy(
+            "Couldn't bring the window to the front",
+            "Windows sometimes stops one app from taking over another's focus. The capture was still made; click the window yourself if you need it in front.",
             ACTION_DISMISS,
         ),
         "LIMITED_ACCESSIBILITY" to ErrorCopy(

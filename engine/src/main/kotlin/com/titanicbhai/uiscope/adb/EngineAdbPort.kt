@@ -46,6 +46,8 @@ class EngineAdbPort(
         ).track()
     }
 
-    override suspend fun capture(device: AdbDevice): Outcome<Capture> =
-        client?.capture(device) ?: Outcome.Failure(CodedError(ErrorCodes.ADB_NOT_FOUND, "adb has not been located yet"))
+    override suspend fun capture(device: AdbDevice): Outcome<Capture> = capture(device) {}
+
+    override suspend fun capture(device: AdbDevice, onScreen: (Capture) -> Unit): Outcome<Capture> =
+        client?.capture(device, onScreen) ?: Outcome.Failure(CodedError(ErrorCodes.ADB_NOT_FOUND, "adb has not been located yet"))
 }

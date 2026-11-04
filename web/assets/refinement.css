@@ -367,3 +367,10 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outlin
 :root[data-theme="light"] .platform-card { background:#ffffff; }
 :root[data-theme="light"] .callout { color:var(--muted-ink); }
 :root[data-theme="light"] .not-found { color:var(--ink); }
+
+/* Changelog and support pages */
+.release h2 small{font-size:.55em;font-weight:500;opacity:.7;margin-left:.5rem}
+.release ul{margin:.4rem 0 0 1.15rem;padding:0}
+.release li{margin:.4rem 0}
+.release h3{margin-top:1.1rem}
+.grid-1{display:grid;gap:1.25rem}

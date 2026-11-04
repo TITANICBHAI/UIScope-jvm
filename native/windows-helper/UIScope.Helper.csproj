@@ -34,6 +34,7 @@
     <Compile Include="Program.cs" />
     <Compile Include="Json.cs" />
     <Compile Include="Native.cs" />
+    <Compile Include="Activation.cs" />
     <Compile Include="Inspector.cs" />
     <Compile Include="Host.cs" />
     <Compile Include="PickMode.cs" />

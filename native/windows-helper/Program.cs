@@ -17,7 +17,7 @@ namespace UIScope.Helper
     /// </summary>
     internal static class Program
     {
-        internal const string HelperVersion = "0.2.0";
+        internal const string HelperVersion = "0.3.0";
         private const int ProtocolVersion = 1;
         private const int HotkeyId = 0x5C01;
         private const uint ModNoRepeat = 0x4000;
@@ -161,11 +161,15 @@ namespace UIScope.Helper
                         break;
 
                     case "listWindows":
-                        RunAsync(id, type, ListWindowsFields);
+                        RunAsync(id, type, delegate { return ListWindowsFields(line); });
                         break;
 
                     case "captureWindow":
                         RunAsync(id, type, delegate { return CaptureFields(line); });
+                        break;
+
+                    case "activateWindow":
+                        RunAsync(id, type, delegate { return ActivateFields(line); });
                         break;
 
                     case "startPick":
@@ -239,8 +243,10 @@ namespace UIScope.Helper
 
         // -- listWindows -------------------------------------------------------------------------
 
-        private static string ListWindowsFields()
+        private static string ListWindowsFields(string line)
         {
+            // The caller's own process (UIScope) is left out: inspecting the inspector is never what anyone wants from this list.
+            uint excludePid = (uint)Math.Max(0, Json.ExtractInt(line, "excludePid", 0));
             var sb = new StringBuilder("\"windows\":[");
             var names = new Dictionary<uint, string>();
             var elevation = new Dictionary<uint, bool>();
@@ -250,6 +256,7 @@ namespace UIScope.Helper
             {
                 uint pid;
                 Native.GetWindowThreadProcessId(hwnd, out pid);
+                if (excludePid != 0 && pid == excludePid) continue;
                 string name;
                 if (!names.TryGetValue(pid, out name))
                 {
@@ -269,7 +276,8 @@ namespace UIScope.Helper
                 sb.Append(",\"title\":").Append(Json.Str(Native.WindowTitle(hwnd)));
                 sb.Append(",\"processName\":").Append(Json.Str(name));
                 sb.Append(",\"pid\":").Append(pid);
-                sb.Append(",\"isElevated\":").Append(Json.Bool(elevated && !selfElevated)).Append('}');
+                sb.Append(",\"isElevated\":").Append(Json.Bool(elevated && !selfElevated));
+                sb.Append(",\"isMinimized\":").Append(Json.Bool(Native.IsIconic(hwnd))).Append('}');
             }
             return sb.Append(']').ToString();
         }
@@ -306,13 +314,44 @@ namespace UIScope.Helper
             int budgetMs = Json.ExtractInt(line, "budgetMs", 20000);
             string folder = Json.ExtractString(line, "tmpDir");
 
+            // "activate": restore the window if it is minimized and bring it to the front before looking at it (a minimized window has
+            // no pixels, and the screen-copy fallback needs nothing on top of it); "returnToPid": raise that process (UIScope) again
+            // afterwards, so the user lands back on the result.
+            bool activate = Json.ExtractBool(line, "activate", true);
+            int settleMs = Json.ExtractInt(line, "settleMs", 300);
+            uint returnToPid = (uint)Math.Max(0, Json.ExtractInt(line, "returnToPid", 0));
+
             if (!Native.IsWindow(hwnd)) throw new ProtocolException("WINDOW_GONE", "The window no longer exists");
-            if (Native.IsIconic(hwnd)) throw new ProtocolException("WINDOW_MINIMIZED", "The window is minimized; restore it and capture again");
             uint pid;
             Native.GetWindowThreadProcessId(hwnd, out pid);
             bool targetElevated = Native.IsElevated(pid);
             if (targetElevated && !Native.IsCurrentProcessElevated())
                 throw new ProtocolException("ELEVATED_TARGET", "That window runs as administrator; start UIScope as administrator to inspect it");
+
+            bool wasMinimized = Native.IsIconic(hwnd);
+            bool inFront = false;
+            if (activate)
+            {
+                Activation.Shown shown = Activation.Show(hwnd, settleMs);
+                wasMinimized = shown.WasMinimized;
+                inFront = shown.Foreground;
+            }
+            try
+            {
+                return CaptureShown(hwnd, pid, targetElevated, maxDepth, maxNodes, budgetMs, folder, activate, wasMinimized, inFront);
+            }
+            finally
+            {
+                // Always: a failed capture must not leave the user staring at the target with UIScope hidden behind it.
+                if (activate && returnToPid != 0) Activation.ReturnTo(returnToPid);
+            }
+        }
+
+        private static string CaptureShown(IntPtr hwnd, uint pid, bool targetElevated, int maxDepth, int maxNodes, int budgetMs, string folder,
+            bool activate, bool wasMinimized, bool inFront)
+        {
+            if (Native.IsIconic(hwnd))
+                throw new ProtocolException("WINDOW_MINIMIZED", activate ? "The window is minimized and did not restore" : "The window is minimized; restore it and capture again");
 
             Native.RECT native;
             if (!Native.GetWindowRect(hwnd, out native) || native.Width < 1 || native.Height < 1)
@@ -349,7 +388,21 @@ namespace UIScope.Helper
             sb.Append(",\"roots\":[").Append(tree.RootJson).Append(']');
             sb.Append(",\"truncated\":").Append(Json.Bool(tree.Truncated));
             sb.Append(",\"nodeCount\":").Append(tree.NodeCount).Append(",\"elapsedMs\":").Append(tree.ElapsedMs);
+            sb.Append(",\"activation\":{\"requested\":").Append(Json.Bool(activate));
+            sb.Append(",\"wasMinimized\":").Append(Json.Bool(wasMinimized));
+            sb.Append(",\"foreground\":").Append(Json.Bool(inFront)).Append('}');
             return sb.ToString();
+        }
+
+        // -- activateWindow ----------------------------------------------------------------------
+
+        /// <summary>"Show window": restore the window if needed and leave it in front (no capture, no return to UIScope).</summary>
+        private static string ActivateFields(string line)
+        {
+            IntPtr hwnd = ParseHwnd(Json.ExtractString(line, "hwnd"));
+            if (!Native.IsWindow(hwnd)) throw new ProtocolException("WINDOW_GONE", "The window no longer exists");
+            Activation.Shown shown = Activation.Show(hwnd, 0);
+            return "\"wasMinimized\":" + Json.Bool(shown.WasMinimized) + ",\"foreground\":" + Json.Bool(shown.Foreground);
         }
 
         // -- pick --------------------------------------------------------------------------------

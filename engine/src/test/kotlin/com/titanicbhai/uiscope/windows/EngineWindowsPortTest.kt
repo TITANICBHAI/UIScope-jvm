@@ -34,7 +34,9 @@ class EngineWindowsPortTest {
     private val job = SupervisorJob()
     private val scope = CoroutineScope(job + kotlinx.coroutines.Dispatchers.Default)
 
-    private fun port(vararg flags: String): EngineWindowsPort {
+    private fun port(vararg flags: String): EngineWindowsPort = portWith(activate = true, ownPid = OWN_PID, flags = flags)
+
+    private fun portWith(activate: Boolean, ownPid: Long, vararg flags: String): EngineWindowsPort {
         val client = WindowsHelperClient(
             launcher = SystemProcessLauncher(dispatchers),
             helperCommand = FakeProcess.command("helper", *flags),
@@ -42,7 +44,12 @@ class EngineWindowsPortTest {
             requestTimeout = 10.seconds,
             logger = java.util.logging.Logger.getLogger("test.port"),
         )
-        return EngineWindowsPort(client, dispatchers = dispatchers)
+        return EngineWindowsPort(client, dispatchers = dispatchers, activateOnCapture = { activate }, ownPid = ownPid)
+    }
+
+    private companion object {
+        /** Not a real process: the fake helper only compares it with the pids in its window list. */
+        const val OWN_PID = 4242L
     }
 
     @Test
@@ -163,6 +170,77 @@ class EngineWindowsPortTest {
         p.connect().assertSuccess()
         val capture = p.captureWindow("0x00120A3C").assertSuccess()
         assertTrue(capture.warnings.isEmpty(), "the fixture is not truncated")
+        job.cancelChildren()
+    }
+    @Test
+    fun `the window list leaves UIScope's own process out and marks minimized windows`() = blocking {
+        val ownProcess = portWith(activate = true, ownPid = 1234L, flags = arrayOf("minimized-window"))
+        ownProcess.connect().assertSuccess()
+        assertEquals(listOf("Taskmgr.exe"), ownProcess.listWindows().assertSuccess().map { it.processName }, "pid 1234 is UIScope here")
+        job.cancelChildren()
+
+        val other = portWith(activate = true, ownPid = OWN_PID, flags = arrayOf("minimized-window"))
+        other.connect().assertSuccess()
+        val windows = other.listWindows().assertSuccess()
+        assertEquals(listOf(true, false), windows.map { it.isMinimized }, "the minimized window is marked, the other is not")
+        job.cancelChildren()
+    }
+
+    @Test
+    fun `a capture asks the helper to bring the window forward and to hand the screen back to UIScope`() = blocking {
+        val log = Files.createTempFile("uiscope-requests", ".log")
+        try {
+            val p = port("log:$log")
+            p.connect().assertSuccess()
+            p.captureWindow("0x00120A3C").assertSuccess()
+            val request = Files.readAllLines(log).single { it.contains("\"captureWindow\"") }
+            assertTrue(Regex("\"activate\"\\s*:\\s*true").containsMatchIn(request), request)
+            assertTrue(Regex("\"returnToPid\"\\s*:\\s*$OWN_PID").containsMatchIn(request), request)
+            assertTrue(Regex("\"settleMs\"\\s*:\\s*\\d+").containsMatchIn(request), request)
+        } finally {
+            Files.deleteIfExists(log)
+            job.cancelChildren()
+        }
+    }
+
+    @Test
+    fun `with the setting off a capture leaves the windows where they are`() = blocking {
+        val log = Files.createTempFile("uiscope-requests", ".log")
+        try {
+            val p = portWith(activate = false, ownPid = OWN_PID, flags = arrayOf("log:$log"))
+            p.connect().assertSuccess()
+            val capture = p.captureWindow("0x00120A3C").assertSuccess()
+            val request = Files.readAllLines(log).single { it.contains("\"captureWindow\"") }
+            assertTrue(Regex("\"activate\"\\s*:\\s*false").containsMatchIn(request), request)
+            assertTrue(!request.contains("returnToPid"), "nothing was moved, so nothing is handed back: $request")
+            assertTrue(capture.warnings.isEmpty(), capture.warnings.toString())
+        } finally {
+            Files.deleteIfExists(log)
+            job.cancelChildren()
+        }
+    }
+
+    @Test
+    fun `a window that would not come to the front is a warning and the capture is still delivered`() = blocking {
+        val p = port("no-foreground")
+        p.connect().assertSuccess()
+        val capture = p.captureWindow("0x00120A3C").assertSuccess()
+        assertEquals(listOf(ErrorCodes.WINDOW_NOT_ACTIVATED), capture.warnings.map { it.code })
+        assertTrue(capture.roots.isNotEmpty())
+        job.cancelChildren()
+    }
+
+    @Test
+    fun `showing a window succeeds, and a closed window is reported`() = blocking {
+        val p = port()
+        p.connect().assertSuccess()
+        p.activateWindow("0x00120A3C").assertSuccess()
+        job.cancelChildren()
+
+        val gone = port("window-gone")
+        gone.connect().assertSuccess()
+        val result = gone.activateWindow("0x00120A3C")
+        assertTrue(result is Outcome.Failure && result.error.code == ErrorCodes.WINDOW_GONE, "closed window: $result")
         job.cancelChildren()
     }
 }

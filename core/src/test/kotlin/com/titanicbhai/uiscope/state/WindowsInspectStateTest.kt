@@ -54,6 +54,12 @@ class WindowsInspectStateTest {
         val startedPicks = AtomicInteger()
         val stoppedPicks = AtomicInteger()
         val pickFeed = MutableSharedFlow<PickEvent>(replay = 1)
+        val activated = CopyOnWriteArrayList<String>()
+        var activateResult: Outcome<Unit> = Outcome.Success(Unit)
+
+        /** Thrown (once) by the next captureWindow, like a port that hits a bug. */
+        @Volatile
+        var captureCrash: RuntimeException? = null
 
         override suspend fun listWindows(): Outcome<List<WindowInfoType>> {
             threads += Thread.currentThread().name
@@ -62,7 +68,17 @@ class WindowsInspectStateTest {
 
         override suspend fun captureWindow(hwnd: String): Outcome<Capture> {
             threads += Thread.currentThread().name
+            captureCrash?.let {
+                captureCrash = null
+                throw it
+            }
             return captureResults.removeFirstOrNull() ?: Outcome.Success(screenFor(hwnd))
+        }
+
+        override suspend fun activateWindow(hwnd: String): Outcome<Unit> {
+            threads += Thread.currentThread().name
+            activated += hwnd
+            return activateResult
         }
 
         override suspend fun startPick(hideFromCapture: Boolean): Outcome<Unit> {
@@ -289,6 +305,60 @@ class WindowsInspectStateTest {
             "port calls on the main thread: ${port.threads.filter { it.startsWith("ui-main") }.size}",
         )
         assertTrue(port.threads.all { it.startsWith("ui-io") || it.startsWith("ui-default") }, port.threads.toSet().toString())
+        s.stop()
+        job.cancelChildren()
+    }
+    @Test
+    fun `the window list can be read again, and a failed refresh keeps the old list`() = kotlinx.coroutines.runBlocking {
+        val s = state()
+        s.start()
+        s.awaitState("Idle") { it is WindowsState.Idle }
+        val calculator = WindowInfoType("0x000CA1C0", "Calculator", "CalculatorApp.exe", 555, false, isMinimized = true)
+        port.listWindowsResult = Outcome.Success(listOf(notepad, calculator))
+        s.refreshWindows()
+        waitFor("the new window is listed") { s.ui.value.windows.any { it.hwnd == calculator.hwnd } }
+        assertTrue(s.ui.value.windows.single { it.hwnd == calculator.hwnd }.isMinimized)
+        assertTrue(s.ui.value.windows.none { it.hwnd == elevated.hwnd }, "a window that closed is gone from the list")
+        port.listWindowsResult = Outcome.Failure(CodedError(ErrorCodes.UIA_UNAVAILABLE, "the helper stopped"))
+        s.refreshWindows()
+        Thread.sleep(200)
+        assertEquals(listOf(notepad, calculator), s.ui.value.windows, "the list stays as it was")
+        assertTrue(s.ui.value.state is WindowsState.Idle, "a failed refresh is not a state change")
+        s.stop()
+        job.cancelChildren()
+    }
+
+    @Test
+    fun `show window brings the inspected window forward and a closed window is reported`() = kotlinx.coroutines.runBlocking {
+        val s = state()
+        s.start()
+        s.awaitState("Idle") { it is WindowsState.Idle }
+        s.showWindow()
+        Thread.sleep(150)
+        assertTrue(port.activated.isEmpty(), "nothing is chosen yet, so there is nothing to show")
+        s.chooseWindow(notepad.hwnd)
+        s.awaitState("Captured") { it is WindowsState.Captured }
+        s.showWindow()
+        waitFor("the helper was asked to show it") { port.activated == listOf(notepad.hwnd) }
+        assertTrue(s.ui.value.problem == null)
+        port.activateResult = Outcome.Failure(CodedError(ErrorCodes.WINDOW_GONE, "closed"))
+        s.showWindow()
+        s.awaitState("WindowGone") { it is WindowsState.WindowGone }
+        s.stop()
+        job.cancelChildren()
+    }
+
+    @Test
+    fun `a port that crashes during a capture ends in CaptureFailed instead of freezing on Capturing`() = kotlinx.coroutines.runBlocking {
+        val s = state()
+        s.start()
+        s.awaitState("Idle") { it is WindowsState.Idle }
+        port.captureCrash = IllegalStateException("a bug in the port")
+        s.chooseWindow(notepad.hwnd)
+        s.awaitState("CaptureFailed") { it is WindowsState.CaptureFailed }
+        assertEquals(ErrorCodes.UNEXPECTED, (s.ui.value.state as WindowsState.CaptureFailed).error.code)
+        s.chooseWindow(notepad.hwnd)
+        s.awaitState("Captured again") { it is WindowsState.Captured }
         s.stop()
         job.cancelChildren()
     }

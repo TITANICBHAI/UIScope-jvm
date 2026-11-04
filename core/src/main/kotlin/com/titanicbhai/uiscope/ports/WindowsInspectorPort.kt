@@ -12,6 +12,8 @@ data class WindowInfo(
     val processName: String,
     val pid: Long,
     val isElevated: Boolean,
+    /** Minimized windows are listed too: capturing one restores it first. */
+    val isMinimized: Boolean = false,
 )
 
 /** What the user pointed at during pick mode (Appendix J's pickResult element). */
@@ -48,8 +50,14 @@ interface WindowsInspectorPort {
     /** The visible top-level windows, for "Choose window...". */
     suspend fun listWindows(): Outcome<List<WindowInfo>>
 
-    /** Captures one top-level window (cached UIA subtree + screenshot at physical resolution). */
+    /**
+     * Captures one top-level window (cached UIA subtree + screenshot at physical resolution). A minimized window is restored and
+     * brought to the front first (unless the user turned that off), and UIScope is raised again afterwards.
+     */
     suspend fun captureWindow(hwnd: String): Outcome<Capture>
+
+    /** "Show window": restores [hwnd] if it is minimized and leaves it in front. The default does nothing, for ports that cannot. */
+    suspend fun activateWindow(hwnd: String): Outcome<Unit> = Outcome.Success(Unit)
 
     /** Starts pick mode: the overlay comes up, [pickEvents] delivers hover updates and the result. */
     suspend fun startPick(hideFromCapture: Boolean = true): Outcome<Unit>

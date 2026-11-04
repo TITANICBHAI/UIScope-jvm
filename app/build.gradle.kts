@@ -147,8 +147,19 @@ val buildWindowsHelper by tasks.registering {
     }
 }
 
+// ── Release notes ─────────────────────────────────────────────────────────────────
+// "What's new" in the app, the changelog page on the website and the repository's CHANGELOG.md are one document: the file is copied
+// onto the classpath (as /CHANGELOG.md) at build time and read by Main.
+val bundleChangelog by tasks.registering(Copy::class) {
+    from(rootProject.file("CHANGELOG.md"))
+    into(layout.buildDirectory.dir("changelog"))
+}
+
 afterEvaluate {
-    tasks.named("processResources") { dependsOn(buildWindowsHelper) }
+    tasks.named("processResources") {
+        dependsOn(buildWindowsHelper)
+        dependsOn(bundleChangelog)
+    }
 }
 
 sourceSets {
@@ -156,6 +167,8 @@ sourceSets {
         resources {
             // helper/ lands here via buildWindowsHelper; extracted at run time by Main.
             srcDir(layout.buildDirectory.dir("helper"))
+            // CHANGELOG.md lands here via bundleChangelog; read at run time by Main.
+            srcDir(layout.buildDirectory.dir("changelog"))
         }
     }
 }

@@ -66,6 +66,10 @@ class AndroidInspectStateTest {
         val captured = CopyOnWriteArrayList<AdbDevice>()
         var handler: suspend (AdbDevice) -> Outcome<Capture> = { Outcome.Success(screen(it)) }
 
+        /** What the phone's picture is announced as, before the elements are known (null = the port cannot report early). */
+        @Volatile
+        var early: ((AdbDevice) -> Capture)? = null
+
         override suspend fun locate(): Outcome<AdbStatus> {
             threads += Thread.currentThread().name
             return locateResult
@@ -81,6 +85,11 @@ class AndroidInspectStateTest {
             captureCalls.incrementAndGet()
             captured += device
             return handler(device)
+        }
+
+        override suspend fun capture(device: AdbDevice, onScreen: (Capture) -> Unit): Outcome<Capture> {
+            early?.let { onScreen(it(device)) }
+            return capture(device)
         }
 
         fun devices(vararg d: AdbDevice) {
@@ -523,5 +532,85 @@ class AndroidInspectStateTest {
     @Test
     fun `settings default to a 2 second Live interval`() {
         assertEquals(2, Settings().liveIntervalSeconds)
+    }
+    // ── the picture comes first ────────────────────────────────────────────────────────────────
+
+    private fun pictureOnly(device: AdbDevice): Capture = TestTrees.capture(emptyList(), id = "early-${device.serial}", target = Target.Android(DeviceInfo(device.serial, device.model)))
+
+    @Test
+    fun `the phone's screen is shown as soon as it arrives, before the elements are read`() {
+        val gate = CompletableDeferred<Unit>()
+        port.early = { pictureOnly(it) }
+        port.handler = {
+            gate.await()
+            Outcome.Success(screen(it))
+        }
+        val s = state()
+        s.start()
+        port.devices(phone)
+        s.awaitState("Capturing") { it is AndroidState.Capturing }
+        waitFor("the early picture is on screen") { s.ui.value.preview?.id == "early-PHONE1" }
+        assertNull(s.ui.value.capture, "the elements have not arrived yet")
+        gate.complete(Unit)
+        s.awaitState("Captured") { it is AndroidState.Captured }
+        assertNull(s.ui.value.preview, "the early picture is replaced by the real capture")
+        assertTrue(s.ui.value.capture!!.roots.isNotEmpty())
+    }
+
+    @Test
+    fun `a capture that fails after the picture arrived keeps the picture on screen`() {
+        val gate = CompletableDeferred<Unit>()
+        port.early = { pictureOnly(it) }
+        port.handler = {
+            gate.await()
+            Outcome.Failure(CodedError(ErrorCodes.DEVICE_OFFLINE, "gone"))
+        }
+        val s = state()
+        s.start()
+        port.devices(phone)
+        waitFor("the early picture is on screen") { s.ui.value.preview != null }
+        gate.complete(Unit)
+        s.awaitState("CaptureFailed") { it is AndroidState.CaptureFailed }
+        val ui = s.ui.value
+        assertEquals("early-PHONE1", ui.capture?.id, "the screen that did arrive stays visible next to the error")
+        assertNull(ui.preview)
+        assertEquals(ErrorCodes.DEVICE_OFFLINE, (ui.state as AndroidState.CaptureFailed).error.code)
+    }
+
+    @Test
+    fun `a screen without elements is a normal capture that carries its reason`() {
+        val reason = com.titanicbhai.uiscope.model.CaptureWarning(ErrorCodes.DUMP_IDLE_TIMEOUT, "keeps animating")
+        port.handler = { Outcome.Success(pictureOnly(it).copy(warnings = listOf(reason))) }
+        val s = state()
+        s.start()
+        port.devices(phone)
+        s.awaitState("Captured") { it is AndroidState.Captured }
+        val ui = s.ui.value
+        assertTrue(ui.capture!!.roots.isEmpty())
+        assertEquals(listOf(reason), ui.capture!!.warnings)
+        assertEquals(0, ui.index!!.size)
+        assertNull(ui.selected)
+    }
+
+    @Test
+    fun `a Live refresh does not swap the full capture for an early picture`() {
+        val s = state(instantLive = true)
+        s.start()
+        port.devices(phone)
+        s.awaitState("Captured") { it is AndroidState.Captured }
+        val first = s.ui.value.capture
+        val gate = CompletableDeferred<Unit>()
+        port.early = { pictureOnly(it) }
+        port.handler = {
+            gate.await()
+            Outcome.Success(screen(it, title = "Changed"))
+        }
+        s.setLive(true)
+        waitFor("a live capture is running") { s.ui.value.state is AndroidState.Capturing }
+        Thread.sleep(200)
+        assertNull(s.ui.value.preview, "Live keeps the last full capture on screen so the highlights do not blink")
+        assertSame(first, s.ui.value.capture)
+        gate.complete(Unit)
+        s.setLive(false)
     }
 }

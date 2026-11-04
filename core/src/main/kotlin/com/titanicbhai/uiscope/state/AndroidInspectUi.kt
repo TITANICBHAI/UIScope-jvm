@@ -60,6 +60,11 @@ data class AndroidInspectUi(
     val live: LiveState = LiveState(),
     /** A problem with adb itself (for example the server cannot start), shown as a banner. */
     val problem: AppError? = null,
+    /**
+     * The phone's screen while the elements are still being read: a capture with a picture and no tree, which arrives long before the
+     * dump finishes. Only set while a capture is running and cleared when it ends; it is what makes the screen appear straight away.
+     */
+    val preview: Capture? = null,
 )
 
 /** One-off happenings the UI turns into toasts or cues. */

@@ -41,6 +41,9 @@ import com.titanicbhai.uiscope.ui.theme.UiScopeTokens
 /** The rail destinations (plan §4.1). Screens arrive with P4-3 (Inspect), P5-1 (Snapshots), P6-2 (Compare, behind the diff flag) and P4-8 (Settings). */
 enum class ShellScreen { INSPECT, SNAPSHOTS, COMPARE, SETTINGS, HELP }
 
+/** The version button and the support link at the right end of the status bar: always one click away, on every screen. */
+data class ShellFooter(val version: String, val onWhatsNew: () -> Unit, val onSupport: (() -> Unit)? = null)
+
 /**
  * Hook point for P7-1 (single instance, regression M15): the shell starts nothing itself; P7-1 replaces [NoSingleInstance]
  * with the lock-file guard that focuses the first window when a second launch arrives.
@@ -88,6 +91,7 @@ fun AppShell(
     toasts: ToastState,
     dialogs: ShellDialogState,
     diffEnabled: Boolean = false,
+    footer: ShellFooter? = null,
     content: @Composable () -> Unit,
 ) {
     Column(Modifier.fillMaxSize()) {
@@ -132,7 +136,7 @@ fun AppShell(
                 ToastHost(toasts, Modifier.align(Alignment.BottomCenter).padding(UiScopeTokens.spaceM))
             }
         }
-        StatusBar(status, onWarningClick = {
+        StatusBar(status, footer, onWarningClick = {
             status.warning?.let { w -> dialogs.show(ShellDialog(w.code, w.detail ?: "", "Close", onConfirm = {})) }
         })
         dialogs.current?.let { dialog -> ShellDialogHost(dialog, dialogs::dismiss) }
@@ -141,7 +145,7 @@ fun AppShell(
 
 /** The 24 dp status bar (plan §4.1): target · capture info · warning chip · Live indicator. */
 @Composable
-private fun StatusBar(status: ShellStatus, onWarningClick: () -> Unit) {
+private fun StatusBar(status: ShellStatus, footer: ShellFooter?, onWarningClick: () -> Unit) {
     Surface(color = MaterialTheme.colorScheme.surfaceVariant, contentColor = MaterialTheme.colorScheme.onSurfaceVariant) {
         Row(
             modifier = Modifier.fillMaxWidth().height(24.dp).padding(horizontal = UiScopeTokens.spaceS),
@@ -160,6 +164,15 @@ private fun StatusBar(status: ShellStatus, onWarningClick: () -> Unit) {
             if (status.live) {
                 Icon(Icons.Filled.Lens, contentDescription = null, modifier = Modifier.height(10.dp), tint = MaterialTheme.colorScheme.primary)
                 Text("Live", style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(start = UiScopeTokens.spaceXs))
+            }
+            if (footer != null) {
+                val tight = androidx.compose.foundation.layout.PaddingValues(horizontal = UiScopeTokens.spaceS, vertical = 0.dp)
+                footer.onSupport?.let { support ->
+                    TextButton(onClick = support, contentPadding = tight) { Text("Support", style = MaterialTheme.typography.labelSmall) }
+                }
+                TextButton(onClick = footer.onWhatsNew, contentPadding = tight) {
+                    Text("v${footer.version} - What's new", style = MaterialTheme.typography.labelSmall)
+                }
             }
         }
     }

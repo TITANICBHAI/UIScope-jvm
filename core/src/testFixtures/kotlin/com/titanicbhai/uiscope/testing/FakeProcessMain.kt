@@ -18,7 +18,8 @@ import kotlin.system.exitProcess
  *  stdin-len                            read all of stdin, print its byte count
  *  echo-lines                           echo every stdin line as "echo:<line>"; exit 0 on "quit"
  *  emit-lines <n> <code>                print line-1..line-n, exit with <code>
- *  helper [flags]                       the fake Windows helper (Appendix J over stdio); flags:
+ *  helper [flags]                       the fake Windows helper (Appendix J over stdio); flags (besides the ones below: minimized-window,
+ *                                       no-foreground, window-gone, log:<file> = append every request line to that file):
  *                                         bad-version   hello answers protocol 2
  *                                         no-hello      hello is never answered
  *                                         slow          every response is delayed 1.5 s
@@ -129,7 +130,7 @@ private fun fakeHelper(flags: Set<String>) {
 /** The canned capture: a real (tiny) PNG plus an Appendix B tree; the origin is the window's top-left.
  *  `sparse-tree` trims to 2 nodes so the LIMITED_ACCESSIBILITY hint fires (P3-7).
  *  No core imports here: the helper JVM's classpath is testFixtures + stdlib only. */
-private fun captureWindowFixture(flags: Set<String>, id: String) {
+private fun captureWindowFixture(flags: Set<String>, id: String, line: String) {
     val png = java.io.File.createTempFile("uiscope-fake-helper", ".png")
     val image = java.awt.image.BufferedImage(800, 600, java.awt.image.BufferedImage.TYPE_INT_RGB)
     javax.imageio.ImageIO.write(image, "png", png)
@@ -153,8 +154,15 @@ private fun captureWindowFixture(flags: Set<String>, id: String) {
         "\"roots\":[{\"automationId\":\"app:id/root\",\"name\":\"Root\",\"controlType\":\"Window\"," +
         "\"className\":\"Window\",\"runtimeId\":\"1 42 1\"," +
         "\"rect\":{\"x\":100,\"y\":50,\"width\":800,\"height\":600},\"children\":[" +
-        children + "]}],\"truncated\":false}")
+        children + "]}],\"truncated\":false" + activationEcho(flags, line) + "}")
     System.out.flush()
+}
+
+/** What the real helper reports about window activation: only when the request asked for it. */
+private fun activationEcho(flags: Set<String>, line: String): String {
+    if (!Regex("\"activate\"\\s*:\\s*true").containsMatchIn(line)) return ""
+    val foreground = !flags.contains("no-foreground")
+    return ",\"activation\":{\"requested\":true,\"wasMinimized\":${flags.contains("minimized-window")},\"foreground\":$foreground}"
 }
 
 private fun dispatchHelperRequest(
@@ -165,6 +173,7 @@ private fun dispatchHelperRequest(
     registeredHotkeys: MutableSet<String>,
 ) {
     if (flags.contains("malformed")) println("{ this line is not json")
+    flags.firstOrNull { it.startsWith("log:") }?.let { java.io.File(it.removePrefix("log:")).appendText(line + "\n") }
     when (type) {
         "crash" -> exitProcess(7)
         "never" -> while (true) Thread.sleep(1_000)
@@ -206,10 +215,24 @@ private fun dispatchHelperRequest(
             println("{\"id\":$id,\"ok\":true}")
             System.out.flush()
         }
-            "listWindows" -> {
-            println("{\"id\":$id,\"ok\":true,\"windows\":[" +
-                "{\"hwnd\":\"0x00120A3C\",\"title\":\"Untitled - Notepad\",\"processName\":\"notepad.exe\",\"pid\":1234,\"isElevated\":false}," +
-                "{\"hwnd\":\"0x0000BEEF\",\"title\":\"Task Manager\",\"processName\":\"Taskmgr.exe\",\"pid\":99,\"isElevated\":true}]}")
+        "listWindows" -> {
+            val minimized = flags.contains("minimized-window")
+            // The caller's own process is left out, like the real helper does with excludePid.
+            val excluded = Regex("\"excludePid\"\\s*:\\s*(\\d+)").find(line)?.groupValues?.get(1)
+            val notepad = "{\"hwnd\":\"0x00120A3C\",\"title\":\"Untitled - Notepad\",\"processName\":\"notepad.exe\",\"pid\":1234,\"isElevated\":false," +
+                "\"isMinimized\":$minimized}"
+            val taskManager = "{\"hwnd\":\"0x0000BEEF\",\"title\":\"Task Manager\",\"processName\":\"Taskmgr.exe\",\"pid\":99,\"isElevated\":true," +
+                "\"isMinimized\":false}"
+            val shown = listOfNotNull(notepad.takeIf { excluded != "1234" }, taskManager)
+            println("{\"id\":$id,\"ok\":true,\"windows\":[" + shown.joinToString(",") + "]}")
+            System.out.flush()
+        }
+        "activateWindow" -> {
+            if (flags.contains("window-gone")) {
+                println("{\"id\":$id,\"ok\":false,\"error\":{\"code\":\"WINDOW_GONE\",\"message\":\"the window no longer exists\"}}")
+            } else {
+                println("{\"id\":$id,\"ok\":true,\"wasMinimized\":${flags.contains("minimized-window")},\"foreground\":true}")
+            }
             System.out.flush()
         }
         "captureWindow" -> {
@@ -218,7 +241,7 @@ private fun dispatchHelperRequest(
                 println("{\"id\":$id,\"ok\":false,\"error\":{\"code\":\"ELEVATED_TARGET\",\"message\":\"the target runs as administrator\"}}")
                 System.out.flush()
             } else {
-                captureWindowFixture(flags, id)
+                captureWindowFixture(flags, id, line)
             }
         }
         "hello" -> {

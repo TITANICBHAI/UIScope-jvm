@@ -24,9 +24,9 @@ This folder is the merged website: the visual language and page coverage from `w
 6. Use URL Inspection on the home page and highest-value feature pages. A valid sitemap or verification tag does not guarantee indexing.
 7. Add the domain to Bing Webmaster Tools and review crawl/indexing status. Where available to the account, check AI Performance reporting for cited URLs and grounding queries.
 
-## Do not publish stale downloads
+## Releases and downloads
 
-The checked-in source says version **1.0.1**, but `CHANGELOG.md` marks it as unreleased and the current repository page does not list a published matching installer. The website intentionally links to the repository and release page instead of presenting an old binary as current. Update `downloads.html`, `docs.html`, `faq.html`, `llms.txt` and the home-page release note when a real release is published.
+The checked-in source says version **1.0.2**. The website links to the GitHub Releases page instead of hosting binaries, so it never presents an old binary as current. After every version bump: update `CHANGELOG.md`, run `python3 scripts/build-changelog-page.py` (renders `changelog.html`), and update the version in `downloads.html`, `docs.html`, `llms.txt` and the home-page release note.
 
 ## Product facts to keep synchronized
 

@@ -23,6 +23,31 @@ Rounds are seeded from Appendix K of the plan. Every acceptance box tagged `need
 | P4-8 | Every Settings control has an observable effect (theme applies instantly, Live interval changes a Live run, retention clamps on the next save, Copy diagnostics/Open folders/Reset work) | **partially verified on CI** (theme, diagnostics, reset, update-check hiding); the rest needs a real display — fold into Round 3 step 3 |
 | P4-7 | The first-run screen: step 3 reflects your real adb state, the consent dialog text matches Google's download, Browse opens the native chooser, Skip/Finish land on Inspect | **not yet verified** — needs a real display (Round 3 step 6 covers it) |
 
+## Round 12 — 1.0.2: the phone's screen, and switching to a window (needs your Windows PC and your phone)
+
+Nothing in this round could be run where the code was written. Note pass/fail for each step; on a failure press *Help → Copy diagnostics* and send it with the banner text.
+
+**Android**
+1. Plug the phone in (USB debugging on, "Always allow"). The phone's screen appears in the middle within about two seconds; "Reading the elements..." shows, then the tree fills in.
+2. Open a video, a game or anything animating and press *Capture now*. The screen stays visible; a banner says the elements cannot be read, with *Retry*.
+3. Open a banking or other secure app. A black screenshot is explained by a banner, not left blank.
+4. Unplug the phone during a capture. The banner names the problem; the last screen stays.
+5. The line above the screen shows the phone model, Android version, size, app and time. *Android* is highlighted at the top.
+
+**Windows**
+6. Minimize Notepad. Press *Choose window...* (the list shows it as "(minimized)") and pick it: Notepad is restored and shown for a moment, then UIScope returns with its capture. Nothing says "minimized" any more.
+7. Start a new app *after* UIScope is running. Open *Choose window...*: it is in the list (the list refreshes each time).
+8. Press *Pick element*. UIScope minimizes; a label with the element type and name follows the pointer ("Click to inspect it - Esc or right-click cancels"); click an element: UIScope comes back with the capture of that window.
+9. *Show window* brings the inspected window to the front (restoring it if needed).
+10. Settings -> Windows: turn *Bring a window to the front* off, minimize a window and choose it: a banner explains it is minimized. Turn it back on.
+11. Choose a window of an administrator program: the banner offers to run UIScope as administrator.
+12. *Keep UIScope on top* (Settings or the View menu) keeps it above other windows.
+
+**Product**
+13. First launch of 1.0.2 (with an existing settings file): the *What's new* window appears once and does not return. On a brand-new install it does not appear.
+14. The status bar shows `Support` and `v1.0.2 - What's new`; both work on every screen.
+15. *Help* shows the version/build, buttons for Website, Get support, Report an issue, Source code, Documentation, Troubleshooting, Changelog online, Privacy; *Copy diagnostics* puts text on the clipboard and a toast confirms it.
+
 ## Round 11 — reliability pass (needs your Windows PC and your phone)
 
 Nothing in this round could be run where the code was written: the helper exe has only been compiled (Mono, C# 5 rules) and its pure logic

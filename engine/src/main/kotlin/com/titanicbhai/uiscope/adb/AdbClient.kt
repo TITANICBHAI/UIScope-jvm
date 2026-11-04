@@ -37,7 +37,7 @@ import kotlinx.coroutines.withContext
 
 /**
  * Everything the app asks adb. Each call is one `ProcessRunner` invocation with its own timeout (plan §4.3):
- * version 5 s, devices 5 s, getprop 5 s, dump 20 s, screencap 10 s. Never logs output, only exit codes and durations (via the runner).
+ * version 15 s, devices 15 s, getprop 5 s, dump 20 s, screencap 20 s. Never logs output, only exit codes and durations (via the runner).
  */
 class AdbClient(
     private val adb: String,
@@ -50,6 +50,7 @@ class AdbClient(
 ) {
     private val infoCache = ConcurrentHashMap<String, DeviceInfo>()
     private val winningStrategy = ConcurrentHashMap<String, Int>()
+    private val winningScreen = ConcurrentHashMap<String, Int>()
 
     suspend fun version(): Outcome<AdbVersion> = when (val r = run(null, 15.seconds, ErrorCodes.ADB_START_FAILED, "version")) {
         is Outcome.Failure -> r
@@ -102,37 +103,40 @@ class AdbClient(
 
     // ── capture ────────────────────────────────────────────────────────────────────────────────
 
-    /** The tree and the screenshot, fetched at the same time and published together. A missing screenshot is a warning; a missing tree is the error. */
-    suspend fun capture(device: AdbDevice): Outcome<Capture> = coroutineScope {
+    /**
+     * The tree and the screenshot, fetched at the same time. The picture is the point of the app, so it never dies with the tree: when
+     * only the element dump fails (an animating screen, a video, a game, an app that blocks accessibility) the capture still succeeds with
+     * the picture, no elements and a warning that says why. [onScreen] is called with a picture-only capture the moment the screenshot is
+     * on disk, usually seconds before the dump is done, so the screen is on screen as early as it can be.
+     */
+    suspend fun capture(device: AdbDevice, onScreen: (Capture) -> Unit = {}): Outcome<Capture> = coroutineScope {
+        val id = UUID.randomUUID().toString()
         val dump = async { dump(device.serial) }
-        val shot = async { screenshot(device.serial) }
+        val shot = async { fetchScreen(id, device, onScreen) }
         val info = async { deviceInfo(device) }
         val parsed = when (val d = dump.await()) {
             is Outcome.Failure -> {
-                shot.cancel()
-                info.cancel()
-                return@coroutineScope d
+                val picture = if (d.error.code in TREE_ONLY_FAILURES) shot.await() else null
+                if (picture !is Shot.Got) {
+                    shot.cancel()
+                    info.cancel()
+                    return@coroutineScope d
+                }
+                return@coroutineScope Outcome.Success(pictureOnly(id, info.await(), picture, d.error))
             }
             is Outcome.Success -> d.value
         }
-        val id = UUID.randomUUID().toString()
         val warnings = ArrayList(parsed.warnings)
         var screen = parsed.screen
         var screenshot: Screenshot? = null
         when (val s = shot.await()) {
-            is Outcome.Failure -> warnings += CaptureWarning(ErrorCodes.SCREENSHOT_FAILED, s.error.detail)
-            is Outcome.Success -> {
-                val png = s.value
-                val file = writeScreenshot(id, png.bytes)
-                if (file != null) {
-                    screenshot = Screenshot(file.toString(), png.width, png.height)
-                    if (parsed.screen.width <= 0 || parsed.screen.height <= 0) screen = ScreenInfo(png.width, png.height, 0, 0, parsed.screen.rotation)
-                    if (png.uniform && warnings.none { it.code == ErrorCodes.SECURE_WINDOW }) {
-                        warnings += CaptureWarning(ErrorCodes.SECURE_WINDOW, "The screenshot is a single colour: the app may block screen capture")
-                    }
-                } else {
-                    warnings += CaptureWarning(ErrorCodes.SCREENSHOT_FAILED, "The screenshot could not be saved")
+            is Shot.Missing -> warnings += CaptureWarning(ErrorCodes.SCREENSHOT_FAILED, s.error.detail)
+            is Shot.Got -> {
+                screenshot = s.screenshot
+                if (parsed.screen.width <= 0 || parsed.screen.height <= 0) {
+                    screen = ScreenInfo(s.screenshot.width, s.screenshot.height, 0, 0, parsed.screen.rotation)
                 }
+                if (s.uniform && warnings.none { it.code == ErrorCodes.SECURE_WINDOW }) warnings += CaptureWarning(ErrorCodes.SECURE_WINDOW, UNIFORM_DETAIL)
             }
         }
         Outcome.Success(
@@ -145,6 +149,52 @@ class AdbClient(
                 roots = parsed.roots,
                 warnings = warnings,
             ),
+        )
+    }
+
+    private sealed interface Shot {
+        class Got(val screenshot: Screenshot, val uniform: Boolean) : Shot
+
+        class Missing(val error: AppError) : Shot
+    }
+
+    /** Takes the screenshot, saves it and tells [onScreen] about it straight away. */
+    private suspend fun fetchScreen(id: String, device: AdbDevice, onScreen: (Capture) -> Unit): Shot {
+        val png = when (val s = screenshot(device.serial)) {
+            is Outcome.Failure -> return Shot.Missing(s.error)
+            is Outcome.Success -> s.value
+        }
+        val file = writeScreenshot(id, png.bytes)
+            ?: return Shot.Missing(CodedError(ErrorCodes.SCREENSHOT_FAILED, "The screenshot could not be saved", Remedy.RETRY))
+        val screenshot = Screenshot(file.toString(), png.width, png.height)
+        val early = Capture(
+            id = id,
+            takenAt = clock.instant(),
+            target = Target.Android(DeviceInfo(device.serial, device.model)),
+            screen = ScreenInfo(png.width, png.height),
+            screenshot = screenshot,
+            roots = emptyList(),
+        )
+        try {
+            onScreen(early)
+        } catch (e: RuntimeException) {
+            logger.log(Level.WARNING, "the early screen callback failed", e)
+        }
+        return Shot.Got(screenshot, png.uniform)
+    }
+
+    /** What a capture is when the picture came but the element tree did not: the screen, nothing to select, and the reason. */
+    private fun pictureOnly(id: String, info: DeviceInfo, picture: Shot.Got, why: AppError): Capture {
+        val warnings = arrayListOf(CaptureWarning(why.code, why.detail))
+        if (picture.uniform) warnings += CaptureWarning(ErrorCodes.SECURE_WINDOW, UNIFORM_DETAIL)
+        return Capture(
+            id = id,
+            takenAt = clock.instant(),
+            target = Target.Android(info, null),
+            screen = ScreenInfo(picture.screenshot.width, picture.screenshot.height),
+            screenshot = picture.screenshot,
+            roots = emptyList(),
+            warnings = warnings,
         )
     }
 
@@ -207,16 +257,62 @@ class AdbClient(
 
     private class Png(val bytes: ByteArray, val width: Int, val height: Int, val uniform: Boolean)
 
+    /** Two ways to get the picture off the phone; the one that worked last time for a device goes first. */
+    private val screenStrategies: List<suspend (String) -> Outcome<PngBytes.Found>> = listOf(
+        { serial -> screenViaPipe(serial) },
+        { serial -> screenViaFile(serial) },
+    )
+
     private suspend fun screenshot(serial: String): Outcome<Png> {
-        val r = when (val x = run(serial, 10.seconds, ErrorCodes.SCREENSHOT_FAILED, "exec-out", "screencap", "-p")) {
-            is Outcome.Failure -> return x
-            is Outcome.Success -> x.value
+        val first = winningScreen[serial] ?: 0
+        val order = listOf(first) + screenStrategies.indices.filter { it != first }
+        var firstError: AppError? = null
+        for (index in order) {
+            when (val r = screenStrategies[index](serial)) {
+                is Outcome.Success -> {
+                    winningScreen[serial] = index
+                    val found = r.value
+                    return Outcome.Success(Png(found.bytes, found.width, found.height, withContext(dispatchers.default) { isUniform(found.bytes) }))
+                }
+                is Outcome.Failure -> {
+                    if (firstError == null) firstError = r.error
+                    // A missing device or a timeout will not be different the second time: say so now instead of waiting twice.
+                    if (r.error.code in DEVICE_LEVEL_FAILURES || r.error.detail?.startsWith(TIMEOUT_PREFIX) == true) return Outcome.Failure(firstError)
+                }
+            }
         }
-        val bytes = r.stdout
-        if (!isPng(bytes)) return fail(ErrorCodes.SCREENSHOT_FAILED, "adb did not return a PNG image (${bytes.size} bytes)")
-        val width = readInt(bytes, 16)
-        val height = readInt(bytes, 20)
-        return Outcome.Success(Png(bytes, width, height, withContext(dispatchers.default) { isUniform(bytes) }))
+        return Outcome.Failure(firstError ?: CodedError(ErrorCodes.SCREENSHOT_FAILED, "adb did not return a PNG image", Remedy.RETRY))
+    }
+
+    /** `adb exec-out screencap -p`: the picture comes straight down the pipe. */
+    private suspend fun screenViaPipe(serial: String): Outcome<PngBytes.Found> =
+        when (val x = run(serial, SHOT_TIMEOUT, ErrorCodes.SCREENSHOT_FAILED, "exec-out", "screencap", "-p")) {
+            is Outcome.Failure -> x
+            is Outcome.Success -> pngFrom(x.value)
+        }
+
+    /** The fallback for phones whose pipe is noisy or broken: save the picture on the device, read the file, delete it. */
+    private suspend fun screenViaFile(serial: String): Outcome<PngBytes.Found> {
+        val remote = "/data/local/tmp/uiscope-screen.png"
+        try {
+            when (val d = run(serial, SHOT_TIMEOUT, ErrorCodes.SCREENSHOT_FAILED, "shell", "screencap", "-p", remote)) {
+                is Outcome.Failure -> return d
+                is Outcome.Success -> AdbErrors.classify(d.value.stderrText() + "\n" + d.value.stdoutText().take(2_000))?.let { return Outcome.Failure(it) }
+            }
+            return when (val c = run(serial, SHOT_TIMEOUT, ErrorCodes.SCREENSHOT_FAILED, "exec-out", "cat", remote)) {
+                is Outcome.Failure -> c
+                is Outcome.Success -> pngFrom(c.value)
+            }
+        } finally {
+            withContext(NonCancellable) { run(serial, 5.seconds, ErrorCodes.SCREENSHOT_FAILED, "shell", "rm", "-f", remote) }
+        }
+    }
+
+    private fun pngFrom(r: ProcessResult): Outcome<PngBytes.Found> {
+        PngBytes.find(r.stdout)?.let { return Outcome.Success(it) }
+        val text = r.stderrText() + "\n" + String(r.stdout, 0, minOf(r.stdout.size, 2_000), Charsets.UTF_8)
+        AdbErrors.classify(text)?.let { return Outcome.Failure(it) }
+        return fail(ErrorCodes.SCREENSHOT_FAILED, "adb did not return a PNG image (${r.stdout.size} bytes)")
     }
 
     private fun writeScreenshot(id: String, bytes: ByteArray): Path? =
@@ -228,15 +324,15 @@ class AdbClient(
             null
         }
 
-    private fun isPng(b: ByteArray) = b.size > 24 && b[0] == 0x89.toByte() && b[1] == 'P'.code.toByte() && b[2] == 'N'.code.toByte() && b[3] == 'G'.code.toByte()
-
-    private fun readInt(b: ByteArray, at: Int) = ((b[at].toInt() and 0xff) shl 24) or ((b[at + 1].toInt() and 0xff) shl 16) or ((b[at + 2].toInt() and 0xff) shl 8) or (b[at + 3].toInt() and 0xff)
-
     /** True when a grid of sample pixels is one colour (a blank, locked or protected screen). Undecodable images are not called uniform. */
     private fun isUniform(bytes: ByteArray): Boolean {
         val image: BufferedImage = try {
             ImageIO.read(ByteArrayInputStream(bytes))
         } catch (e: IOException) {
+            logger.log(Level.FINE, "screenshot could not be decoded for the uniform-colour check", e)
+            null
+        } catch (e: RuntimeException) {
+            // Some phones write colour profiles ImageIO rejects; the picture itself is fine, only this optional check is skipped.
             logger.log(Level.FINE, "screenshot could not be decoded for the uniform-colour check", e)
             null
         } ?: return false
@@ -273,7 +369,7 @@ class AdbClient(
         return when (val r = runner.run(cmd, timeout)) {
             is Outcome.Success -> r
             is Outcome.Failure -> when (r.error.code) {
-                ErrorCodes.PROCESS_TIMEOUT -> Outcome.Failure(CodedError(timeoutCode, "adb did not answer within $timeout", Remedy.RETRY))
+                ErrorCodes.PROCESS_TIMEOUT -> Outcome.Failure(CodedError(timeoutCode, "$TIMEOUT_PREFIX $timeout", Remedy.RETRY))
                 ErrorCodes.PROCESS_START_FAILED -> Outcome.Failure(CodedError(ErrorCodes.ADB_NOT_FOUND, "adb could not be started", Remedy.RETRY))
                 else -> r
             }
@@ -286,5 +382,28 @@ class AdbClient(
         const val RETRIES = 2
         const val RETRY_DELAY_MS = 300L
         const val GRID = 48
+        const val TIMEOUT_PREFIX = "adb did not answer within"
+        const val UNIFORM_DETAIL = "The screenshot is a single colour: the app may block screen capture"
+        val SHOT_TIMEOUT = 20.seconds
+
+        /** Dump failures that say nothing about the picture: the screen can still be shown without its elements. */
+        val TREE_ONLY_FAILURES = setOf(
+            ErrorCodes.DUMP_NULL_ROOT,
+            ErrorCodes.DUMP_IDLE_TIMEOUT,
+            ErrorCodes.UIAUTOMATOR_BUSY,
+            ErrorCodes.DUMP_TIMEOUT,
+            ErrorCodes.PARSE_FAILED,
+        )
+
+        /** Failures that no second way of taking the picture can fix. */
+        val DEVICE_LEVEL_FAILURES = setOf(
+            ErrorCodes.ADB_NOT_FOUND,
+            ErrorCodes.ADB_START_FAILED,
+            ErrorCodes.ADB_VERSION_MISMATCH,
+            ErrorCodes.NO_DEVICE,
+            ErrorCodes.DEVICE_UNAUTHORIZED,
+            ErrorCodes.DEVICE_OFFLINE,
+            ErrorCodes.NO_PERMISSIONS,
+        )
     }
 }

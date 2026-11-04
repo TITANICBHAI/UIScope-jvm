@@ -103,6 +103,9 @@ fun SettingsScreen(
                     settings.update { it.copy(checkForUpdates = enabled) }
                 }
             }
+            SettingSwitch("Keep UIScope on top of other windows", current.keepOnTop) { enabled ->
+                settings.update { it.copy(keepOnTop = enabled) }
+            }
         }
         SettingsSection("Android") {
             Text("adb: ${adbLine ?: "not found"}", style = MaterialTheme.typography.bodySmall)
@@ -136,6 +139,9 @@ fun SettingsScreen(
             }
             SettingSwitch("Minimize UIScope while picking an element", current.hideWhilePicking) { enabled ->
                 settings.update { it.copy(hideWhilePicking = enabled) }
+            }
+            SettingSwitch("Bring a window to the front when I choose it (a minimized window is restored)", current.activateOnCapture) { enabled ->
+                settings.update { it.copy(activateOnCapture = enabled) }
             }
         }
         SettingsSection("Snapshots") {
@@ -223,9 +229,10 @@ fun SettingsScreen(
             Row(horizontalArrangement = Arrangement.spacedBy(UiScopeTokens.spaceS)) {
                 TextButton(onClick = { uriHandler.openUri(appInfo.docsUrl) }) { Text("Documentation") }
                 if (appInfo.websiteUrl.isNotBlank()) TextButton(onClick = { uriHandler.openUri(appInfo.websiteUrl) }) { Text("Website") }
+                TextButton(onClick = { uriHandler.openUri(appInfo.supportUrl) }) { Text("Get support") }
                 TextButton(onClick = { uriHandler.openUri(appInfo.issuesUrl) }) { Text("Report an issue") }
                 TextButton(onClick = { uriHandler.openUri(appInfo.privacyUrl) }) { Text("Privacy policy") }
-                TextButton(onClick = { uriHandler.openUri(appInfo.repoUrl.trimEnd('/') + "/releases") }) { Text("What's new") }
+                TextButton(onClick = { uriHandler.openUri(appInfo.repoUrl.trimEnd('/') + "/releases") }) { Text("Releases") }
             }
         }
     }

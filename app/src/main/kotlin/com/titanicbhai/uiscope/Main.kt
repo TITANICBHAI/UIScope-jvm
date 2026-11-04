@@ -30,6 +30,8 @@ import com.titanicbhai.uiscope.adb.EngineAdbPort
 import com.titanicbhai.uiscope.adb.PlatformToolsFeed
 import com.titanicbhai.uiscope.adb.PlatformToolsManifestData
 import com.titanicbhai.uiscope.adb.SettingsAdbPathStore
+import com.titanicbhai.uiscope.changelog.ChangelogEntry
+import com.titanicbhai.uiscope.changelog.ChangelogParser
 import com.titanicbhai.uiscope.error.AppError
 import com.titanicbhai.uiscope.error.CodedError
 import com.titanicbhai.uiscope.error.ErrorCodes
@@ -48,6 +50,7 @@ import com.titanicbhai.uiscope.ui.firstrun.AdbDownloadActions
 import com.titanicbhai.uiscope.ui.firstrun.FirstRunCallbacks
 import com.titanicbhai.uiscope.ui.firstrun.FirstRunScreen
 import com.titanicbhai.uiscope.ui.help.HelpScreen
+import com.titanicbhai.uiscope.ui.help.WhatsNewDialog
 import com.titanicbhai.uiscope.ui.compare.CompareCallbacks
 import com.titanicbhai.uiscope.ui.compare.CompareScreen
 import com.titanicbhai.uiscope.ui.inspect.ExportActions
@@ -62,6 +65,7 @@ import com.titanicbhai.uiscope.ui.settings.SettingsScreen
 import com.titanicbhai.uiscope.ui.shell.AppShell
 import com.titanicbhai.uiscope.update.UpdateCheck
 import com.titanicbhai.uiscope.ui.shell.ShellDialogState
+import com.titanicbhai.uiscope.ui.shell.ShellFooter
 import com.titanicbhai.uiscope.ui.shell.ShellScreen
 import com.titanicbhai.uiscope.ui.shell.ShellStatus
 import com.titanicbhai.uiscope.ui.shell.LockFileSingleInstance
@@ -122,6 +126,17 @@ private fun logRetentionError(error: AppError) {
 }
 
 private val exportLogger = Logger.getLogger("uiscope.export")
+
+/** The released versions from the bundled CHANGELOG.md (the same file the repository and the website show); empty when it cannot be read. */
+private fun loadReleaseNotes(): List<ChangelogEntry> {
+    val stream = ChangelogEntry::class.java.getResourceAsStream("/CHANGELOG.md") ?: return emptyList()
+    return try {
+        stream.use { ChangelogParser.parse(it.readBytes().toString(Charsets.UTF_8)) }.filter { it.date != null }
+    } catch (e: java.io.IOException) {
+        shellLogger.log(Level.WARNING, "the bundled changelog could not be read", e)
+        emptyList()
+    }
+}
 
 /** The native Save dialog plus the file write, shared by the export dialog (P5-2) and the diff export (P6-2). */
 private suspend fun saveThroughDialog(window: java.awt.Frame, suggestedName: String, bytes: ByteArray): Outcome<Unit> {
@@ -270,7 +285,11 @@ fun main() {
     }
     val windows: WindowsInspectState? = helperClient?.let { client ->
         // The helper writes its screenshots into UIScope's own scratch folder (it used to fill the system temp folder and never clean up).
-        WindowsInspectState(EngineWindowsPort(client, dispatchers = dispatchers, screenshotDir = paths.tmp), dispatchers, scope).also { it.start() }
+        WindowsInspectState(
+            EngineWindowsPort(client, dispatchers = dispatchers, screenshotDir = paths.tmp, activateOnCapture = { settings.settings.value.activateOnCapture }),
+            dispatchers,
+            scope,
+        ).also { it.start() }
     }
 
     // Snapshot storage becomes available a moment after start-up: the database is opened on an I/O thread (HANDOFF §8.2).
@@ -317,6 +336,8 @@ fun main() {
         focusFile = paths.root.resolve("single-instance.focus"),
     )
 
+    val releaseNotes = loadReleaseNotes()
+
     application {
         singleInstance.start(onSecondLaunch = { java.awt.Window.getWindows().filter { it.isVisible }.forEach { it.toFront() } })
         val savedX = spec.x
@@ -348,10 +369,12 @@ fun main() {
             logging?.close()
             exitApplication()
         }
+        val keepOnTop by settings.settings.map { it.keepOnTop }.distinctUntilChanged().collectAsState(initial = settings.settings.value.keepOnTop)
         Window(
             onCloseRequest = onClose,
             state = windowState,
             title = "${appInfo.name} ${appInfo.version}",
+            alwaysOnTop = keepOnTop,
         ) {
             // CMP 1.7 removed Window's minWidth/minHeight parameters; the minimum is enforced on the AWT window instead,
             // in real pixels for the current density.
@@ -405,8 +428,11 @@ fun main() {
             // says so, step out of the way so the window being picked is not hidden behind UIScope; come back when the pick ends.
             val pickingNow = windowsInspect?.picking == true
             var minimizedForPick by remember { mutableStateOf(false) }
-            LaunchedEffect(pickingNow) {
-                if (pickingNow) {
+            // UIScope stays out of the way for the whole pick including the capture that follows it: coming back sooner would put it on
+            // top of the window being read (the helper raises UIScope again by itself the moment the capture is done).
+            val pickBusy = pickingNow || (minimizedForPick && windowsInspect?.state is WindowsState.Capturing)
+            LaunchedEffect(pickBusy) {
+                if (pickBusy) {
                     if (settingsState.lastTarget != InspectTarget.WINDOWS) settings.update { it.copy(lastTarget = InspectTarget.WINDOWS) }
                     if (settingsState.hideWhilePicking && (window.extendedState and java.awt.Frame.ICONIFIED) == 0) {
                         window.extendedState = window.extendedState or java.awt.Frame.ICONIFIED
@@ -416,6 +442,7 @@ fun main() {
                     minimizedForPick = false
                     window.extendedState = window.extendedState and java.awt.Frame.ICONIFIED.inv()
                     window.toFront()
+                    window.requestFocus()
                 }
             }
             var screen by remember { mutableStateOf(ShellScreen.INSPECT) }
@@ -425,6 +452,16 @@ fun main() {
                 } catch (t: Throwable) {
                     toasts.showError("Could not open the browser (${t.javaClass.simpleName})")
                 }
+            }
+            // "What's new": once after an update (never on a brand-new install, which gets the Welcome instead), and on demand.
+            val latestNotes = releaseNotes.firstOrNull()?.takeIf { it.version == appInfo.version }
+            var whatsNewOpen by remember { mutableStateOf(false) }
+            LaunchedEffect(settingsState.firstRunDone, settingsState.lastSeenVersion, latestNotes?.version) {
+                if (latestNotes != null && settingsState.firstRunDone && settingsState.lastSeenVersion != latestNotes.version) whatsNewOpen = true
+            }
+            val closeWhatsNew: () -> Unit = {
+                whatsNewOpen = false
+                settings.update { it.copy(lastSeenVersion = appInfo.version) }
             }
             if (!settingsState.firstRunDone) {
                 UiScopeTheme(mode = settingsState.theme) {
@@ -440,7 +477,7 @@ fun main() {
                             onSetTarget = { t -> settings.update { it.copy(lastTarget = t) } },
                             onSetCheckUpdates = { enabled -> settings.update { it.copy(checkForUpdates = enabled) } },
                             onBrowseAdb = { browseForAdb(window, settings, toasts) { android.start() } },
-                            onFinish = { settings.update { it.copy(firstRunDone = true) } },
+                            onFinish = { settings.update { it.copy(firstRunDone = true, lastSeenVersion = appInfo.version) } },
                         ),
                     )
                 }
@@ -450,7 +487,16 @@ fun main() {
                 Menu("File", mnemonic = 'F') {
                     Item("Exit", onClick = onClose)
                 }
+                Menu("View", mnemonic = 'V') {
+                    CheckboxItem(
+                        "Keep UIScope on top",
+                        checked = settingsState.keepOnTop,
+                        onCheckedChange = { on -> settings.update { it.copy(keepOnTop = on) } },
+                    )
+                }
                 Menu("Help", mnemonic = 'H') {
+                    Item("What's new in ${appInfo.version}", enabled = latestNotes != null, onClick = { whatsNewOpen = true })
+                    Item("Get support", onClick = { openLink(appInfo.supportUrl) })
                     Item("Check for updates", onClick = {
                         scope.launch {
                             val result = withContext(Dispatchers.IO) { updater.check() }
@@ -468,6 +514,27 @@ fun main() {
                     Item("Troubleshooting guide", enabled = appInfo.websiteUrl.isNotBlank(), onClick = { openLink(appInfo.websiteUrl.trimEnd('/') + "/docs.html#troubleshooting") })
                     Item("Report an issue", onClick = { openLink(appInfo.issuesUrl) })
                     Item("About ${appInfo.name}", onClick = { screen = ShellScreen.HELP })
+                }
+            }
+            val diagnosticsText: () -> String = {
+                buildString {
+                    appendLine("${appInfo.name} ${appInfo.version} (build ${appInfo.buildDate}, ${appInfo.commit})")
+                    appendLine("OS: ${System.getProperty("os.name")} ${System.getProperty("os.version")}")
+                    appendLine("Java: ${System.getProperty("java.version")}")
+                    appendLine("Data folder: ${paths.root}")
+                    appendLine("adb: ${inspect.adb?.let { "${it.path} (${it.version}, via ${it.source})" } ?: "not found"}")
+                    appendLine("Devices: ${inspect.devices.size}")
+                    appendLine("Android state: ${inspect.state::class.simpleName}")
+                    (inspect.state as? AndroidState.CaptureFailed)?.let { appendLine("Android last error: ${it.error.code} ${it.error.detail.orEmpty()}") }
+                    (inspect.capture ?: inspect.preview)?.warnings?.takeIf { it.isNotEmpty() }?.let { warnings ->
+                        appendLine("Android capture warnings: " + warnings.joinToString { w -> w.code })
+                    }
+                    appendLine("Windows state: ${windowsInspect?.state?.let { it::class.simpleName } ?: "not available on this system"}")
+                    (windowsInspect?.state as? WindowsState.CaptureFailed)?.let { appendLine("Windows last error: ${it.error.code} ${it.error.detail.orEmpty()}") }
+                    windowsInspect?.capture?.warnings?.takeIf { it.isNotEmpty() }?.let { warnings ->
+                        appendLine("Windows capture warnings: " + warnings.joinToString { w -> w.code })
+                    }
+                    helperClient?.let { appendLine("Windows helper: ${it.diagnostics()}") }
                 }
             }
             var exportOpen by remember { mutableStateOf(false) }
@@ -495,6 +562,11 @@ fun main() {
                     toasts = toasts,
                     dialogs = dialogs,
                     diffEnabled = FeatureFlags.forHost().diff,
+                    footer = ShellFooter(
+                        version = appInfo.version,
+                        onWhatsNew = { if (latestNotes != null) whatsNewOpen = true else screen = ShellScreen.HELP },
+                        onSupport = { openLink(appInfo.supportUrl) },
+                    ),
                 ) {
                     when (screen) {
                         ShellScreen.INSPECT -> {
@@ -550,6 +622,8 @@ fun main() {
                                 onPick = { windows?.startPick() },
                                 onCancelPick = { windows?.cancelPick() },
                                 onRefresh = { windows?.refresh() },
+                                onRefreshWindows = { windows?.refreshWindows() },
+                                onShowWindow = { windows?.showWindow() },
                                 onSelect = { windows?.select(it) },
                                 onToggleExpanded = { windows?.toggleExpanded(it) },
                                 onExpandAll = { windows?.expandAll() },
@@ -604,19 +678,7 @@ fun main() {
                             adbDownload = adbDownload,
                             onBrowseAdb = { browseForAdb(window, settings, toasts) { android.start() } },
                             onAdbRecheck = { android.start() },
-                            diagnostics = {
-                                buildString {
-                                    appendLine("${appInfo.name} ${appInfo.version} (build ${appInfo.buildDate}, ${appInfo.commit})")
-                                    appendLine("OS: ${System.getProperty("os.name")} ${System.getProperty("os.version")}")
-                                    appendLine("Java: ${System.getProperty("java.version")}")
-                                    appendLine("Data folder: ${paths.root}")
-                                    appendLine("adb: ${inspect.adb?.let { "${it.path} (${it.version}, via ${it.source})" } ?: "not found"}")
-                                    appendLine("Devices: ${inspect.devices.size}")
-                                    appendLine("Android state: ${inspect.state::class.simpleName}")
-                                    appendLine("Windows state: ${windowsInspect?.state?.let { it::class.simpleName } ?: "not available on this system"}")
-                                    helperClient?.let { appendLine("Windows helper: ${it.diagnostics()}") }
-                                }
-                            },
+                            diagnostics = diagnosticsText,
                             onOpenLogs = {
                                 try {
                                     java.awt.Desktop.getDesktop().open(paths.logs.toFile())
@@ -632,8 +694,17 @@ fun main() {
                                 }
                             },
                         )
-                        ShellScreen.HELP -> HelpScreen(appInfo = appInfo, onReplayFirstRun = { settings.update { it.copy(firstRunDone = false) } })
+                        ShellScreen.HELP -> HelpScreen(
+                            appInfo = appInfo,
+                            onReplayFirstRun = { settings.update { it.copy(firstRunDone = false) } },
+                            releaseNotes = releaseNotes,
+                            diagnostics = diagnosticsText,
+                            onMessage = { toasts.show(it) },
+                        )
                     }
+                }
+                if (whatsNewOpen && latestNotes != null) {
+                    WhatsNewDialog(latestNotes, onDismiss = closeWhatsNew, onOpenHelp = { screen = ShellScreen.HELP })
                 }
                 if (exportOpen) {
                     val fromWindows = settingsState.lastTarget == InspectTarget.WINDOWS

@@ -79,3 +79,21 @@ the clipboard; paste it into a bug report. *Restart* relaunches the app.
 
 **A second launch does nothing new** — that is the single-instance guard: it brings the first window forward
 instead.
+
+## The messages added in 1.0.2
+
+**The phone's screen is shown but there are no elements** (banner: "The elements can't be read right now", "The screen keeps animating", "Another
+automation tool is using the device", "Timed out reading the elements"). The screenshot and the element dump are separate requests; the dump
+fails on video, games, anything that never goes idle, apps that block accessibility, and while Appium, uiautomator2 or Maestro holds the device.
+Pause the animation or stop the other tool and press *Capture now*. The screen itself is never withheld because of this.
+
+**The picture is a single colour.** The app marks its window as secure (FLAG_SECURE) and Android refuses to capture it.
+
+**"Couldn't take a screenshot".** UIScope tries two routes (straight through adb, then through a file on the phone). If both fail, unlock the
+phone, keep the screen on and retry; on a Wi-Fi connection a slow link can need more than the 20 s UIScope allows, so try a cable.
+
+**A Windows window did not come to the front** (banner: "Couldn't bring the window to the front"). Windows sometimes stops one program from
+taking over another's focus. The capture was still made; click the window yourself or use *Show window*. You can turn the behaviour off in
+Settings -> Windows ("Bring a window to the front when I choose it").
+
+**"The window is minimized"** appears only when that setting is off or the window would not restore: click it in the taskbar and capture again.

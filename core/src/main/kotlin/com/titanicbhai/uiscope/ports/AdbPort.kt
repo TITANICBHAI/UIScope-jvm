@@ -26,6 +26,13 @@ interface AdbPort {
     /** The device list now and whenever it changes, until the collector goes away. */
     fun trackDevices(): Flow<TrackerEvent>
 
-    /** One atomic capture (tree + screenshot) of [device]. Cancelling the caller must stop it and kill any process it started. */
+    /** One capture (tree + screenshot) of [device]. Cancelling the caller must stop it and kill any process it started. */
     suspend fun capture(device: AdbDevice): Outcome<Capture>
+
+    /**
+     * Like [capture], but also calls [onScreen] with a picture-only capture (no elements yet) the moment the screenshot is ready, which is
+     * usually well before the element tree is. A capture whose element dump failed still succeeds with the picture and a warning.
+     * The default ignores [onScreen], so a port that cannot report early still works.
+     */
+    suspend fun capture(device: AdbDevice, onScreen: (Capture) -> Unit): Outcome<Capture> = capture(device)
 }

@@ -103,6 +103,113 @@ namespace UIScope.Helper
     }
 
     /// <summary>
+    /// The note that follows the pointer while picking: what is under it, and how to finish. UIScope is usually minimized during a pick, so
+    /// its own toolbar cannot say any of this. Click-through, never takes focus, and hidden from screenshots when the outline is.
+    /// </summary>
+    internal sealed class LabelForm : Form
+    {
+        private const int WS_EX_TOOLWINDOW = 0x00000080;
+        private const int WS_EX_TRANSPARENT = 0x00000020;
+        private const int WS_EX_LAYERED = 0x00080000;
+        private const int WS_EX_TOPMOST = 0x00000008;
+        private const int WS_EX_NOACTIVATE = 0x08000000;
+        private const int WM_DPICHANGED = 0x02E0;
+        private const int WM_NCHITTEST = 0x0084;
+        private static readonly IntPtr HTTRANSPARENT = new IntPtr(-1);
+        private static readonly Color Key = Color.FromArgb(255, 0, 255);
+
+        private readonly Font headlineFont = new Font("Segoe UI Semibold", 9.5f);
+        private readonly Font hintFont = new Font("Segoe UI", 8.5f);
+        private string headline = "";
+        private string hint = "";
+        private int headlineHeight;
+
+        public LabelForm()
+        {
+            FormBorderStyle = FormBorderStyle.None;
+            ShowInTaskbar = false;
+            StartPosition = FormStartPosition.Manual;
+            BackColor = Key;
+            TransparencyKey = Key;
+            Bounds = new Rectangle(-32000, -32000, 8, 8);
+            SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
+        }
+
+        protected override bool ShowWithoutActivation
+        {
+            get { return true; }
+        }
+
+        protected override CreateParams CreateParams
+        {
+            get
+            {
+                CreateParams cp = base.CreateParams;
+                cp.ExStyle |= WS_EX_TOOLWINDOW | WS_EX_TRANSPARENT | WS_EX_LAYERED | WS_EX_TOPMOST | WS_EX_NOACTIVATE;
+                return cp;
+            }
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            e.Graphics.Clear(Key);
+            Rectangle box = new Rectangle(0, 0, ClientSize.Width - 1, ClientSize.Height - 1);
+            if (box.Width < 8 || box.Height < 8) return;
+            using (var back = new SolidBrush(Color.FromArgb(255, 32, 36, 44)))
+            using (var edge = new Pen(Color.FromArgb(255, 255, 94, 36)))
+            {
+                e.Graphics.FillRectangle(back, box);
+                e.Graphics.DrawRectangle(edge, box);
+            }
+            TextRenderer.DrawText(e.Graphics, headline, headlineFont, new Point(8, 5), Color.White);
+            TextRenderer.DrawText(e.Graphics, hint, hintFont, new Point(8, 6 + headlineHeight), Color.FromArgb(255, 190, 198, 210));
+        }
+
+        protected override void WndProc(ref Message m)
+        {
+            if (m.Msg == WM_DPICHANGED) return;
+            if (m.Msg == WM_NCHITTEST)
+            {
+                m.Result = HTTRANSPARENT;
+                return;
+            }
+            base.WndProc(ref m);
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                headlineFont.Dispose();
+                hintFont.Dispose();
+            }
+            base.Dispose(disposing);
+        }
+
+        /// <summary>Shows the note beside <paramref name="cursor"/> (physical pixels), kept on the screen the pointer is on.</summary>
+        public void Place(string headlineText, string hintText, Point cursor)
+        {
+            if (!IsHandleCreated) return;
+            headline = headlineText;
+            hint = hintText;
+            Size a = TextRenderer.MeasureText(headline, headlineFont);
+            Size b = TextRenderer.MeasureText(hint, hintFont);
+            headlineHeight = a.Height;
+            int w = Math.Min(Math.Max(a.Width, b.Width) + 20, 560);
+            int h = a.Height + b.Height + 13;
+            Rectangle area = Screen.FromPoint(cursor).WorkingArea;
+            int x = cursor.X + 22;
+            int y = cursor.Y + 26;
+            if (x + w > area.Right) x = cursor.X - w - 14;
+            if (y + h > area.Bottom) y = cursor.Y - h - 14;
+            if (x < area.Left) x = area.Left;
+            if (y < area.Top) y = area.Top;
+            Native.SetWindowPos(Handle, Native.HWND_TOPMOST, x, y, w, h, Native.SWP_SHOWWINDOW | Native.SWP_NOACTIVATE);
+            Invalidate();
+        }
+    }
+
+    /// <summary>
     /// One pick: hover to preview, click to choose, Esc or a right-click to cancel. It runs on the host's message loop, with no loop of its own
     /// (starting a second WinForms loop on that thread throws, which is what the first version did the moment it was started).
     ///
@@ -117,6 +224,10 @@ namespace UIScope.Helper
         private readonly int ownProcessId = System.Diagnostics.Process.GetCurrentProcess().Id;
 
         private OutlineForm outline;
+        private LabelForm label;
+        private string lastLabelText = "";
+        private int lastLabelX = int.MinValue;
+        private int lastLabelY = int.MinValue;
         private Native.LowLevelProc hookProc; // a field: the delegate must outlive the hook
         private IntPtr hook = IntPtr.Zero;
         private Thread worker;
@@ -147,6 +258,9 @@ namespace UIScope.Helper
             outline = new OutlineForm();
             outline.Show();
             if (hideFromCapture) Native.SetWindowDisplayAffinity(outline.Handle, Native.WDA_EXCLUDEFROMCAPTURE); // Windows 10 2004+; older systems ignore it
+            label = new LabelForm();
+            label.Show();
+            if (hideFromCapture) Native.SetWindowDisplayAffinity(label.Handle, Native.WDA_EXCLUDEFROMCAPTURE);
 
             hookProc = HookCallback;
             hook = Native.SetWindowsHookEx(Native.WH_MOUSE_LL, hookProc, Native.GetModuleHandle(null), 0);
@@ -344,6 +458,12 @@ namespace UIScope.Helper
                 outline.Dispose();
             }
             outline = null;
+            if (label != null && !label.IsDisposed)
+            {
+                label.Close();
+                label.Dispose();
+            }
+            label = null;
         }
 
         // -- worker thread: hover ----------------------------------------------------------------
@@ -363,7 +483,11 @@ namespace UIScope.Helper
                         return;
                     }
                     Native.POINT cursor;
-                    if (Native.GetCursorPos(out cursor)) Hover(cursor);
+                    if (Native.GetCursorPos(out cursor))
+                    {
+                        Hover(cursor);
+                        FollowWithLabel(cursor);
+                    }
                     lastFailure = null;
                 }
                 catch (Exception e)
@@ -373,6 +497,31 @@ namespace UIScope.Helper
                 }
                 Thread.Sleep(30);
             }
+        }
+
+        /// <summary>Keeps the note beside the pointer: only when the pointer moved a few pixels or the words changed, not 30 times a second.</summary>
+        private void FollowWithLabel(Native.POINT cursor)
+        {
+            Inspector.ElementInfo info;
+            lock (gate) { info = lastHovered; }
+            string text = info == null ? "Move over an element" : (info.ControlType.Length == 0 ? "Element" : info.ControlType) + (info.Name.Length == 0 ? "" : ": " + Shorten(info.Name));
+            bool moved = Math.Abs(cursor.X - lastLabelX) > 3 || Math.Abs(cursor.Y - lastLabelY) > 3;
+            if (!moved && text == lastLabelText) return;
+            lastLabelX = cursor.X;
+            lastLabelY = cursor.Y;
+            lastLabelText = text;
+            if (stopWorker) return;
+            Point at = new Point(cursor.X, cursor.Y);
+            host.BeginInvoke(new Action(delegate
+            {
+                if (label != null && !label.IsDisposed) label.Place(text, "Click to inspect it  -  Esc or right-click cancels", at);
+            }));
+        }
+
+        private static string Shorten(string name)
+        {
+            string flat = name.Replace('\r', ' ').Replace('\n', ' ');
+            return flat.Length <= 48 ? flat : flat.Substring(0, 47) + "...";
         }
 
         private void Hover(Native.POINT cursor)

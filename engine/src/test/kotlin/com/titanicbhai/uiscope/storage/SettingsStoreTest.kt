@@ -30,7 +30,8 @@ class SettingsStoreTest {
     private val everything = Settings(
         theme = ThemeMode.DARK, checkForUpdates = false, defaultExportFormat = ExportFormat.XML, lastFolder = "C:\\Users\\me\\Doc uments",
         lastTarget = InspectTarget.WINDOWS, adbPath = "/opt/android sdk/platform-tools/adb", lastSerial = "R58M12ABCDE", lastWirelessHost = "192.168.1.20:5555",
-        liveIntervalSeconds = 7, pickHotkeyEnabled = false, pickHotkey = "Ctrl+Shift+K", hideWhilePicking = false,
+        liveIntervalSeconds = 7, pickHotkeyEnabled = false, pickHotkey = "Ctrl+Shift+K", hideWhilePicking = false, activateOnCapture = false,
+        lastSeenVersion = "1.1.0", keepOnTop = true,
         autoSaveSnapshots = true, retentionCount = 42, retentionBytes = 123_456_789_012L, renderer = Renderer.SOFTWARE, logLevel = LogLevelSetting.DEBUG,
         windowWidth = 1280, windowHeight = 800, windowX = -1920, windowY = 40, windowMaximized = true,
         treePaneWidth = 480, detailsPaneWidth = 360, firstRunDone = true,

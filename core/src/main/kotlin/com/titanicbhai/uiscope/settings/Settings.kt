@@ -32,6 +32,10 @@ data class Settings(
     val checkForUpdates: Boolean = true,
     val defaultExportFormat: ExportFormat = ExportFormat.JSON,
     val lastFolder: String? = null,
+    /** The version whose "What's new" the user has already seen (shown once after an update); null = never shown. */
+    val lastSeenVersion: String? = null,
+    /** Keep the UIScope window above other windows, so it stays visible beside the app being inspected. */
+    val keepOnTop: Boolean = false,
     // Inspect
     val lastTarget: InspectTarget = InspectTarget.ANDROID,
     // Android
@@ -43,6 +47,8 @@ data class Settings(
     val pickHotkeyEnabled: Boolean = true,
     val pickHotkey: String = DEFAULT_PICK_HOTKEY,
     val hideWhilePicking: Boolean = true,
+    /** Choosing a window restores it if minimized and brings it to the front before it is captured; UIScope comes back afterwards. */
+    val activateOnCapture: Boolean = true,
     // Snapshots
     val autoSaveSnapshots: Boolean = false,
     val retentionCount: Int = DEFAULT_RETENTION_COUNT,
@@ -72,6 +78,7 @@ data class Settings(
         lastSerial = lastSerial?.ifBlank { null },
         lastWirelessHost = lastWirelessHost?.ifBlank { null },
         lastFolder = lastFolder?.ifBlank { null },
+        lastSeenVersion = lastSeenVersion?.ifBlank { null },
         treePaneWidth = treePaneWidth?.coerceIn(MIN_PANE_WIDTH, MAX_PANE_WIDTH),
         detailsPaneWidth = detailsPaneWidth?.coerceIn(MIN_PANE_WIDTH, MAX_PANE_WIDTH),
     )
