@@ -43,7 +43,7 @@ jobs:
 
       - name: Upload the EXE
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: UIScope-debug-exe
           path: app/build/compose/binaries/main/exe/*.exe
