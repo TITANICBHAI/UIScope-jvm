@@ -32,7 +32,7 @@ jobs:
           mkdir _site/web
           cp -r web/. _site/web/
           rm -rf _site/web/web
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: _site
       - id: deployment
